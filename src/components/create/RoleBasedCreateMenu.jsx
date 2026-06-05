@@ -8,24 +8,30 @@ import {
   BookOpen,
   Database,
   Info,
+  MessageCircle,
   Newspaper,
   Trophy,
 } from 'lucide-react';
 
 const CREATE_OPTIONS_BY_ROLE = {
-  fan: [],
-  creator: [],
-  photographer: [],
-  journalist: ['news', 'transfer'],
-  official_media: ['announcement', 'news'],
-  club: ['announcement', 'transfer'],
-  league: ['announcement', 'news'],
+  fan: ['community'],
+  creator: ['community'],
+  photographer: ['community'],
+  journalist: ['community', 'news', 'transfer'],
+  official_media: ['community', 'announcement', 'news'],
+  club: ['community', 'announcement', 'transfer'],
+  league: ['community', 'announcement', 'news'],
   moderator: [],
   data_editor: [],
-  admin: ['announcement', 'news', 'transfer'],
+  admin: ['community', 'announcement', 'news', 'transfer'],
 };
 
 const CONTENT_OPTIONS = {
+  community: {
+    label: 'Community-Beitrag',
+    route: '/create/community',
+    icon: MessageCircle,
+  },
   announcement: {
     label: 'Ankündigung',
     route: '/create/announcement',

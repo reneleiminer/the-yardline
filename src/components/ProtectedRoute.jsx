@@ -28,9 +28,9 @@ export default function ProtectedRoute({
   children,
   requiredRoute,
   allowedRoles,
-  fallbackRoute = "/settings?login=admin",
+  fallbackRoute = "/settings?login=internal",
 }) {
-  const {
+    const {
     appUserSnapshot,
     isAuthenticated,
     isLoadingAuth,

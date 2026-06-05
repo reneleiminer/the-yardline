@@ -87,6 +87,7 @@ export const VOLUNTEER_ROLE_SLUGS = [
 export const ADMIN_ROLES = [ROLES.ADMIN];
 export const MODERATOR_ROLES = [ROLES.MODERATOR, ROLES.ADMIN];
 export const DATA_EDITOR_ROLES = [ROLES.DATA_EDITOR, ROLES.ADMIN];
+export const GAME_OF_WEEK_ROLES = [ROLES.MEDIA_PARTNER, ROLES.ADMIN];
 
 export const PROFESSIONAL_ROLES = [
   ROLES.CREATOR,
@@ -180,6 +181,7 @@ export const showBadge = role => {
     'official_media',
     'club',
     'league',
+    'media_partner',
   ].includes(slug);
 };
 

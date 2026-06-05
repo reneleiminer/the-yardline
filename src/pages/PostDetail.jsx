@@ -105,9 +105,10 @@ export default function PostDetail() {
     );
   }
 
-  const primaryImage = post.images?.[0];
+    const postImages = getPostImages(post);
+  const primaryImage = postImages[0];
   const league = post.leagueId ? leaguesById?.get(post.leagueId) : null;
-  const teamsList = post.teamIds?.map(teamId => teamsById?.get(teamId)).filter(Boolean) || [];
+  const teamsList = getPostTeamIds(post).map(teamId => teamsById?.get(teamId)).filter(Boolean);
   const config = POST_TYPE_CONFIG[post.type] || POST_TYPE_CONFIG.community;
 
   const author = post.authorId ? appUsersById?.get(post.authorId) : null;
@@ -119,6 +120,28 @@ export default function PostDetail() {
     'fan';
 
   const authorRoleLabel = getRoleLabel(authorRoleValue);
+  function getPostImages(post) {
+  if (Array.isArray(post?.images)) return post.images.filter(Boolean);
+  if (post?.imageUrl) return [post.imageUrl];
+  if (post?.image) return [post.image];
+
+  return [];
+}
+
+function getPostTeamIds(post) {
+  const ids = [];
+
+  if (Array.isArray(post?.teamIds)) ids.push(...post.teamIds);
+  if (post?.teamId) ids.push(post.teamId);
+  if (post?.clubId) ids.push(post.clubId);
+  if (post?.connectedTeamId) ids.push(post.connectedTeamId);
+
+  return Array.from(new Set(ids.filter(Boolean)));
+}
+
+function isClubNews(post) {
+  return post?.sourceType === 'club_news';
+}
 
   const authorData = {
     id: author?.id || post.authorId || '',
@@ -319,10 +342,20 @@ export default function PostDetail() {
           </Badge>
         )}
 
-        {post.category && post.type === 'news' && (
-          <Badge className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-            {post.category}
-          </Badge>
+                {post.type === 'news' && (
+          <div className="flex flex-wrap gap-2">
+            {isClubNews(post) && (
+              <Badge className="text-[10px] font-semibold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                Vereinsnews
+              </Badge>
+            )}
+
+            {post.category && (
+              <Badge className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                {post.category}
+              </Badge>
+            )}
+          </div>
         )}
 
         <div className="flex items-center gap-2 sm:gap-3 py-3 sm:py-4 border-y border-border/30 min-w-0">

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRealtimeQuery } from '@/hooks/useRealtimeQuery';
@@ -227,14 +227,30 @@ function getStatValue(stats, key, fallback = 0) {
   return value;
 }
 
+function hasMeaningfulValue(value) {
+  return value !== null && value !== undefined && String(value).trim() !== '';
+}
+
+function hasMeaningfulObjectValues(object) {
+  if (!object || typeof object !== 'object') return false;
+
+  return Object.values(object).some(value => {
+    if (value && typeof value === 'object') {
+      return hasMeaningfulObjectValues(value);
+    }
+
+    return hasMeaningfulValue(value);
+  });
+}
+
 function hasGameStats(stat) {
   if (!stat) return false;
 
-  const hasHomeStats = stat.homeStats && Object.keys(stat.homeStats).length > 0;
-  const hasAwayStats = stat.awayStats && Object.keys(stat.awayStats).length > 0;
-  const hasLeaders = stat.leaders && Object.keys(stat.leaders).length > 0;
-
-  return hasHomeStats || hasAwayStats || hasLeaders;
+  return (
+    hasMeaningfulObjectValues(stat.homeStats) ||
+    hasMeaningfulObjectValues(stat.awayStats) ||
+    hasMeaningfulObjectValues(stat.leaders)
+  );
 }
 
 function formatThirdDown(stats) {
@@ -248,6 +264,28 @@ function formatThirdDown(stats) {
 function formatStatDisplay(value) {
   if (value === null || value === undefined || value === '') return '-';
   return String(value);
+}
+function getLeaderName(leader) {
+  return leader?.name || leader?.player || '-';
+}
+
+function getLeaderLine(leader) {
+  if (!leader || typeof leader !== 'object') return '';
+
+  const parts = [];
+
+  if (leader.completions || leader.attempts) {
+    parts.push(`${leader.completions || 0}/${leader.attempts || 0}`);
+  }
+
+  if (leader.yards) parts.push(`${leader.yards} YDS`);
+  if (leader.touchdowns) parts.push(`${leader.touchdowns} TD`);
+  if (leader.interceptions) parts.push(`${leader.interceptions} INT`);
+  if (leader.receptions) parts.push(`${leader.receptions} REC`);
+  if (leader.tackles) parts.push(`${leader.tackles} TKL`);
+  if (leader.sacks) parts.push(`${leader.sacks} SACK`);
+
+  return leader.line || parts.join(' · ');
 }
 
 function normalizeStreamLinks(game) {
@@ -414,8 +452,8 @@ function PlaceholderScoreHero({ game, home, away, league }) {
     : '';
 
   const weekLabel = game.week ? `Spieltag ${game.week}` : '';
-  const homeName = home?.shortName || home?.name || game.homeTeamPlaceholder || 'Teilnehmer offen';
-  const awayName = away?.shortName || away?.name || game.awayTeamPlaceholder || 'Teilnehmer offen';
+  const homeName = home?.name || home?.shortName || game.homeTeamPlaceholder || 'Teilnehmer offen';
+const awayName = away?.name || away?.shortName || game.awayTeamPlaceholder || 'Teilnehmer offen';
 
   return (
     <div className="px-4 pt-4 pb-2">
@@ -431,9 +469,9 @@ function PlaceholderScoreHero({ game, home, away, league }) {
             <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
               <Shield className="w-6 h-6 text-muted-foreground" />
             </div>
-            <span className="text-xs font-bold text-center truncate w-full">
-              {homeName}
-            </span>
+            <span className="text-xs font-bold text-center leading-tight whitespace-normal break-words w-full">
+  {homeName}
+</span>
           </div>
 
           <div className="flex flex-col items-center flex-shrink-0 gap-1">
@@ -476,9 +514,9 @@ function PlaceholderScoreHero({ game, home, away, league }) {
             <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
               <Shield className="w-6 h-6 text-muted-foreground" />
             </div>
-            <span className="text-xs font-bold text-center truncate w-full">
-              {awayName}
-            </span>
+            <span className="text-xs font-bold text-center leading-tight whitespace-normal break-words w-full">
+  {awayName}
+</span>
           </div>
         </div>
       </div>
@@ -487,8 +525,6 @@ function PlaceholderScoreHero({ game, home, away, league }) {
 }
 
 function StreamLinksBlock({ game }) {
-  if (game?.status === 'cancelled') return null;
-
   const visibleStreams = getVisibleStreamLinks(game);
 
   if (visibleStreams.length === 0) return null;
@@ -497,31 +533,24 @@ function StreamLinksBlock({ game }) {
     <div className="px-4 pt-4 pb-2">
       <div className="rounded-2xl border border-border/50 bg-card p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Play className="w-4 h-4 text-primary fill-primary" />
+          <Play className="w-4 h-4 text-primary" />
           <h2 className="text-sm font-bold">Stream</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
           {visibleStreams.map(stream => (
             <a
               key={stream.id}
-              href={stream.url}
+              href={normalizeExternalUrl(stream.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="min-h-[72px] rounded-xl border border-border/40 bg-secondary/30 px-3 py-3 hover:border-primary/40 hover:bg-primary/10 transition-colors flex items-center gap-3"
+              className="snap-start shrink-0 w-20 rounded-2xl border border-border/50 bg-secondary/30 px-2 py-3 flex flex-col items-center text-center active:scale-[0.98] transition-transform"
             >
-              <StreamProviderLogo stream={stream} />
+              <StreamProviderLogo stream={stream} size="w-11 h-11" />
 
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate">
-                  {getStreamName(stream)}
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  Stream öffnen
-                </p>
-              </div>
-
-              <ExternalLink className="w-4 h-4 text-primary flex-shrink-0" />
+              <span className="mt-2 text-[10px] font-black leading-tight line-clamp-2 min-h-[24px]">
+                {getStreamName(stream)}
+              </span>
             </a>
           ))}
         </div>
@@ -706,7 +735,12 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
 
 
 function GameLeaderRow({ title, homeLeader, awayLeader }) {
-  if (!homeLeader && !awayLeader) return null;
+  const homeName = getLeaderName(homeLeader);
+  const awayName = getLeaderName(awayLeader);
+  const homeLine = getLeaderLine(homeLeader);
+  const awayLine = getLeaderLine(awayLeader);
+
+  if (homeName === '-' && awayName === '-' && !homeLine && !awayLine) return null;
 
   return (
     <div className="border-t border-border/40 first:border-t-0 py-4">
@@ -719,24 +753,24 @@ function GameLeaderRow({ title, homeLeader, awayLeader }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="min-w-0">
           <p className="text-sm font-black truncate">
-            {homeLeader?.name || '-'}
+            {homeName}
           </p>
 
-          {homeLeader?.line && (
+          {homeLine && (
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {homeLeader.line}
+              {homeLine}
             </p>
           )}
         </div>
 
         <div className="min-w-0 text-right">
           <p className="text-sm font-black truncate">
-            {awayLeader?.name || '-'}
+            {awayName}
           </p>
 
-          {awayLeader?.line && (
+          {awayLine && (
             <p className="text-xs text-muted-foreground mt-0.5 truncate">
-              {awayLeader.line}
+              {awayLine}
             </p>
           )}
         </div>
@@ -745,7 +779,7 @@ function GameLeaderRow({ title, homeLeader, awayLeader }) {
   );
 }
 
-function TeamStatCompareRow({ label, homeValue, awayValue }) {
+function TeamStatCompareRow({ label, homeValue, awayValue, homeColor = '#2563eb', awayColor = '#ef4444' }) {
   const homeNumber = Number(homeValue || 0);
   const awayNumber = Number(awayValue || 0);
   const canGraph = Number.isFinite(homeNumber) && Number.isFinite(awayNumber);
@@ -778,8 +812,8 @@ function TeamStatCompareRow({ label, homeValue, awayValue }) {
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
         <div className="h-2 rounded-full bg-secondary overflow-hidden flex justify-end">
           <div
-            className="h-full rounded-full bg-primary"
-            style={{ width: homeWidth }}
+            className="h-full rounded-full"
+            style={{ width: homeWidth, backgroundColor: homeColor }}
           />
         </div>
 
@@ -787,8 +821,8 @@ function TeamStatCompareRow({ label, homeValue, awayValue }) {
 
         <div className="h-2 rounded-full bg-secondary overflow-hidden">
           <div
-            className="h-full rounded-full bg-red-500/70"
-            style={{ width: awayWidth }}
+            className="h-full rounded-full"
+            style={{ width: awayWidth, backgroundColor: awayColor }}
           />
         </div>
       </div>
@@ -841,7 +875,9 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
   const homeStats = stat.homeStats || {};
   const awayStats = stat.awayStats || {};
   const leaders = stat.leaders || {};
-
+  const homeColor = home?.primaryColor || home?.colorPrimary || home?.teamColor || '#2563eb';
+  const awayColor = away?.primaryColor || away?.colorPrimary || away?.teamColor || '#ef4444';
+  
   return (
     <div className="px-4 pt-4 pb-2 space-y-3">
       <div className="rounded-2xl border border-border/50 bg-card p-4">
@@ -856,42 +892,6 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
               Game Leaders und Team Stats nach dem Spiel.
             </p>
           </div>
-        </div>
-
-        <div className="rounded-2xl border border-border/40 bg-background/30 px-3 py-2">
-          <div className="grid grid-cols-2 gap-3 mb-2">
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate">
-              {homeName}
-            </p>
-
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate text-right">
-              {awayName}
-            </p>
-          </div>
-
-          <GameLeaderRow
-            title="Passing"
-            homeLeader={leaders.passing?.home}
-            awayLeader={leaders.passing?.away}
-          />
-
-          <GameLeaderRow
-            title="Rushing"
-            homeLeader={leaders.rushing?.home}
-            awayLeader={leaders.rushing?.away}
-          />
-
-          <GameLeaderRow
-            title="Receiving"
-            homeLeader={leaders.receiving?.home}
-            awayLeader={leaders.receiving?.away}
-          />
-
-          <GameLeaderRow
-            title="Defense"
-            homeLeader={leaders.defense?.home}
-            awayLeader={leaders.defense?.away}
-          />
         </div>
       </div>
 
@@ -909,36 +909,48 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
               label="Total Yards"
               homeValue={getStatValue(homeStats, 'totalYards', 0)}
               awayValue={getStatValue(awayStats, 'totalYards', 0)}
+                            homeColor={homeColor}
+              awayColor={awayColor}
             />
 
             <TeamStatCompareRow
               label="Passing Yards"
               homeValue={getStatValue(homeStats, 'passingYards', 0)}
               awayValue={getStatValue(awayStats, 'passingYards', 0)}
+                            homeColor={homeColor}
+              awayColor={awayColor}
             />
 
             <TeamStatCompareRow
               label="Rushing Yards"
               homeValue={getStatValue(homeStats, 'rushingYards', 0)}
               awayValue={getStatValue(awayStats, 'rushingYards', 0)}
+                            homeColor={homeColor}
+              awayColor={awayColor}
             />
 
             <TeamStatCompareRow
               label="Penalty Yards"
               homeValue={getStatValue(homeStats, 'penaltyYards', 0)}
               awayValue={getStatValue(awayStats, 'penaltyYards', 0)}
+                            homeColor={homeColor}
+              awayColor={awayColor}
             />
 
             <TeamStatCompareRow
               label="3rd Down Conv."
               homeValue={formatThirdDown(homeStats)}
               awayValue={formatThirdDown(awayStats)}
+                            homeColor={homeColor}
+              awayColor={awayColor}
             />
 
             <TeamStatCompareRow
               label="Turnovers"
               homeValue={getStatValue(homeStats, 'turnovers', 0)}
               awayValue={getStatValue(awayStats, 'turnovers', 0)}
+                            homeColor={homeColor}
+              awayColor={awayColor}
             />
           </div>
         </div>
@@ -950,6 +962,52 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
           awayTime={awayStats.timeOfPossession}
         />
       </div>
+            {hasMeaningfulObjectValues(leaders) && (
+        <div className="rounded-2xl border border-border/50 bg-card p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart3 className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-bold">
+              Game Leaders
+            </h2>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-background/30 px-3 py-2">
+            <div className="grid grid-cols-2 gap-3 mb-2">
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate">
+                {homeName}
+              </p>
+
+              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate text-right">
+                {awayName}
+              </p>
+            </div>
+
+            <GameLeaderRow
+              title="Passing"
+              homeLeader={leaders.passing?.home}
+              awayLeader={leaders.passing?.away}
+            />
+
+            <GameLeaderRow
+              title="Rushing"
+              homeLeader={leaders.rushing?.home}
+              awayLeader={leaders.rushing?.away}
+            />
+
+            <GameLeaderRow
+              title="Receiving"
+              homeLeader={leaders.receiving?.home}
+              awayLeader={leaders.receiving?.away}
+            />
+
+            <GameLeaderRow
+              title="Defense"
+              homeLeader={leaders.defense?.home}
+              awayLeader={leaders.defense?.away}
+            />
+          </div>
+        </div>
+      )}
 
       {stat.source && (
         <p className="text-[10px] text-muted-foreground px-1">
@@ -1096,6 +1154,7 @@ export default function GameDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [activeDetailTab, setActiveDetailTab] = useState('overview');
 
   const visitorId = useMemo(() => getOrCreateVisitorId(), []);
 
@@ -1127,10 +1186,10 @@ export default function GameDetail() {
     entity: 'Game',
   });
 
-  const { data: gameContentItems = [] } = useQuery({
+    const { data: gameContentItems = [] } = useQuery({
     queryKey: ['game-content', id],
     queryFn: async () => {
-      const all = await base44.entities.AppUpdate.list('-created_date', 1000);
+      const all = await base44.entities.AppUpdate.list('-created_date', 2000);
 
       return all.filter(item => {
         if (![
@@ -1141,7 +1200,14 @@ export default function GameDetail() {
         }
 
         const meta = parseMessage(item.message);
-        return meta.game_id === id;
+        const linkedGameId =
+          meta.game_id ||
+          meta.gameId ||
+          item.game_id ||
+          item.gameId ||
+          '';
+
+        return String(linkedGameId) === String(id);
       });
     },
     enabled: !!id,
@@ -1194,6 +1260,11 @@ export default function GameDetail() {
       .filter(item => item.version === GAME_PREDICTION_VERSION && item.isActive !== false);
   }, [gameContentItems]);
 
+  const showStatisticsTab = game?.status === 'final' && hasGameStats(gameStatistic);
+  const selectedDetailTab = activeDetailTab === 'statistics' && !showStatisticsTab
+    ? 'overview'
+    : activeDetailTab;
+    
   const currentPrediction = useMemo(() => {
     const item = predictions.find(prediction => {
       const meta = parseMessage(prediction.message);
@@ -1282,36 +1353,90 @@ export default function GameDetail() {
 
       {!isCancelled && <StreamLinksBlock game={game} />}
 
-      {!isCancelled && (
-        <PredictionBlock
-        game={game}
-        home={home}
-        away={away}
-        predictions={predictions}
-        currentPrediction={currentPrediction}
-        onSubmit={data => savePredictionMutation.mutate(data)}
-        isSaving={savePredictionMutation.isPending}
-        />
-      )}
+      <div className="px-4 pt-4">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border/50 bg-card p-1">
+          <button
+            type="button"
+            onClick={() => setActiveDetailTab('overview')}
+            className={`h-10 rounded-xl text-xs font-black transition-colors ${
+              selectedDetailTab === 'overview'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Übersicht
+          </button>
 
-      {!isCancelled && <GameDayShotsBlock photos={gamedayShots} />}
+          {showStatisticsTab && (
+            <button
+              type="button"
+              onClick={() => setActiveDetailTab('statistics')}
+              className={`h-10 rounded-xl text-xs font-black transition-colors ${
+                selectedDetailTab === 'statistics'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Statistiken
+            </button>
+          )}
 
-      <AfterGameStatisticsBlock
-        game={game}
-        stat={gameStatistic}
-        home={home}
-        away={away}
-      />
+          <button
+            type="button"
+            onClick={() => setActiveDetailTab('info')}
+            className={`h-10 rounded-xl text-xs font-black transition-colors ${
+              selectedDetailTab === 'info'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            } ${showStatisticsTab ? '' : 'col-span-1'}`}
+          >
+            Infos
+          </button>
+        </div>
+      </div>
 
-      {hasBothRealTeams && !isCancelled && (
+      {selectedDetailTab === 'overview' && (
         <>
-          <TeamForm game={game} teams={teamMap} allGames={allGames} />
-          <HeadToHead game={game} teams={teamMap} allGames={allGames} />
+          {!isCancelled && (
+            <PredictionBlock
+              game={game}
+              home={home}
+              away={away}
+              predictions={predictions}
+              currentPrediction={currentPrediction}
+              onSubmit={data => savePredictionMutation.mutate(data)}
+              isSaving={savePredictionMutation.isPending}
+            />
+          )}
+
+          {!isCancelled && gamedayShots.length > 0 && (
+            <GameDayShotsBlock photos={gamedayShots} />
+          )}
+
+          {hasBothRealTeams && !isCancelled && (
+            <>
+              <TeamForm game={game} teams={teamMap} allGames={allGames} />
+              <HeadToHead game={game} teams={teamMap} allGames={allGames} />
+            </>
+          )}
         </>
       )}
 
-      <MatchInfo game={game} league={league} />
-      <NotesBlock game={game} />
+      {selectedDetailTab === 'statistics' && showStatisticsTab && (
+        <AfterGameStatisticsBlock
+          game={game}
+          stat={gameStatistic}
+          home={home}
+          away={away}
+        />
+      )}
+
+      {selectedDetailTab === 'info' && (
+        <>
+          <MatchInfo game={game} league={league} />
+          <NotesBlock game={game} />
+        </>
+      )}
     </div>
   );
 }

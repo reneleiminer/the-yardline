@@ -28,6 +28,21 @@ function getStatusStyle(status) {
   return STATUS_STYLES[status] || STATUS_STYLES.upcoming;
 }
 
+function getCompetitionTypeLabel(type) {
+  const normalized = String(type || "").trim().toLowerCase();
+
+  const labels = {
+    playoffs: "Playoffs",
+    playoff: "Playoffs",
+    cup: "Cup",
+    bowl: "Bowl",
+    tournament: "Turnier",
+    league: "Liga",
+  };
+
+  return labels[normalized] || type || "Cup";
+}
+
 function CompetitionLogo({ competition }) {
   const logoUrl = competition.logo ? getImageUrl(competition.logo) : "";
 
@@ -65,7 +80,7 @@ function CompetitionRow({ competition }) {
         </div>
 
         <p className="text-xs text-muted-foreground mt-0.5 truncate">
-          {[competition.type || "Cup", competition.season].filter(Boolean).join(" · ")}
+            {[getCompetitionTypeLabel(competition.type), competition.season].filter(Boolean).join(" · ")}
         </p>
       </div>
 

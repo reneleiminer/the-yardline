@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronRight,
-  Database,
   FileText,
   Headphones,
   Menu,
@@ -105,7 +104,7 @@ function shouldUseFallback(location) {
     search.includes("login=") ||
     location.pathname === "/settings" ||
     location.pathname === "/support" ||
-    location.pathname === "/legal"
+    location.pathname === "/legal" 
   );
 }
 
@@ -284,29 +283,23 @@ function HeaderMenu({ open, onClose }) {
     },
   ];
 
-  const internalItems = [
-    {
-      label: "Admin",
-      icon: ShieldCheck,
-      route: "/settings?login=admin",
-    },
-    {
-      label: "Dateneditor",
-      icon: Database,
-      route: "/settings?login=data_editor",
-    },
-  ];
+    const internalLoginItem = {
+    label: "Interner Login",
+    description: "Admin, Dateneditor, Media oder Verein",
+    icon: ShieldCheck,
+    route: "/settings?login=internal",
+  };
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[80] bg-[#050608] overflow-hidden">
       <div
-  className="relative flex items-center h-[68px] px-2 sm:px-3 w-full border-b border-white/10"
-  style={{
-    paddingTop: "env(safe-area-inset-top)",
-  }}
->
+        className="relative flex items-center h-[68px] px-2 sm:px-3 w-full border-b border-white/10"
+        style={{
+          paddingTop: "env(safe-area-inset-top)",
+        }}
+      >
         <BrandLogo centered />
 
         <button
@@ -346,32 +339,33 @@ function HeaderMenu({ open, onClose }) {
           })}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-[#1f1e22] border border-white/8 overflow-hidden">
-          <div className="grid grid-cols-2 divide-x divide-white/8">
-            {internalItems.map((item) => {
-              const Icon = item.icon;
+               <div className="mt-4 rounded-2xl bg-[#1f1e22] border border-white/8 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              navigate(internalLoginItem.route);
+            }}
+            className="w-full min-h-[64px] flex items-center gap-3 px-4 text-left active:bg-white/8 transition-colors"
+            aria-label={internalLoginItem.label}
+            title={internalLoginItem.label}
+          >
+            <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
 
-              return (
-                <button
-                  key={item.route}
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    navigate(item.route);
-                  }}
-                  className="h-20 flex flex-col items-center justify-center gap-2 active:bg-white/8 transition-colors"
-                  aria-label={`${item.label} Login`}
-                  title={`${item.label} Login`}
-                >
-                  <Icon className="w-6 h-6 text-primary" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-bold text-white block">
+                {internalLoginItem.label}
+              </span>
 
-                  <span className="text-[10px] font-bold text-white/70">
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+              <span className="text-[11px] text-white/45 block truncate mt-0.5">
+                {internalLoginItem.description}
+              </span>
+            </div>
+
+            <ChevronRight className="w-4 h-4 text-white/45 flex-shrink-0" />
+          </button>
         </div>
       </div>
     </div>

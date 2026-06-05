@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Check,
@@ -6,7 +6,6 @@ import {
   Database,
   Globe2,
   Lock,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
@@ -29,19 +28,20 @@ function normalizeRole(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function getLoginTitle(loginTarget) {
-  if (loginTarget === "admin") return "Admin Login";
-  if (loginTarget === "data_editor") return "Dateneditor Login";
+function getLoginTitle() {
   return "Interner Login";
 }
 
-function getTargetRoute(loginTarget) {
-  if (loginTarget === "admin") return "/admin";
-  if (loginTarget === "data_editor") return "/data-editor";
+function getTargetRouteForRole(roleSlug) {
+  if (roleSlug === "admin") return "/admin";
+  if (roleSlug === "data_editor") return "/data-editor";
+  if (roleSlug === "media_partner") return "/data-editor";
+  if (roleSlug === "club") return "/create/news";
+
   return "/";
 }
 
-function InternalLoginBox({ loginTarget = "" }) {
+function InternalLoginBox() {
   const navigate = useNavigate();
 
   const {
@@ -69,35 +69,22 @@ function InternalLoginBox({ loginTarget = "" }) {
     }
 
     const roleSlug = normalizeRole(result.appUser?.roleSlug || result.appUser?.role);
-
-    if (loginTarget === "admin" && roleSlug !== "admin") {
-      setLocalError("Dieses Konto hat keinen Admin-Zugang.");
-      return;
-    }
-
-    if (loginTarget === "data_editor" && roleSlug !== "data_editor") {
-      setLocalError("Dieses Konto hat keinen Dateneditor-Zugang.");
-      return;
-    }
-
-    navigate(getTargetRoute(loginTarget), { replace: true });
+    navigate(getTargetRouteForRole(roleSlug), { replace: true });
   };
-
-  const Icon = loginTarget === "admin" ? ShieldCheck : Database;
 
   return (
     <div className="bg-card border border-border/50 rounded-2xl p-4">
       <div className="flex items-start gap-3 mb-4">
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-5 h-5 text-primary" />
+          <Database className="w-5 h-5 text-primary" />
         </div>
 
         <div>
           <h2 className="text-sm font-bold">
-            {getLoginTitle(loginTarget)}
+            Interner Login
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Bitte immer neu einloggen.
+            Ein Login für Admin, Dateneditor, Media und Vereine.
           </p>
         </div>
       </div>
@@ -221,28 +208,20 @@ function AppInfoSettings() {
 export default function Settings() {
   const [searchParams] = useSearchParams();
 
-  const loginTarget = useMemo(() => {
-    const value = searchParams.get("login");
-
-    if (value === "admin") return "admin";
-    if (value === "data_editor") return "data_editor";
-
-    return "";
-  }, [searchParams]);
+  const showInternalLogin = searchParams.has("login");
 
   useSetHeader({
     mode: "back",
-    title: loginTarget ? getLoginTitle(loginTarget) : "Einstellungen",
+    title: showInternalLogin ? getLoginTitle() : "Einstellungen",
   });
 
-  if (loginTarget) {
+  if (showInternalLogin) {
     return (
       <div className="w-full max-w-full overflow-x-hidden px-4 pt-4 pb-24">
-        <InternalLoginBox loginTarget={loginTarget} />
+        <InternalLoginBox />
       </div>
     );
   }
-
   return (
     <div className="min-h-[calc(100dvh-68px)] w-full max-w-full overflow-x-hidden px-4 pt-4 pb-24 flex flex-col">
       <div className="space-y-3">

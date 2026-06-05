@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
+  Building2,
   CheckCircle2,
   KeyRound,
   Loader2,
   Lock,
+  Newspaper,
   Pencil,
   Plus,
   RotateCcw,
@@ -25,6 +27,7 @@ const EMPTY_USER = {
   username: "",
   displayName: "",
   roleSlug: "data_editor",
+  connectedTeamId: "",
   internalPassword: "",
   status: "active",
 };
@@ -32,7 +35,23 @@ const EMPTY_USER = {
 const ROLE_LABELS = {
   admin: "Admin",
   data_editor: "DataEditor",
+  media_partner: "Media",
+  club: "Verein",
 };
+
+const ROLE_DISPLAY_LABELS = {
+  admin: "Admin",
+  data_editor: "Dateneditor",
+  media_partner: "Media",
+  club: "Verein",
+};
+
+const INTERNAL_ROLE_OPTIONS = [
+  { value: "admin", label: "Admin" },
+  { value: "data_editor", label: "Dateneditor" },
+  { value: "media_partner", label: "Media" },
+  { value: "club", label: "Verein" },
+];
 
 const STATUS_LABELS = {
   active: "Aktiv",
@@ -44,9 +63,23 @@ function normalizeUsername(value) {
   return String(value || "").trim().toLowerCase();
 }
 
-function getInternalEmail(username) {
+function normalizeRole(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getInternalEmail(username, roleSlug = "data_editor") {
   const cleanUsername = normalizeUsername(username).replace(/[^a-z0-9._-]/g, "-");
-  return `${cleanUsername || "data-editor"}@the-yardline.internal`;
+
+  const prefixByRole = {
+    admin: "admin",
+    data_editor: "data-editor",
+    media_partner: "media",
+    club: "verein",
+  };
+
+  const prefix = prefixByRole[roleSlug] || "internal";
+
+  return `${cleanUsername || prefix}@the-yardline.internal`;
 }
 
 function getInternalPassword(user) {
@@ -60,12 +93,18 @@ function getInternalPassword(user) {
 }
 
 function getRoleSlug(user) {
-  return String(user?.roleSlug || user?.role || "").toLowerCase();
+  return normalizeRole(user?.roleSlug || user?.role);
 }
 
 function isInternalLogin(user) {
   const roleSlug = getRoleSlug(user);
-  return roleSlug === "admin" || roleSlug === "data_editor";
+
+  return (
+    roleSlug === "admin" ||
+    roleSlug === "data_editor" ||
+    roleSlug === "media_partner" ||
+    roleSlug === "club"
+  );
 }
 
 function isAdmin(user) {
@@ -74,6 +113,14 @@ function isAdmin(user) {
 
 function isDataEditor(user) {
   return getRoleSlug(user) === "data_editor";
+}
+
+function isMediaPartner(user) {
+  return getRoleSlug(user) === "media_partner";
+}
+
+function isClubAccount(user) {
+  return getRoleSlug(user) === "club";
 }
 
 function isInactive(user) {
@@ -90,18 +137,33 @@ function canManageTarget(user) {
   return !!user && !isProtectedAccount(user);
 }
 
+function getTeamName(teams, teamId) {
+  if (!teamId) return "";
+
+  const team = teams.find(item => item.id === teamId);
+
+  return team?.name || team?.displayName || team?.shortName || "";
+}
+
 function RoleBadge({ user }) {
-  const admin = isAdmin(user);
+  const roleSlug = getRoleSlug(user);
+  const admin = roleSlug === "admin";
+  const media = roleSlug === "media_partner";
+  const club = roleSlug === "club";
 
   return (
     <span
       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
         admin
           ? "bg-blue-500/15 text-blue-400"
+          : media
+          ? "bg-pink-500/15 text-pink-400"
+          : club
+          ? "bg-emerald-500/15 text-emerald-400"
           : "bg-primary/15 text-primary"
       }`}
     >
-      {admin ? "Admin" : "Dateneditor"}
+      {ROLE_DISPLAY_LABELS[roleSlug] || "Dateneditor"}
     </span>
   );
 }
@@ -122,14 +184,19 @@ function StatusBadge({ user }) {
   );
 }
 
-function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
+function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, submitLabel }) {
   const isExistingProtected = initial?.id && isProtectedAccount(initial);
 
   const [form, setForm] = useState({
     ...EMPTY_USER,
     ...initial,
     username: initial?.username || initial?.internalUsername || "",
-    roleSlug: "data_editor",
+    roleSlug: initial?.roleSlug || "data_editor",
+    connectedTeamId:
+      initial?.connectedTeamId ||
+      initial?.connectedClubId ||
+      initial?.linkedClubId ||
+      "",
     internalPassword: "",
   });
 
@@ -147,7 +214,17 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
     }
 
     const username = normalizeUsername(form.username);
-    const roleSlug = "data_editor";
+    const roleSlug = normalizeRole(form.roleSlug || "data_editor");
+
+    if (!["admin", "data_editor", "media_partner", "club"].includes(roleSlug)) {
+      toast.error("Bitte eine gültige Account-Art auswählen.");
+      return;
+    }
+
+    if (roleSlug === "club" && !form.connectedTeamId) {
+      toast.error("Bitte einen Verein verbinden.");
+      return;
+    }
 
     if (!username) {
       toast.error("Bitte Benutzername eingeben");
@@ -171,6 +248,9 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
       displayName: form.displayName.trim(),
       roleSlug,
       role: ROLE_LABELS[roleSlug],
+      connectedTeamId: roleSlug === "club" ? form.connectedTeamId : "",
+      connectedClubId: roleSlug === "club" ? form.connectedTeamId : "",
+      linkedClubId: roleSlug === "club" ? form.connectedTeamId : "",
       status: form.status || "active",
       internalPassword: form.internalPassword.trim(),
     });
@@ -185,7 +265,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
           </h2>
 
           <p className="text-xs text-muted-foreground mt-0.5">
-            Login für interne Datenpflege
+            Login für Admin, Dateneditor, Media oder Vereinszugänge
           </p>
         </div>
 
@@ -232,11 +312,24 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <select
-          value="data_editor"
-          disabled
-          className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground opacity-80"
+          value={form.roleSlug}
+          onChange={event => {
+            const nextRole = event.target.value;
+
+            setForm(current => ({
+              ...current,
+              roleSlug: nextRole,
+              connectedTeamId: nextRole === "club" ? current.connectedTeamId : "",
+            }));
+          }}
+          disabled={isExistingProtected}
+          className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground disabled:opacity-60"
         >
-          <option value="data_editor">Dateneditor</option>
+          {INTERNAL_ROLE_OPTIONS.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
 
         <select
@@ -250,6 +343,22 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
           <option value="blocked">Gesperrt</option>
         </select>
       </div>
+
+      {form.roleSlug === "club" && (
+        <select
+          value={form.connectedTeamId}
+          onChange={event => set("connectedTeamId", event.target.value)}
+          disabled={isExistingProtected}
+          className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground disabled:opacity-60"
+        >
+          <option value="">Verein verbinden...</option>
+          {teams.map(team => (
+            <option key={team.id} value={team.id}>
+              {team.name || team.displayName || team.shortName || "Unbenannter Verein"}
+            </option>
+          ))}
+        </select>
+      )}
 
       <Input
         type="password"
@@ -303,6 +412,11 @@ export default function AdminUsers() {
     queryFn: () => base44.entities.AppUser.list("-created_date"),
   });
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ["adminUsersTeams"],
+    queryFn: () => base44.entities.Team.list("name"),
+  });
+
   const internalUsers = useMemo(() => {
     return users.filter(isInternalLogin);
   }, [users]);
@@ -313,7 +427,7 @@ export default function AdminUsers() {
     return internalUsers.filter(user => {
       const matchesRole =
         selectedRole === "all" ||
-        user.roleSlug === selectedRole;
+        getRoleSlug(user) === selectedRole;
 
       if (!matchesRole) return false;
       if (!query) return true;
@@ -344,10 +458,13 @@ export default function AdminUsers() {
       return base44.entities.AppUser.create({
         username: data.username,
         internalUsername: data.internalUsername,
-        email: getInternalEmail(data.username),
+        email: getInternalEmail(data.username, data.roleSlug),
         displayName: data.displayName,
-        roleSlug: "data_editor",
-        role: "DataEditor",
+        roleSlug: data.roleSlug,
+        role: ROLE_LABELS[data.roleSlug] || "DataEditor",
+        connectedTeamId: data.roleSlug === "club" ? data.connectedTeamId : "",
+        connectedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
+        linkedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
         status: data.status || "active",
         internalPassword: data.internalPassword,
         verified: true,
@@ -359,10 +476,10 @@ export default function AdminUsers() {
         updatedAtUtc: new Date().toISOString(),
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, data) => {
       invalidateUsers();
       setShowCreate(false);
-      toast.success("Dateneditor-Login erstellt");
+      toast.success(`${ROLE_DISPLAY_LABELS[data.roleSlug] || "Interner"}-Login erstellt`);
     },
     onError: error => {
       toast.error(error.message || "Login konnte nicht erstellt werden");
@@ -378,10 +495,13 @@ export default function AdminUsers() {
       const payload = {
         username: data.username,
         internalUsername: data.internalUsername,
-        email: user.email || getInternalEmail(data.username),
+        email: user.email || getInternalEmail(data.username, data.roleSlug),
         displayName: data.displayName,
-        roleSlug: "data_editor",
-        role: "DataEditor",
+        roleSlug: data.roleSlug,
+        role: ROLE_LABELS[data.roleSlug] || "DataEditor",
+        connectedTeamId: data.roleSlug === "club" ? data.connectedTeamId : "",
+        connectedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
+        linkedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
         status: data.status || "active",
         isInternalUser: true,
         needsOnboarding: false,
@@ -394,10 +514,10 @@ export default function AdminUsers() {
 
       return base44.entities.AppUser.update(user.id, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       invalidateUsers();
       setEditingUser(null);
-      toast.success("Dateneditor-Login aktualisiert");
+      toast.success(`${ROLE_DISPLAY_LABELS[variables.data.roleSlug] || "Interner"}-Login aktualisiert`);
     },
     onError: error => {
       toast.error(error.message || "Login konnte nicht aktualisiert werden");
@@ -459,7 +579,7 @@ export default function AdminUsers() {
     onSuccess: () => {
       invalidateUsers();
       setDeleteTarget(null);
-      toast.success("Dateneditor-Login gelöscht");
+      toast.success("Interner Login gelöscht");
     },
     onError: error => {
       toast.error(error.message || "Login konnte nicht gelöscht werden");
@@ -508,7 +628,7 @@ export default function AdminUsers() {
           </h1>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Hier verwaltest du interne Dateneditor-Zugänge. Dein Admin-/Owner-Account ist geschützt.
+            Hier verwaltest du Admin-, Dateneditor-, Media- und Vereinszugänge. Dein Owner-Account ist geschützt.
           </p>
         </div>
 
@@ -525,13 +645,13 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <ShieldCheck className="w-4 h-4 text-blue-400 mb-2" />
           <div className="text-xl font-black">
             {internalUsers.filter(isAdmin).length}
           </div>
-          <div className="text-[10px] text-muted-foreground">Admin geschützt</div>
+          <div className="text-[10px] text-muted-foreground">Admin</div>
         </div>
 
         <div className="bg-card border border-border/50 rounded-xl p-3">
@@ -540,6 +660,22 @@ export default function AdminUsers() {
             {internalUsers.filter(isDataEditor).length}
           </div>
           <div className="text-[10px] text-muted-foreground">Dateneditoren</div>
+        </div>
+
+        <div className="bg-card border border-border/50 rounded-xl p-3">
+          <Newspaper className="w-4 h-4 text-pink-400 mb-2" />
+          <div className="text-xl font-black">
+            {internalUsers.filter(isMediaPartner).length}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Media</div>
+        </div>
+
+        <div className="bg-card border border-border/50 rounded-xl p-3">
+          <Building2 className="w-4 h-4 text-emerald-400 mb-2" />
+          <div className="text-xl font-black">
+            {internalUsers.filter(isClubAccount).length}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Vereine</div>
         </div>
 
         <div className="bg-card border border-border/50 rounded-xl p-3">
@@ -554,7 +690,8 @@ export default function AdminUsers() {
       {showCreate && (
         <div className="mb-5">
           <UserForm
-            title="Dateneditor-Login erstellen"
+            title="Internen Login erstellen"
+            teams={teams}
             onSave={data => createMutation.mutate(data)}
             onCancel={() => setShowCreate(false)}
             isSaving={createMutation.isPending}
@@ -566,8 +703,9 @@ export default function AdminUsers() {
       {editingUser && (
         <div className="mb-5">
           <UserForm
-            title="Dateneditor-Login bearbeiten"
+            title="Internen Login bearbeiten"
             initial={editingUser}
+            teams={teams}
             onSave={data => updateMutation.mutate({ user: editingUser, data })}
             onCancel={() => setEditingUser(null)}
             isSaving={updateMutation.isPending}
@@ -591,7 +729,10 @@ export default function AdminUsers() {
         <div className="flex gap-2 flex-wrap">
           {[
             { key: "all", label: "Alle" },
+            { key: "admin", label: "Admin" },
             { key: "data_editor", label: "Dateneditoren" },
+            { key: "media_partner", label: "Media" },
+            { key: "club", label: "Vereine" },
           ].map(item => (
             <button
               key={item.key}
@@ -631,7 +772,7 @@ export default function AdminUsers() {
           </h3>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle den ersten Zugang für Dateneditoren.
+            Erstelle den ersten Zugang für Admin, Dateneditor, Media oder Verein.
           </p>
         </div>
       ) : (
@@ -640,6 +781,12 @@ export default function AdminUsers() {
             const passwordSet = !!getInternalPassword(user);
             const protectedAccount = isProtectedAccount(user);
             const manageable = canManageTarget(user);
+            const media = isMediaPartner(user);
+            const club = isClubAccount(user);
+            const connectedTeamName = getTeamName(
+              teams,
+              user.connectedTeamId || user.connectedClubId || user.linkedClubId
+            );
 
             return (
               <div
@@ -650,6 +797,10 @@ export default function AdminUsers() {
                   <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
                     {isAdmin(user) ? (
                       <ShieldCheck className="w-5 h-5 text-blue-400" />
+                    ) : media ? (
+                      <Newspaper className="w-5 h-5 text-pink-400" />
+                    ) : club ? (
+                      <Building2 className="w-5 h-5 text-emerald-400" />
                     ) : (
                       <UserCog className="w-5 h-5 text-primary" />
                     )}
@@ -686,6 +837,12 @@ export default function AdminUsers() {
                     <p className="text-xs text-muted-foreground mt-1">
                       @{user.internalUsername || user.username}
                     </p>
+
+                    {club && (
+                      <p className="text-[11px] text-emerald-300 mt-1">
+                        Verein: {connectedTeamName || "Nicht verbunden"}
+                      </p>
+                    )}
 
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Erstellt: {user.createdAtUtc || user.created_date || "unbekannt"}
@@ -763,7 +920,7 @@ export default function AdminUsers() {
         <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-2xl p-5 max-w-sm w-full">
             <h2 className="text-lg font-bold">
-              Dateneditor-Login löschen?
+              Internen Login löschen?
             </h2>
 
             <p className="text-sm text-muted-foreground mt-2">

@@ -3,14 +3,11 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   addDays,
-  endOfWeek,
   format,
   isAfter,
   isBefore,
-  isWithinInterval,
   parseISO,
   startOfDay,
-  startOfWeek,
   subDays,
 } from "date-fns";
 import { de } from "date-fns/locale";
@@ -24,7 +21,6 @@ import {
   Radio,
   Search,
   ShieldCheck,
-  Sparkles,
   Star,
   Zap,
 } from "lucide-react";
@@ -34,7 +30,6 @@ import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
 
 const HIGHLIGHT_VERSION = "game_highlight";
-const SPOTLIGHT_VERSION = "team_spotlight";
 const AD_BANNER_VERSION = "ad_banner";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
 
@@ -156,19 +151,7 @@ function isNewContent(item, maxAgeHours = 24) {
   return ageMs <= maxAgeHours * 60 * 60 * 1000;
 }
 
-function normalizeSpotlight(item) {
-  const meta = parseJsonMessage(item.message);
 
-  return {
-    ...item,
-    team_id: meta.team_id || "",
-    start_date: meta.start_date || "",
-    end_date: meta.end_date || "",
-    headline: meta.headline || item.title || "",
-    description: meta.description || "",
-    active: item.isActive !== false && meta.active !== false,
-  };
-}
 
 function normalizeAdBanner(item) {
   const meta = parseJsonMessage(item.message);
@@ -254,6 +237,14 @@ function getTeam(teamId, teamsById) {
 function getLeague(leagueId, leaguesById) {
   return leagueId ? leaguesById.get(leagueId) : null;
 }
+function isPartnerClubGame(game, partnerTeamIds) {
+  if (!game || !partnerTeamIds) return false;
+
+  return (
+    partnerTeamIds.has(game.homeTeamId) ||
+    partnerTeamIds.has(game.awayTeamId)
+  );
+}
 
 function getTeamName(team, fallback) {
   return team?.shortName || team?.name || fallback || "Offen";
@@ -291,80 +282,7 @@ function hasFinalScore(game) {
   );
 }
 
-function getScoreDiff(game) {
-  return Math.abs(Number(game.scoreHome || 0) - Number(game.scoreAway || 0));
-}
 
-function getTotalPoints(game) {
-  return Number(game.scoreHome || 0) + Number(game.scoreAway || 0);
-}
-
-function isSpecialGame(game) {
-  const value = [
-    game.roundName,
-    game.stage,
-    game.type,
-    game.competitionName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return (
-    game.isCompetitionGame ||
-    game.competitionId ||
-    game.tournamentId ||
-    value.includes("playoff") ||
-    value.includes("final") ||
-    value.includes("bowl")
-  );
-}
-
-function getWeekWindowFromStart(weekStart) {
-  return {
-    start: weekStart,
-    end: endOfWeek(weekStart, { weekStartsOn: 1 }),
-  };
-}
-
-function findLatestCompletedGameWeek(games, today) {
-  const currentWeekStart = startOfWeek(today, { weekStartsOn: 1 });
-
-  for (let offset = 0; offset < 10; offset += 1) {
-    const weekStart = subDays(currentWeekStart, offset * 7);
-    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-
-    const weekGames = games.filter((game) => {
-      const date = getGameDate(game);
-      if (!date) return false;
-
-      return isWithinInterval(date, {
-        start: weekStart,
-        end: weekEnd,
-      });
-    });
-
-    if (weekGames.length === 0) continue;
-
-    const hasOpenGames = weekGames.some((game) =>
-      getEffectiveGameStatus(game) === "scheduled" ||
-      getEffectiveGameStatus(game) === "live"
-    );
-
-    const finalGames = weekGames.filter(hasFinalScore);
-
-    if (hasOpenGames) continue;
-    if (finalGames.length === 0) continue;
-
-    return {
-      start: weekStart,
-      end: weekEnd,
-      games: finalGames,
-    };
-  }
-
-  return null;
-}
 
 function buildTeamRecords(games) {
   const records = new Map();
@@ -424,39 +342,7 @@ function buildTeamRecords(games) {
   return records;
 }
 
-function buildLeagueRanks(records, leaguesById) {
-  const byLeague = new Map();
 
-  Array.from(records.values()).forEach(record => {
-    const key = record.leagueId || "unknown";
-
-    if (!byLeague.has(key)) {
-      byLeague.set(key, []);
-    }
-
-    byLeague.get(key).push(record);
-  });
-
-  const ranks = new Map();
-
-  byLeague.forEach((rows, leagueId) => {
-    rows
-      .sort((a, b) => {
-        if (b.wins !== a.wins) return b.wins - a.wins;
-        if (a.losses !== b.losses) return a.losses - b.losses;
-
-        const leagueA = leaguesById.get(a.leagueId);
-        const leagueB = leaguesById.get(b.leagueId);
-
-        return getLeaguePriority(leagueA) - getLeaguePriority(leagueB);
-      })
-      .forEach((record, index) => {
-        ranks.set(`${leagueId}:${record.teamId}`, index + 1);
-      });
-  });
-
-  return ranks;
-}
 
 function isActiveInDateRange(item, today) {
   if (!item.active) return false;
@@ -512,7 +398,7 @@ function highlightMatchesCurrentFilter(highlight, selectedLeagueId, query, teams
 }
 
 function TeamMark({ team, fallback, size = "md" }) {
-  const sizeClass = size === "lg" ? "w-12 h-12 rounded-2xl" : "w-8 h-8 rounded-xl";
+  const sizeClass = size === "lg" ? "w-14 h-14 rounded-2xl" : "w-8 h-8 rounded-xl";
 
   if (team?.logo) {
     return (
@@ -734,13 +620,13 @@ function LiveGameCard({ game, teamsById, leaguesById }) {
 
       <div className="space-y-2">
         <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-          <TeamMark team={home} fallback={homeName} />
+          <TeamMark team={home} fallback={homeName} size="lg" />
           <span className="text-xs font-black truncate">{homeName}</span>
           <span className="text-sm font-black">{game.scoreHome ?? 0}</span>
         </div>
 
         <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-          <TeamMark team={away} fallback={awayName} />
+          <TeamMark team={away} fallback={awayName} size="lg" />
           <span className="text-xs font-black truncate">{awayName}</span>
           <span className="text-sm font-black">{game.scoreAway ?? 0}</span>
         </div>
@@ -791,35 +677,47 @@ function GameOfWeekCard({ game, teamsById, leaguesById, label }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-            <div className="min-w-0 flex items-center gap-2">
-              <TeamMark team={home} fallback={homeName} />
-              <span className="text-xs font-black truncate">{homeName}</span>
-            </div>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 items-center">
+  <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
+    <TeamMark team={home} fallback={homeName} size="lg" />
+    <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
+      {homeName}
+    </span>
+  </div>
 
             <div className="text-center px-2">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl font-black tabular-nums leading-none">
-                  {game.scoreHome ?? 0}
-                </span>
+              {game.status === "final" || game.status === "live" ? (
+  <div className="flex items-center justify-center gap-2">
+    <span className="text-xl font-black tabular-nums leading-none">
+      {game.scoreHome ?? 0}
+    </span>
 
-                <span className="text-lg font-black text-muted-foreground">
-                  :
-                </span>
+    <span className="text-lg font-black text-muted-foreground">
+      :
+    </span>
 
-                <span className="text-xl font-black tabular-nums leading-none">
-                  {game.scoreAway ?? 0}
-                </span>
-              </div>
+    <span className="text-xl font-black tabular-nums leading-none">
+      {game.scoreAway ?? 0}
+    </span>
+  </div>
+) : (
+  <div className="flex items-center justify-center">
+    <span className="text-sm font-black text-muted-foreground rounded-xl border border-white/10 px-3 py-1">
+      VS
+    </span>
+  </div>
+)}
               <p className="text-[9px] text-muted-foreground mt-0.5">
                 {date ? format(date, "dd.MM.", { locale: de }) : "Final"}
               </p>
             </div>
 
-            <div className="min-w-0 flex items-center justify-end gap-2">
-              <span className="text-xs font-black truncate text-right">{awayName}</span>
-              <TeamMark team={away} fallback={awayName} />
-            </div>
+            <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
+  <TeamMark team={away} fallback={awayName} size="lg" />
+  <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
+    {awayName}
+  </span>
+</div>
           </div>
         </div>
       </Link>
@@ -1010,113 +908,113 @@ function GameDayShotStoryModal({ item, teamsById, leaguesById, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[90] bg-black/95 flex flex-col">
-      <div className="flex items-center justify-between gap-3 px-4 pt-[calc(14px+env(safe-area-inset-top))] pb-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-            GameDay Shots
-          </p>
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col overflow-hidden">
+      <div className="shrink-0 px-4 pt-[calc(72px+env(safe-area-inset-top))] pb-3 bg-black border-b border-white/10">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-primary">
+              GameDay Shots
+            </p>
 
-          <p className="text-sm font-black truncate">
-            {homeName} vs {awayName}
-          </p>
+            <p className="text-sm font-black leading-tight whitespace-normal break-words mt-1">
+              {homeName} vs {awayName}
+            </p>
 
-          <p className="text-[10px] text-white/55 truncate">
-            {[league?.shortName || league?.name, date ? format(date, "dd.MM.yyyy", { locale: de }) : ""]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+            <p className="text-[10px] text-white/55 leading-tight whitespace-normal break-words mt-1">
+              {[league?.shortName || league?.name, date ? format(date, "dd.MM.yyyy", { locale: de }) : ""]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-11 h-11 rounded-full bg-white/20 border border-white/25 flex items-center justify-center text-white text-2xl font-black flex-shrink-0"
+            aria-label="Schließen"
+          >
+            ×
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white font-black"
-          aria-label="Schließen"
-        >
-          ×
-        </button>
+        <div className="mt-3 flex gap-1">
+          {shots.map((entry, dotIndex) => (
+            <div
+              key={entry.id || dotIndex}
+              className={`h-1 rounded-full flex-1 ${
+                dotIndex <= index ? "bg-white" : "bg-white/25"
+              }`}
+            />
+          ))}
+        </div>
       </div>
 
-      <div className="px-4 pb-2 flex gap-1">
-        {shots.map((entry, dotIndex) => (
-          <div
-            key={entry.id || dotIndex}
-            className={`h-1 rounded-full flex-1 ${
-              dotIndex <= index ? "bg-white" : "bg-white/25"
-            }`}
-          />
-        ))}
-      </div>
-
-      <div className="relative flex-1 min-h-0 flex items-center justify-center">
-        {shot?.image_url ? (
-          <img
-            src={getImageUrl(shot.image_url)}
-            alt={shot.caption || "GameDay Shot"}
-            className="max-w-full max-h-full object-contain"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
+      <div className="relative flex-1 min-h-0 px-3 py-2 bg-black flex items-center justify-center">
+        <div className="relative w-full h-full max-h-[48vh] rounded-2xl overflow-hidden bg-[#050914] border border-white/10 flex items-center justify-center">
+          {shot?.image_url ? (
+            <img
+              src={getImageUrl(shot.image_url)}
+              alt={shot.caption || "GameDay Shot"}
+              className="w-full h-full object-contain"
+            />
+          ) : (
             <ImageIcon className="w-10 h-10 text-white/40" />
+          )}
+
+          {shots.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={goPrev}
+                className="absolute left-0 top-0 bottom-0 w-1/3"
+                aria-label="Vorheriges Bild"
+              />
+
+              <button
+                type="button"
+                onClick={goNext}
+                className="absolute right-0 top-0 bottom-0 w-1/3"
+                aria-label="Nächstes Bild"
+              />
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="shrink-0 max-h-[30vh] overflow-y-auto px-4 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))] bg-black border-t border-white/10">
+        {shot?.caption && (
+          <p className="text-sm font-bold leading-relaxed whitespace-normal break-words">
+            {shot.caption}
+          </p>
+        )}
+
+        {(shot?.credit || shot?.instagram) && (
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {shot.credit && (
+              shot.credit_link ? (
+                <a
+                  href={normalizeUrl(shot.credit_link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-white/65 hover:text-white transition-colors"
+                >
+                  Foto: {shot.credit}
+                </a>
+              ) : (
+                <p className="text-xs text-white/60">
+                  Foto: {shot.credit}
+                </p>
+              )
+            )}
+
+            <InstagramCreditButton instagram={shot.instagram} />
           </div>
         )}
 
-        {shots.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={goPrev}
-              className="absolute left-0 top-0 bottom-0 w-1/3"
-              aria-label="Vorheriges Bild"
-            />
-
-            <button
-              type="button"
-              onClick={goNext}
-              className="absolute right-0 top-0 bottom-0 w-1/3"
-              aria-label="Nächstes Bild"
-            />
-          </>
-        )}
+        <p className="text-[10px] text-white/45 mt-2">
+          {index + 1} / {shots.length}
+        </p>
       </div>
-
-      {(shot?.caption || shot?.credit || shot?.instagram) && (
-        <div className="px-4 pt-3 pb-[calc(18px+env(safe-area-inset-bottom))] bg-gradient-to-t from-black via-black/90 to-transparent">
-          {shot.caption && (
-            <p className="text-sm font-bold leading-relaxed">
-              {shot.caption}
-            </p>
-          )}
-
-          {(shot.credit || shot.instagram) && (
-            <div className="mt-2 flex items-center gap-2 flex-wrap">
-              {shot.credit && (
-                shot.credit_link ? (
-                  <a
-                    href={normalizeUrl(shot.credit_link)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-white/65 hover:text-white transition-colors"
-                  >
-                    Foto: {shot.credit}
-                  </a>
-                ) : (
-                  <p className="text-xs text-white/60">
-                    Foto: {shot.credit}
-                  </p>
-                )
-              )}
-
-              <InstagramCreditButton instagram={shot.instagram} />
-            </div>
-          )}
-
-          <p className="text-[10px] text-white/45 mt-2">
-            {index + 1} / {shots.length}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
@@ -1157,11 +1055,11 @@ function GameDayShotsReelCard({ item, teamsById, leaguesById, onOpen }) {
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/10 to-transparent" />
 
-        <div className="absolute top-2 left-2">
-          <span className="rounded-full bg-black/70 border border-white/15 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-white">
-            {shots.length} Shots
-          </span>
+      {cover?.instagram && (
+        <div className="absolute top-2 right-2 z-10">
+          <InstagramCreditButton instagram={cover.instagram} compact />
         </div>
+      )}
 
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-lg">
@@ -1207,8 +1105,10 @@ function UndefeatedTeamCard({ item, leaguesById }) {
       <div className="flex items-center gap-2">
         <TeamMark team={team} fallback={team.name} />
         <div className="min-w-0">
-          <p className="text-xs font-black truncate">{team.shortName || team.name}</p>
-          <p className="text-[10px] text-muted-foreground truncate">
+                   <p className="text-xs font-black leading-tight whitespace-normal break-words line-clamp-2 min-h-[30px]">
+            {team.name || team.shortName}
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-tight whitespace-normal break-words line-clamp-2">
             {league?.shortName || league?.name || "Liga"}
           </p>
         </div>
@@ -1227,7 +1127,7 @@ function UndefeatedTeamCard({ item, leaguesById }) {
   );
 }
 
-function UpcomingGameCard({ game, teamsById, leaguesById }) {
+function UpcomingGameCard({ game, teamsById, leaguesById, partnerTeamIds }) {
   const home = getTeam(game.homeTeamId, teamsById);
   const away = getTeam(game.awayTeamId, teamsById);
   const league = getLeague(game.leagueId, leaguesById);
@@ -1237,21 +1137,35 @@ function UpcomingGameCard({ game, teamsById, leaguesById }) {
   const awayName = getTeamName(away, game.awayTeamPlaceholder);
   const homeColor = getTeamColor(home, "#2563eb");
   const awayColor = getTeamColor(away, "#ef4444");
+  const recommended = isPartnerClubGame(game, partnerTeamIds);
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className="snap-start shrink-0 w-[286px] rounded-2xl border border-white/10 p-3 active:scale-[0.99] transition-transform overflow-hidden"
+      className={`snap-start shrink-0 w-[286px] rounded-2xl border p-3 active:scale-[0.99] transition-transform overflow-hidden ${
+        recommended ? "border-primary/45" : "border-white/10"
+      }`}
       style={{
         background: `linear-gradient(135deg, ${homeColor}20 0%, #101722 45%, ${awayColor}18 100%)`,
-        boxShadow: `inset 5px 0 0 ${homeColor}, inset -5px 0 0 ${awayColor}, 0 10px 24px rgba(0,0,0,0.22)`,
+        boxShadow: recommended
+          ? `inset 5px 0 0 ${homeColor}, inset -5px 0 0 ${awayColor}, 0 0 0 1px rgba(0,91,255,0.18), 0 16px 32px rgba(0,91,255,0.14)`
+          : `inset 5px 0 0 ${homeColor}, inset -5px 0 0 ${awayColor}, 0 10px 24px rgba(0,0,0,0.22)`,
       }}
     >
       <div className="flex items-center justify-between gap-2 mb-4">
         <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground truncate">
-            {league?.shortName || league?.name || "Spiel"}
-          </p>
+          <div className="flex items-center gap-1.5 mb-1">
+            <p className="text-[10px] text-muted-foreground truncate">
+              {league?.shortName || league?.name || "Spiel"}
+            </p>
+
+            {recommended && (
+              <span className="text-[8px] font-black uppercase tracking-wider rounded-full bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 flex-shrink-0">
+                Empfohlen
+              </span>
+            )}
+          </div>
+
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {date ? format(date, "dd.MM. · HH:mm", { locale: de }) : "Termin offen"}
           </p>
@@ -1263,6 +1177,7 @@ function UpcomingGameCard({ game, teamsById, leaguesById }) {
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
         <div className="min-w-0 flex flex-col items-center text-center">
           <TeamMark team={home} fallback={homeName} size="lg" />
+
           <span className="text-[11px] font-black leading-tight text-center mt-2 whitespace-normal break-words line-clamp-2">
             {homeName}
           </span>
@@ -1274,6 +1189,7 @@ function UpcomingGameCard({ game, teamsById, leaguesById }) {
 
         <div className="min-w-0 flex flex-col items-center text-center">
           <TeamMark team={away} fallback={awayName} size="lg" />
+
           <span className="text-[11px] font-black leading-tight text-center mt-2 whitespace-normal break-words line-clamp-2">
             {awayName}
           </span>
@@ -1282,98 +1198,56 @@ function UpcomingGameCard({ game, teamsById, leaguesById }) {
     </Link>
   );
 }
+function NewsRailCard({ post }) {
+  const imageUrl =
+    Array.isArray(post.images) && post.images.length > 0
+      ? post.images[0]
+      : post.imageUrl || post.image || "";
 
-function TeamSpotlightCard({ spotlight, team, league, record, nextGames, teamsById }) {
-  if (!spotlight || !team) return null;
-
-  const color = getTeamColor(team, "#2563eb");
-  const secondary = team.secondaryColor || team.colorSecondary || "#0f172a";
-  const headline = spotlight.headline || "Team Spotlight";
+  const isClubNews = post.sourceType === "club_news";
 
   return (
-    <section className="px-4 pt-6 pb-4">
-      <SectionTitle icon={Sparkles} title="Team Spotlight" />
-
-      <Link
-        to={`/team/${team.id}`}
-        className="block rounded-2xl border border-white/10 overflow-hidden active:scale-[0.99] transition-transform"
-        style={{
-          background: `radial-gradient(circle at 18% 18%, ${color}44 0%, transparent 34%), linear-gradient(135deg, ${secondary} 0%, #101722 52%, ${color}24 100%)`,
-          boxShadow: `inset 5px 0 0 ${color}`,
-        }}
-      >
-        <div className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="w-20 h-20 rounded-3xl bg-black/25 border border-white/10 flex items-center justify-center p-2 flex-shrink-0">
-              {team.logo ? (
-                <img
-                  src={getImageUrl(team.logo)}
-                  alt={team.name || ""}
-                  className="max-w-full max-h-full object-contain"
-                  loading="lazy"
-                />
-              ) : (
-                <span className="text-2xl font-black">
-                  {team.shortName?.[0] || team.name?.[0] || "T"}
-                </span>
-              )}
-            </div>
-
-            <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-                {headline}
-              </p>
-
-              <h2 className="text-xl font-black leading-tight truncate mt-1">
-                {team.name}
-              </h2>
-
-              <p className="text-xs text-muted-foreground mt-1 truncate">
-                {league?.shortName || league?.name || "Team"}
-                {record?.played > 0 ? ` · ${record.wins}-${record.losses}` : ""}
-              </p>
-            </div>
-          </div>
-
-          {spotlight.description && (
-            <p className="text-sm text-muted-foreground leading-relaxed mt-4 line-clamp-3">
-              {spotlight.description}
-            </p>
-          )}
-
-          {nextGames.length > 0 && (
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-2">
-                Nächstes Spiel
-              </p>
-
-              {nextGames.slice(0, 2).map(game => {
-                const isHome = game.homeTeamId === team.id;
-                const opponent = getTeam(isHome ? game.awayTeamId : game.homeTeamId, teamsById);
-                const date = getGameDate(game);
-
-                return (
-                  <div key={game.id} className="flex items-center justify-between gap-3 text-xs">
-                    <span className="font-bold truncate">
-                      {isHome ? "vs" : "@"} {getTeamName(opponent, "Offen")}
-                    </span>
-
-                    <span className="text-muted-foreground flex-shrink-0">
-                      {date ? format(date, "dd.MM.", { locale: de }) : "offen"}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-black text-primary">
-            Team ansehen
-            <ChevronRight className="w-3.5 h-3.5" />
-          </div>
+    <Link
+      to={`/post/${post.id}`}
+      className="snap-start shrink-0 w-[220px] rounded-2xl border border-white/10 bg-card overflow-hidden active:scale-[0.98] transition-transform"
+    >
+      {imageUrl ? (
+        <img
+          src={getImageUrl(imageUrl)}
+          alt={post.title || "News"}
+          className="w-full aspect-video object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="w-full aspect-video bg-gradient-to-br from-blue-950 via-slate-950 to-black flex items-center justify-center">
+          <ImageIcon className="w-7 h-7 text-primary" />
         </div>
-      </Link>
-    </section>
+      )}
+
+      <div className="p-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {isClubNews && (
+            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/10 rounded-full px-2 py-0.5">
+              Vereinsnews
+            </span>
+          )}
+
+          <span className="text-[10px] text-primary font-black uppercase tracking-wider">
+            {post.category || "News"}
+          </span>
+        </div>
+
+        <h3 className="text-sm font-black leading-tight mt-1 line-clamp-2">
+          {post.title}
+        </h3>
+
+        {(post.teaser || post.text) && (
+          <p className="text-[11px] text-muted-foreground leading-tight mt-1 line-clamp-2">
+            {post.teaser || post.text}
+          </p>
+        )}
+      </div>
+    </Link>
   );
 }
 
@@ -1405,14 +1279,7 @@ export default function Home() {
   const { data: homeAppUpdates = [] } = useQuery({
     queryKey: ["home-app-updates"],
     queryFn: async () => {
-      const updateGroups = await Promise.all([
-        base44.entities.AppUpdate.filter({ version: HIGHLIGHT_VERSION }),
-        base44.entities.AppUpdate.filter({ version: SPOTLIGHT_VERSION }),
-        base44.entities.AppUpdate.filter({ version: AD_BANNER_VERSION }),
-        base44.entities.AppUpdate.filter({ version: GAMEDAY_SHOT_VERSION }),
-      ]);
-
-      return updateGroups.flat();
+      return await base44.entities.AppUpdate.list("-created_date");
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
@@ -1421,6 +1288,40 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: homePosts = [] } = useQuery({
+    queryKey: ["home-news-posts"],
+    queryFn: async () => {
+      return await base44.entities.Post.list("-publishedAtUtc", 20);
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: 2,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+  });
+    const { data: homePartners = [] } = useQuery({
+    queryKey: ["home-partners"],
+    queryFn: async () => {
+      return await base44.entities.Partner.list();
+    },
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: 2,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+  });
+
+  const partnerTeamIds = useMemo(() => {
+    return new Set(
+      homePartners
+        .filter(partner =>
+          partner.isPartnerClub === true ||
+          partner.partnerStatus === "active"
+        )
+        .map(partner => partner.connectedTeamId || partner.teamId)
+        .filter(Boolean)
+    );
+  }, [homePartners]);
   const highlights = useMemo(() => {
     return homeAppUpdates
       .filter(item =>
@@ -1430,14 +1331,7 @@ export default function Home() {
       .map(normalizeHighlight);
   }, [homeAppUpdates]);
 
-  const spotlights = useMemo(() => {
-    return homeAppUpdates
-      .filter(item =>
-        item.version === SPOTLIGHT_VERSION &&
-        item.isActive !== false
-      )
-      .map(normalizeSpotlight);
-  }, [homeAppUpdates]);
+  
 
   const adBanners = useMemo(() => {
     return homeAppUpdates
@@ -1506,8 +1400,7 @@ const tomorrow = useMemo(() => addDays(today, 1), [today]);
 const lastSevenDays = useMemo(() => subDays(today, 7), [today]);
 const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
 
-  const teamRecords = useMemo(() => buildTeamRecords(games), [games]);
-  const leagueRanks = useMemo(() => buildLeagueRanks(teamRecords, leaguesById), [teamRecords, leaguesById]);
+    const teamRecords = useMemo(() => buildTeamRecords(games), [games]);
 
   const liveGames = useMemo(() => {
     return filteredGames
@@ -1516,80 +1409,72 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
   }, [filteredGames]);
 
   const gameOfTheWeek = useMemo(() => {
-    const completedWeek = findLatestCompletedGameWeek(filteredGames, today);
+    const candidates = filteredGames
+      .filter(game => game.isGameOfTheWeek === true)
+      .filter(game => getEffectiveGameStatus(game) !== "cancelled")
+      .sort((a, b) => {
+        const selectedA = new Date(a.gameOfTheWeekSelectedAtUtc || 0).getTime();
+        const selectedB = new Date(b.gameOfTheWeekSelectedAtUtc || 0).getTime();
 
-    const candidates = completedWeek?.games?.length
-      ? completedWeek.games
-      : filteredGames.filter(game => {
-          const date = getGameDate(game);
-          if (!date) return false;
-          if (!hasFinalScore(game)) return false;
+        if (selectedA !== selectedB) return selectedB - selectedA;
 
-          return isAfter(date, lastSevenDays) && isBefore(date, addDays(today, 1));
-        });
+        const dateA = getGameDate(a)?.getTime() || 0;
+        const dateB = getGameDate(b)?.getTime() || 0;
 
-    if (candidates.length === 0) return null;
+        return dateB - dateA;
+      });
 
-    const scored = candidates.map(game => {
-      const league = getLeague(game.leagueId, leaguesById);
-      const diff = getScoreDiff(game);
-      const total = getTotalPoints(game);
+    const selectedGame = candidates[0] || null;
 
-      let score = 0;
-      let label = "";
+    if (!selectedGame) return null;
 
-      if (diff >= 1 && diff <= 3) {
-        score += 70;
-        label = "Closest Finish";
-      } else if (diff >= 4 && diff <= 7) {
-        score += 45;
-        label = "Close Game";
-      }
-
-      if (total >= 60) {
-        score += 30;
-        label = label || "Shootout";
-      }
-
-      if (isSpecialGame(game)) {
-        score += 25;
-        label = label || "Top Matchup";
-      }
-
-      const homeRank = leagueRanks.get(`${game.leagueId || "unknown"}:${game.homeTeamId}`);
-      const awayRank = leagueRanks.get(`${game.leagueId || "unknown"}:${game.awayTeamId}`);
-
-      if (homeRank && awayRank && homeRank <= 3 && awayRank <= 3) {
-        score += 25;
-        label = label || "Top Matchup";
-      }
-
-      score += Math.max(0, 20 - getLeaguePriority(league));
-      score += Math.min(total, 80) / 8;
-
-      return {
-        game,
-        score,
-        label,
-      };
-    });
-
-    return scored.sort((a, b) => b.score - a.score)[0] || null;
-  }, [filteredGames, lastSevenDays, leagueRanks, leaguesById, today]);
-
+    return {
+      game: selectedGame,
+      label: selectedGame.gameOfTheWeekLabel || "by Media",
+    };
+  }, [filteredGames]);
   const homeHighlights = useMemo(() => {
-    const maxAgeDate = subDays(today, 7);
+  const maxAgeDate = subDays(today, 7);
 
-    const matchesCurrentView = highlight => highlightMatchesCurrentFilter(
+  return [...highlights]
+    .filter(highlight => highlight.active !== false)
+    .filter(highlight => {
+      const linkedGame = highlight.game_id
+        ? gamesById.get(highlight.game_id)
+        : null;
+
+      const gameDate = linkedGame ? getGameDate(linkedGame) : null;
+
+      // Wenn ein Highlight einem Spiel zugeordnet ist,
+      // zählt das Spiel-Datum.
+      if (gameDate) {
+        return !isBefore(gameDate, maxAgeDate) && !isAfter(gameDate, addDays(today, 1));
+      }
+
+      // Wenn kein Spiel zugeordnet ist, nutzen wir als Fallback das Highlight-Datum.
+      const rawDate =
+        highlight.date ||
+        highlight.createdAtUtc ||
+        highlight.created_date ||
+        '';
+
+      if (!rawDate) return true;
+
+      const highlightDate = startOfDay(new Date(rawDate));
+
+      if (Number.isNaN(highlightDate.getTime())) return true;
+
+      return !isBefore(highlightDate, maxAgeDate);
+    })
+    .filter(highlight => highlightMatchesCurrentFilter(
       highlight,
       selectedLeagueId,
       query,
       teamsById,
       leaguesById,
       gamesById
-    );
-
-    const sortByNewest = (a, b) => {
+    ))
+    .sort((a, b) => {
       const gameA = a.game_id ? gamesById.get(a.game_id) : null;
       const gameB = b.game_id ? gamesById.get(b.game_id) : null;
 
@@ -1604,48 +1489,38 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
       ).getTime();
 
       return dateB - dateA;
-    };
+    })
+    .slice(0, 8);
+}, [gamesById, highlights, leaguesById, query, selectedLeagueId, teamsById, today]);
 
-    const activeHighlights = [...highlights]
-      .filter(highlight => highlight.active !== false)
-      .filter(matchesCurrentView);
+  const homeNews = useMemo(() => {
+    return [...homePosts]
+      .filter(post => post.type === "news")
+      .filter(post => post.isActive !== false)
+      .filter(post => {
+        if (!query) return true;
 
-    const recentHighlights = activeHighlights
-      .filter(highlight => {
-        const linkedGame = highlight.game_id
-          ? gamesById.get(highlight.game_id)
-          : null;
+        const haystack = [
+          post.title,
+          post.teaser,
+          post.text,
+          post.category,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-        const gameDate = linkedGame ? getGameDate(linkedGame) : null;
-
-        if (gameDate) {
-          return !isBefore(gameDate, maxAgeDate) && !isAfter(gameDate, addDays(today, 1));
-        }
-
-        const rawDate =
-          highlight.date ||
-          highlight.createdAtUtc ||
-          highlight.created_date ||
-          '';
-
-        if (!rawDate) return true;
-
-        const highlightDate = startOfDay(new Date(rawDate));
-
-        if (Number.isNaN(highlightDate.getTime())) return true;
-
-        return !isBefore(highlightDate, maxAgeDate);
+        return haystack.includes(query);
       })
-      .sort(sortByNewest)
+      .sort((a, b) => {
+        const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || a.created_date || 0).getTime();
+        const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || b.created_date || 0).getTime();
+
+        return dateB - dateA;
+      })
       .slice(0, 8);
-
-    if (recentHighlights.length > 0) return recentHighlights;
-
-    return activeHighlights
-      .sort(sortByNewest)
-      .slice(0, 8);
-  }, [gamesById, highlights, leaguesById, query, selectedLeagueId, teamsById, today]);
-
+  }, [homePosts, query]);
+  
   const activeAdBanners = useMemo(() => {
     return [...adBanners]
       .filter(banner => isActiveInDateRange(banner, today))
@@ -1724,126 +1599,98 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
         isBefore(date, addDays(nextSevenDays, 1))
       );
     })
-    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
+          .sort((a, b) => {
+      const partnerA = isPartnerClubGame(a, partnerTeamIds) ? 0 : 1;
+      const partnerB = isPartnerClubGame(b, partnerTeamIds) ? 0 : 1;
+
+      if (partnerA !== partnerB) return partnerA - partnerB;
+
+      return (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0);
+    })
     .slice(0, 7);
-}, [filteredGames, nextSevenDays]);
+}, [filteredGames, nextSevenDays, partnerTeamIds]);
 
   const gameDayShotGames = useMemo(() => {
-    const grouped = new Map();
-    const maxAgeDate = subDays(today, 14);
+  const grouped = new Map();
+  const maxAgeDate = subDays(today, 7);
 
-    gameDayShots
-      .filter(shot => shot.active !== false && shot.game_id && shot.image_url)
-      .forEach(shot => {
-        const game = gamesById.get(shot.game_id);
-        if (!game) return;
-        if (getEffectiveGameStatus(game) === "cancelled") return;
+  gameDayShots
+    .filter(shot => shot.active !== false && shot.game_id && shot.image_url)
+    .forEach(shot => {
+      const game = gamesById.get(shot.game_id);
+      if (!game) return;
+      if (getEffectiveGameStatus(game) === "cancelled") return;
 
-        const gameDate = getGameDate(game);
-        if (gameDate && isBefore(gameDate, maxAgeDate)) return;
-        if (gameDate && isAfter(gameDate, addDays(today, 1))) return;
+      const gameDate = getGameDate(game);
+      if (!gameDate) return;
 
-        if (selectedLeagueId && game.leagueId !== selectedLeagueId) return;
+      // Nur Spiele anzeigen, die maximal 7 Tage zurückliegen.
+      // Ab dem 8. Tag verschwinden sie automatisch.
+      if (isBefore(gameDate, maxAgeDate)) return;
 
-        if (query) {
-          const home = teamsById.get(game.homeTeamId);
-          const away = teamsById.get(game.awayTeamId);
-          const league = leaguesById.get(game.leagueId);
+      // Nur vergangene oder heutige Spiele anzeigen, keine zukünftigen.
+      if (isAfter(gameDate, addDays(today, 1))) return;
 
-          const haystack = [
-            home?.name,
-            home?.shortName,
-            away?.name,
-            away?.shortName,
-            league?.name,
-            league?.shortName,
-            game.homeTeamPlaceholder,
-            game.awayTeamPlaceholder,
-            game.roundName,
-            shot.caption,
-            shot.credit,
-            shot.instagram,
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
+      if (selectedLeagueId && game.leagueId !== selectedLeagueId) return;
 
-          if (!haystack.includes(query)) return;
-        }
+      if (query) {
+        const home = teamsById.get(game.homeTeamId);
+        const away = teamsById.get(game.awayTeamId);
+        const league = leaguesById.get(game.leagueId);
 
-        if (!grouped.has(shot.game_id)) {
-          grouped.set(shot.game_id, {
-            game,
-            shots: [],
-          });
-        }
+        const haystack = [
+          home?.name,
+          home?.shortName,
+          away?.name,
+          away?.shortName,
+          league?.name,
+          league?.shortName,
+          game.homeTeamPlaceholder,
+          game.awayTeamPlaceholder,
+          game.roundName,
+          shot.caption,
+          shot.credit,
+          shot.instagram,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-        grouped.get(shot.game_id).shots.push(shot);
-      });
+        if (!haystack.includes(query)) return;
+      }
 
-    return Array.from(grouped.values())
-      .map(item => ({
-        ...item,
-        shots: item.shots.sort((a, b) => {
-          if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+      if (!grouped.has(shot.game_id)) {
+        grouped.set(shot.game_id, {
+          game,
+          shots: [],
+        });
+      }
 
-          const dateA = new Date(a.created_at || a.createdAtUtc || a.created_date || 0).getTime();
-          const dateB = new Date(b.created_at || b.createdAtUtc || b.created_date || 0).getTime();
+      grouped.get(shot.game_id).shots.push(shot);
+    });
 
-          return dateA - dateB;
-        }),
-      }))
-      .sort((a, b) => {
-        const dateA = getGameDate(a.game)?.getTime() || 0;
-        const dateB = getGameDate(b.game)?.getTime() || 0;
+  return Array.from(grouped.values())
+    .map(item => ({
+      ...item,
+      shots: item.shots.sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
 
-        return dateB - dateA;
-      })
-      .slice(0, 10);
-  }, [gameDayShots, gamesById, leaguesById, query, selectedLeagueId, teamsById, today]);
-
-  const activeSpotlight = useMemo(() => {
-    const candidates = spotlights
-      .filter(spotlight => {
-        if (!spotlight.active || !spotlight.team_id) return false;
-
-        const start = spotlight.start_date ? startOfDay(parseISO(spotlight.start_date)) : null;
-        const end = spotlight.end_date ? startOfDay(parseISO(spotlight.end_date)) : null;
-
-        if (!start || !end) return false;
-
-        return !isBefore(today, start) && !isAfter(today, addDays(end, 1));
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.start_date || a.created_date || 0).getTime();
-        const dateB = new Date(b.start_date || b.created_date || 0).getTime();
+        const dateA = new Date(a.created_at || a.createdAtUtc || a.created_date || 0).getTime();
+        const dateB = new Date(b.created_at || b.createdAtUtc || b.created_date || 0).getTime();
 
         return dateA - dateB;
-      });
+      }),
+    }))
+    .sort((a, b) => {
+      const dateA = getGameDate(a.game)?.getTime() || 0;
+      const dateB = getGameDate(b.game)?.getTime() || 0;
 
-    return candidates[0] || null;
-  }, [spotlights, today]);
+      return dateB - dateA;
+    })
+    .slice(0, 10);
+}, [gameDayShots, gamesById, leaguesById, query, selectedLeagueId, teamsById, today]);
 
-  const spotlightTeam = activeSpotlight ? getTeam(activeSpotlight.team_id, teamsById) : null;
-  const spotlightLeague = spotlightTeam ? getLeague(spotlightTeam.leagueId, leaguesById) : null;
-  const spotlightRecord = spotlightTeam ? teamRecords.get(spotlightTeam.id) : null;
 
-  const spotlightNextGames = useMemo(() => {
-    if (!spotlightTeam) return [];
-
-    return games
-      .filter(game => {
-        const date = getGameDate(game);
-        if (!date) return false;
-        const effectiveStatus = getEffectiveGameStatus(game);
-        if (effectiveStatus === "final" || effectiveStatus === "cancelled") return false;
-        if (game.homeTeamId !== spotlightTeam.id && game.awayTeamId !== spotlightTeam.id) return false;
-
-        return isAfter(date, today);
-      })
-      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
-      .slice(0, 2);
-  }, [games, spotlightTeam, today]);
 
   const toggleLeague = leagueId => {
     setSelectedLeagueId(current => (current === leagueId ? null : leagueId));
@@ -1928,13 +1775,13 @@ const sortedHomeLeagues = useMemo(() => {
   });
 }, [leagues]);
 
-  return (
+    return (
     <div className="w-full max-w-full overflow-x-hidden pb-6">
       <LeagueCarousel
-  leagues={sortedHomeLeagues}
-  selectedLeagueId={selectedLeagueId}
-  onToggle={toggleLeague}
-/>
+        leagues={sortedHomeLeagues}
+        selectedLeagueId={selectedLeagueId}
+        onToggle={toggleLeague}
+      />
 
       <SearchBox value={search} onChange={setSearch} />
 
@@ -1964,6 +1811,25 @@ const sortedHomeLeagues = useMemo(() => {
           leaguesById={leaguesById}
         />
       )}
+
+           <RailSection
+        icon={ImageIcon}
+        title="News"
+        to="/feed"
+        emptyLabel="Keine News"
+        hideWhenEmpty
+      >
+        {homeNews.length > 0
+          ? homeNews.map((post) => (
+              <NewsRailCard
+                key={post.id}
+                post={post}
+                teamsById={teamsById}
+                leaguesById={leaguesById}
+              />
+            ))
+          : null}
+      </RailSection>
 
       <RailSection
         icon={ShieldCheck}
@@ -2005,6 +1871,24 @@ const sortedHomeLeagues = useMemo(() => {
       <AdBannerSlot banners={activeAdBanners} position="after_highlights" />
 
       <RailSection
+        icon={Camera}
+        title="GameDay Shots"
+        emptyLabel="Noch keine GameDay Shots"
+      >
+        {gameDayShotGames.length > 0
+          ? gameDayShotGames.map((item) => (
+              <GameDayShotsReelCard
+                key={item.game.id}
+                item={item}
+                teamsById={teamsById}
+                leaguesById={leaguesById}
+                onOpen={setActiveShotStory}
+              />
+            ))
+          : null}
+      </RailSection>
+
+      <RailSection
         icon={CalendarDays}
         title="Kommende Spiele"
         to="/spiele"
@@ -2012,47 +1896,18 @@ const sortedHomeLeagues = useMemo(() => {
       >
         {upcomingGames.length > 0
           ? upcomingGames.map((game) => (
-              <UpcomingGameCard
+                 <UpcomingGameCard
                 key={game.id}
                 game={game}
                 teamsById={teamsById}
                 leaguesById={leaguesById}
+                partnerTeamIds={partnerTeamIds}
               />
             ))
           : null}
       </RailSection>
 
-      <RailSection
-  icon={Camera}
-  title="GameDay Shots"
-  emptyLabel="Noch keine GameDay Shots"
->
-  {gameDayShotGames.length > 0
-    ? gameDayShotGames.map((item) => (
-        <GameDayShotsReelCard
-          key={item.game.id}
-          item={item}
-          teamsById={teamsById}
-          leaguesById={leaguesById}
-          onOpen={setActiveShotStory}
-        />
-      ))
-    : null}
-</RailSection>
-
       <AdBannerSlot banners={activeAdBanners} position="after_upcoming" />
-      <AdBannerSlot banners={activeAdBanners} position="before_spotlight" />
-
-      {activeSpotlight && spotlightTeam && (
-        <TeamSpotlightCard
-          spotlight={activeSpotlight}
-          team={spotlightTeam}
-          league={spotlightLeague}
-          record={spotlightRecord}
-          nextGames={spotlightNextGames}
-          teamsById={teamsById}
-        />
-      )}
 
       {activeShotStory && (
         <GameDayShotStoryModal
@@ -2062,6 +1917,6 @@ const sortedHomeLeagues = useMemo(() => {
           onClose={() => setActiveShotStory(null)}
         />
       )}
-    </div>
+      </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   Landmark,
   LogOut,
   Megaphone,
+  Newspaper,
   Settings,
   Shield,
   User,
@@ -52,13 +53,15 @@ export default function ProfileMenu() {
     isDataEditorBySlug(roleSlug) &&
     !isAdminBySlug(roleSlug);
 
+  const isMediaPartner = roleSlug === 'media_partner';
   const isClub = roleSlug === 'club';
   const isLeague = roleSlug === 'league';
   const isOfficialMedia = roleSlug === 'official_media';
 
   const isInternalSystemUser =
     isSystemRole(appUser?.roleSlug || appUser?.role) ||
-    isUserAdmin;
+    isUserAdmin ||
+    isMediaPartner;
 
   const connectedTeam = useMemo(() => {
     if (!appUser?.connectedTeamId) return null;
@@ -111,6 +114,7 @@ export default function ProfileMenu() {
 
   const displayName = (() => {
     if (isUserAdmin) return 'Admin';
+    if (isMediaPartner) return appUser.displayName || 'Media';
     if (isUserModeratorOnly) return 'Moderator';
     if (isUserDataEditorOnly) return 'Datenpflege';
     if (isClub) return connectedTeam?.name || appUser.displayName || appUser.username;
@@ -120,6 +124,7 @@ export default function ProfileMenu() {
 
   const displayHandle = (() => {
     if (isUserAdmin) return 'Systemkonto';
+    if (isMediaPartner) return 'Media-Zugang';
     if (isUserModeratorOnly || isUserDataEditorOnly) return 'Ehrenamt';
     if (isClub) return 'Vereinskonto';
     if (isLeague) return 'Ligakonto';
@@ -178,6 +183,13 @@ export default function ProfileMenu() {
           <DropdownMenuItem onClick={() => navigate('/user/statistics')}>
             <BarChart3 className="w-4 h-4 mr-2" />
             Game Statistics
+          </DropdownMenuItem>
+        )}
+
+        {isMediaPartner && (
+          <DropdownMenuItem onClick={() => navigate('/data-editor')}>
+            <Newspaper className="w-4 h-4 mr-2" />
+            Media-Bereich
           </DropdownMenuItem>
         )}
 

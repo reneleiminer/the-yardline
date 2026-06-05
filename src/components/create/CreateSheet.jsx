@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowLeftRight,
   BarChart3,
+  Camera,
   Database,
   FileText,
   Flag,
@@ -14,6 +15,8 @@ import {
   Info,
   Layers,
   Megaphone,
+  MessageCircle,
+  Mic,
   Newspaper,
   Radio,
   Shield,
@@ -155,17 +158,61 @@ const JOURNALIST_ACTIONS = {
       color: 'text-purple-400',
       bg: 'bg-purple-400/10',
     },
+    {
+      label: 'Community-Beitrag',
+      icon: MessageCircle,
+      route: '/create/community',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
+    },
   ],
 };
 
 const CREATOR_ACTIONS = {
   subtitle: 'Beitrag erstellen',
-  items: [],
+  items: [
+    {
+      label: 'Community-Beitrag',
+      icon: MessageCircle,
+      route: '/create/community',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
+    },
+    {
+      label: 'Highlight-Beitrag',
+      icon: Trophy,
+      route: '/create/community',
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-400/10',
+    },
+    {
+      label: 'Video-Beitrag',
+      icon: Mic,
+      route: '/create/community',
+      color: 'text-pink-400',
+      bg: 'bg-pink-400/10',
+    },
+  ],
 };
 
 const PHOTOGRAPHER_ACTIONS = {
   subtitle: 'Beitrag erstellen',
-  items: [],
+  items: [
+    {
+      label: 'Fotos hochladen',
+      icon: Camera,
+      route: '/create/community',
+      color: 'text-pink-400',
+      bg: 'bg-pink-400/10',
+    },
+    {
+      label: 'Galerie erstellen',
+      icon: Layers,
+      route: '/create/community',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
+    },
+  ],
 };
 
 const CLUB_ACTIONS = appUser => ({
@@ -184,6 +231,13 @@ const CLUB_ACTIONS = appUser => ({
       route: '/create/transfer',
       color: 'text-purple-400',
       bg: 'bg-purple-400/10',
+    },
+    {
+      label: 'Community-Beitrag',
+      icon: MessageCircle,
+      route: '/create/community',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
     },
     {
       label: 'Vereinsseite öffnen',
@@ -213,6 +267,13 @@ const LEAGUE_ACTIONS = appUser => ({
       bg: 'bg-emerald-400/10',
     },
     {
+      label: 'Community-Beitrag',
+      icon: MessageCircle,
+      route: '/create/community',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
+    },
+    {
       label: 'Ligaseite öffnen',
       icon: Globe,
       route: appUser?.linkedLeagueId ? `/league/${appUser.linkedLeagueId}` : '/profile',
@@ -222,22 +283,22 @@ const LEAGUE_ACTIONS = appUser => ({
   ],
 });
 
-const OFFICIAL_MEDIA_ACTIONS = {
-  subtitle: 'Offizielle Medien',
+const MEDIA_PARTNER_ACTIONS = {
+  subtitle: 'Media',
   items: [
     {
-      label: 'Offizielle News',
+      label: 'News-Artikel',
       icon: Newspaper,
       route: '/create/news',
       color: 'text-emerald-400',
       bg: 'bg-emerald-400/10',
     },
     {
-      label: 'Ankündigung',
-      icon: Megaphone,
-      route: '/create/announcement',
-      color: 'text-orange-400',
-      bg: 'bg-orange-400/10',
+      label: 'Game of the Week',
+      icon: Trophy,
+      route: '/data-editor',
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-400/10',
     },
   ],
 };
@@ -263,8 +324,10 @@ function getMenuForRole(roleSlug, appUser) {
       return PHOTOGRAPHER_ACTIONS;
     case 'club':
       return CLUB_ACTIONS(appUser);
-    case 'official_media':
+        case 'official_media':
       return OFFICIAL_MEDIA_ACTIONS;
+    case 'media_partner':
+      return MEDIA_PARTNER_ACTIONS;
     case 'league':
       return LEAGUE_ACTIONS(appUser);
     default:

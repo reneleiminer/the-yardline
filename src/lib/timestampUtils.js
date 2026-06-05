@@ -36,7 +36,7 @@ export const getPostTimeLabel = (publishedAtUtc) => {
 
 /**
  * Normalize a timestamp string to valid ISO 8601.
- * Legacy created_date values can use microseconds (6 decimal places) which some
+ * Base44's created_date uses microseconds (6 decimal places) which some
  * browsers reject. We trim to 3 decimal places (milliseconds).
  */
 const normalizeTimestamp = (ts) => {

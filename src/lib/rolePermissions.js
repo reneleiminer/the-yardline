@@ -95,6 +95,10 @@ export const canEditData = userOrRole => {
   return isAdminRole(role) || isDataEditorRole(role);
 };
 
+/**
+ * Game of the Week
+ * Media-Partner dürfen nur das Game of the Week auswählen und den sichtbaren Text setzen.
+ */
 export const canSelectGameOfTheWeek = userOrRole => {
   const role = getUserRole(userOrRole);
 

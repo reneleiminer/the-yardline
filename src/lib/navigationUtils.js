@@ -80,6 +80,7 @@ export const getCreateRoute = () => '/create';
  */
 export const getCreateTypeRoute = (type) => {
   const routes = {
+    community: '/create/community',
     announcement: '/create/announcement',
     news: '/create/news',
     transfer: '/create/transfer',

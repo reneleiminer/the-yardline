@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
 /**
- * Normalizes legacy microsecond timestamps to valid ISO 8601 (3 decimal places).
+ * Normalizes Base44 microsecond timestamps to valid ISO 8601 (3 decimal places).
  */
 const normalize = (ts) => {
   if (!ts) return null;

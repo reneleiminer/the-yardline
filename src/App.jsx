@@ -40,6 +40,7 @@ const LeagueDetail = lazy(() => import("@/pages/LeagueDetail"));
 const LeagueStandings = lazy(() => import("@/pages/LeagueStandings"));
 const GameDetail = lazy(() => import("@/pages/GameDetail"));
 const DataEditorDashboard = lazy(() => import("@/pages/DataEditorDashboard"));
+
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
 const AdminPartners = lazy(() => import("@/pages/admin/AdminPartners"));
@@ -56,6 +57,9 @@ const AdminUpdates = lazy(() => import("@/pages/admin/AdminUpdates"));
 const AdminHighlights = lazy(() => import("@/pages/Tournaments"));
 const AdminGameResult = lazy(() => import("@/pages/admin/AdminGameResult"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
+const Announcements = lazy(() => import("@/pages/Announcements"));
+const PostDetail = lazy(() => import("@/pages/PostDetail"));
+const CreateNews = lazy(() => import("@/pages/create/News"));
 
 function RouteLoader() {
   return (
@@ -72,7 +76,7 @@ function AdminRoute({ children }) {
     <ProtectedRoute
       requiredRoute="/admin"
       allowedRoles={["admin"]}
-      fallbackRoute="/settings?login=admin"
+      fallbackRoute="/settings?login=internal"
     >
       {children}
     </ProtectedRoute>
@@ -83,8 +87,8 @@ function DataEditorRoute({ children }) {
   return (
     <ProtectedRoute
       requiredRoute="/data-editor"
-      allowedRoles={["data_editor"]}
-      fallbackRoute="/settings?login=data_editor"
+      allowedRoles={["data_editor", "media_partner"]}
+      fallbackRoute="/settings?login=internal"
     >
       {children}
     </ProtectedRoute>
@@ -99,6 +103,9 @@ function AppRoutes() {
           <Route element={<AppLayout />}>
             <Route path="/" element={<Home />} />
 
+            <Route path="/feed" element={<Announcements />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/create/news" element={<CreateNews />} />
             <Route path="/spiele" element={<Games />} />
             <Route path="/highlights" element={<Highlights />} />
             <Route path="/game/:id" element={<GameDetail />} />
@@ -118,6 +125,7 @@ function AppRoutes() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/user/statistics" element={<GameStatistics />} />
+
 
             <Route path="/legal" element={<Legal />} />
             <Route path="/updates" element={<Updates />} />
@@ -165,6 +173,7 @@ function AppRoutes() {
                 </AdminRoute>
               }
             />
+
 
             <Route
               path="/admin/partners"

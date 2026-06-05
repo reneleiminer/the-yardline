@@ -10,7 +10,7 @@ function TeamLogo({ logo, name }) {
       <img
         src={getImageUrl(logo)}
         alt={name || ''}
-        className="w-12 h-12 object-contain rounded-xl bg-black/20 border border-white/10 p-1"
+        className="w-10 h-10 object-contain rounded-xl bg-black/20 border border-white/10 p-1"
         onError={event => {
           event.currentTarget.style.display = 'none';
         }}
@@ -19,8 +19,8 @@ function TeamLogo({ logo, name }) {
   }
 
   return (
-    <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center border border-white/10">
-      <Shield className="w-6 h-6 text-muted-foreground" />
+    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-white/10">
+      <Shield className="w-5 h-5 text-muted-foreground" />
     </div>
   );
 }
@@ -40,8 +40,8 @@ export default function ScoreHero({ game, home, away, league }) {
   const weekLabel = game.week ? `Spieltag ${game.week}` : '';
   const roundLabel = game.roundName || '';
 
-  const homeName = home?.shortName || home?.name || 'Heimteam';
-  const awayName = away?.shortName || away?.name || 'Gastteam';
+  const homeName = home?.name || home?.shortName || 'Heimteam';
+  const awayName = away?.name || away?.shortName || 'Gastteam';
 
   const homeScore = game.scoreHome ?? 0;
   const awayScore = game.scoreAway ?? 0;
@@ -72,12 +72,12 @@ export default function ScoreHero({ game, home, away, league }) {
 
         <div className="relative">
           {(leagueName || weekLabel || roundLabel) && (
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-4 truncate">
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-4 whitespace-normal break-words">
               {[leagueName, weekLabel, roundLabel].filter(Boolean).join(' · ')}
             </div>
           )}
 
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
             <button
               type="button"
               className={`min-w-0 flex flex-col items-center gap-2 transition-opacity ${homeDimmed ? 'opacity-55' : 'opacity-100'}`}
@@ -90,12 +90,12 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={home?.logo} name={home?.name} />
               </div>
 
-              <span className="text-sm font-black text-center truncate w-full hover:text-primary transition-colors">
+              <span className="text-sm font-black text-center leading-tight whitespace-normal break-words w-full max-w-[112px] hover:text-primary transition-colors">
                 {homeName}
               </span>
             </button>
 
-            <div className="flex flex-col items-center flex-shrink-0 gap-1.5 min-w-[96px]">
+            <div className="flex flex-col items-center flex-shrink-0 gap-1.5 min-w-[88px]">
               {hasScore ? (
                 <div className="flex items-center gap-2">
                   <ScorePill score={homeScore} size="lg" />
@@ -135,7 +135,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={away?.logo} name={away?.name} />
               </div>
 
-              <span className="text-sm font-black text-center truncate w-full hover:text-primary transition-colors">
+              <span className="text-sm font-black text-center leading-tight whitespace-normal break-words w-full max-w-[112px] hover:text-primary transition-colors">
                 {awayName}
               </span>
             </button>

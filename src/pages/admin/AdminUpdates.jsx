@@ -19,8 +19,9 @@ import {
 
 const INTERNAL_APP_UPDATE_VERSIONS = new Set([
   'game_highlight',
-  'team_spotlight',
   'ad_banner',
+  'community_clip',
+  'community_clip_submission',
   'analytics_event',
   'gameday_photo',
   'game_prediction',

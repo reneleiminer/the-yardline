@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -14,6 +15,7 @@ import {
   Mail,
   MapPin,
   Music2,
+  Newspaper,
   PlayCircle,
   Radio,
   Shield,
@@ -23,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { base44 } from '@/api/base44Client';
 import { useGlobalData } from '@/lib/GlobalDataContext';
 import { getImageUrl } from '@/lib/imageUtils';
 import useSetHeader from '@/hooks/useSetHeader';
@@ -322,6 +325,80 @@ function StadiumInfoCard({ stadium, index }) {
   );
 }
 
+function isPostLinkedToTeam(post, teamId) {
+  if (!post || !teamId) return false;
+
+  if (post.teamId === teamId) return true;
+  if (post.clubId === teamId) return true;
+  if (post.connectedTeamId === teamId) return true;
+
+  if (Array.isArray(post.teamIds)) {
+    return post.teamIds.includes(teamId);
+  }
+
+  return false;
+}
+
+function getPostDate(post) {
+  const value =
+    post.publishedAtUtc ||
+    post.createdAtUtc ||
+    post.created_date ||
+    post.createdAt ||
+    '';
+
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return format(date, 'dd.MM.yyyy', { locale: de });
+}
+
+function TeamNewsCard({ post }) {
+  const image = Array.isArray(post.images) ? post.images[0] : post.imageUrl;
+
+  return (
+    <Link
+      to={`/post/${post.id}`}
+      className="block bg-card border border-border/50 rounded-2xl overflow-hidden active:scale-[0.99] transition-transform"
+    >
+      {image && (
+        <img
+          src={getImageUrl(image)}
+          alt={post.title || ''}
+          className="w-full aspect-video object-cover"
+          loading="lazy"
+        />
+      )}
+
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+            Vereinsnews
+          </span>
+
+          {getPostDate(post) && (
+            <span className="text-[10px] text-muted-foreground">
+              {getPostDate(post)}
+            </span>
+          )}
+        </div>
+
+        <h2 className="text-base font-black leading-tight">
+          {post.title}
+        </h2>
+
+        {post.teaser && (
+          <p className="text-xs text-muted-foreground leading-relaxed mt-2 line-clamp-3">
+            {post.teaser}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
 function TeamGameCard({ game, home, away, league }) {
   const homeName = getTeamName(home, game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamPlaceholder);
@@ -403,6 +480,21 @@ export default function TeamDetail() {
   const [activeTab, setActiveTab] = useState('spiele');
 
   const { teamsById, leaguesById, games } = useGlobalData();
+
+  const { data: teamNews = [] } = useQuery({
+    queryKey: ['teamNews', teamId],
+    enabled: !!teamId,
+    queryFn: async () => {
+      const posts = await base44.entities.Post.list('-publishedAtUtc');
+
+      return posts
+        .filter(post =>
+          post.type === 'news' &&
+          isPostLinkedToTeam(post, teamId)
+        )
+        .slice(0, 10);
+    },
+  });
 
   const team = teamsById.get(teamId);
   const league = team ? leaguesById.get(team.leagueId) : null;
@@ -563,6 +655,7 @@ export default function TeamDetail() {
 
   const tabs = [
     { id: 'spiele', label: 'Spiele' },
+    ...(teamNews.length > 0 ? [{ id: 'news', label: 'News' }] : []),
     { id: 'info', label: 'Info' },
     ...(team.roster?.length > 0 ? [{ id: 'kader', label: 'Kader' }] : []),
   ];
@@ -733,6 +826,19 @@ export default function TeamDetail() {
               </div>
             )}
           </section>
+        </div>
+      )}
+
+      {activeTab === 'news' && (
+        <div className="px-4 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Newspaper className="w-4 h-4 text-primary" />
+            <p className="text-sm font-black">Vereinsnews</p>
+          </div>
+
+          {teamNews.map(post => (
+            <TeamNewsCard key={post.id} post={post} />
+          ))}
         </div>
       )}
 

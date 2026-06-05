@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -363,20 +363,26 @@ function ChampionCard({ competition, champion }) {
 }
 
 function QualificationInfo({ text }) {
+  const [open, setOpen] = useState(false);
+
   if (!text?.trim()) return null;
 
   return (
     <section className="px-4 pt-4 pb-2">
-      <div className="relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/15 via-card to-card">
+      <button
+        type="button"
+        onClick={() => setOpen(current => !current)}
+        className="w-full relative overflow-hidden rounded-3xl border border-primary/25 bg-gradient-to-br from-primary/15 via-card to-card text-left active:scale-[0.99] transition-transform"
+      >
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_15%_0%,rgba(255,255,255,0.08),transparent_35%)]" />
 
         <div className="relative p-4 sm:p-5">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center flex-shrink-0">
               <FileText className="w-4 h-4 text-primary" />
             </div>
 
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">
                 Qualifikation & Modus
               </p>
@@ -385,13 +391,19 @@ function QualificationInfo({ text }) {
                 So funktioniert dieser Wettbewerb
               </h2>
             </div>
+
+            <span className="text-xs font-black text-primary flex-shrink-0">
+              {open ? 'Weniger' : 'Mehr'}
+            </span>
           </div>
 
-          <p className="text-[14px] sm:text-sm text-foreground/90 whitespace-pre-wrap leading-6">
-            {text}
-          </p>
+          {open && (
+            <p className="text-[14px] sm:text-sm text-foreground/90 whitespace-pre-wrap leading-6 mt-4">
+              {text}
+            </p>
+          )}
         </div>
-      </div>
+      </button>
     </section>
   );
 }

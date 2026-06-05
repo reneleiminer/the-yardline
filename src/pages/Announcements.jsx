@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useGlobalData } from '@/lib/GlobalDataContext';
-import LeagueFilter from '@/components/home/LeagueFilter';
-import { Megaphone, BadgeCheck, Loader2 } from 'lucide-react';
-import { getImageUrl } from '@/lib/imageUtils';
+import { Link, useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { Link } from 'react-router-dom';
+import { BadgeCheck, Loader2, Megaphone } from 'lucide-react';
+
+import LeagueFilter from '@/components/home/LeagueFilter';
+import { useGlobalData } from '@/lib/GlobalDataContext';
+import { getImageUrl } from '@/lib/imageUtils';
 import useSetHeader from '@/hooks/useSetHeader';
 
 function getRoleLabel(role) {
@@ -22,6 +22,8 @@ function getRoleLabel(role) {
     officialmedia: 'Offizielle Medien',
     'official media': 'Offizielle Medien',
     'offizielle medien': 'Offizielle Medien',
+    media_partner: 'Media',
+    media: 'Media',
     club: 'Verein',
     verein: 'Verein',
     league: 'Liga',
@@ -36,6 +38,47 @@ function getRoleLabel(role) {
   return labels[normalized] || role || 'Offiziell';
 }
 
+function getPostImages(post) {
+  if (Array.isArray(post?.images)) return post.images.filter(Boolean);
+  if (post?.imageUrl) return [post.imageUrl];
+  if (post?.image) return [post.image];
+
+  return [];
+}
+
+function getPostTeamIds(post) {
+  const ids = [];
+
+  if (Array.isArray(post?.teamIds)) ids.push(...post.teamIds);
+  if (post?.teamId) ids.push(post.teamId);
+  if (post?.clubId) ids.push(post.clubId);
+  if (post?.connectedTeamId) ids.push(post.connectedTeamId);
+
+  return Array.from(new Set(ids.filter(Boolean)));
+}
+
+function getPostDate(post) {
+  return (
+    post?.publishedAtUtc ||
+    post?.createdAtUtc ||
+    post?.created_date ||
+    post?.createdAt ||
+    ''
+  );
+}
+
+function isClubNews(post) {
+  return post?.sourceType === 'club_news';
+}
+
+function isVisibleFeedPost(post) {
+  if (!post) return false;
+  if (post.isHidden || post.isDeleted) return false;
+  if (post.isActive === false) return false;
+
+  return post.type === 'official' || post.type === 'news';
+}
+
 export default function Announcements() {
   const navigate = useNavigate();
   const [selectedLeague, setSelectedLeague] = useState(null);
@@ -43,26 +86,27 @@ export default function Announcements() {
 
   useSetHeader({
     mode: 'back',
-    title: 'Alle Ankündigungen',
+    title: 'Feed',
     onBack: () => {
       if (window.history.length > 1) navigate(-1);
       else navigate('/');
-    }
+    },
   });
 
   const announcements = useMemo(() => {
     const visibleAnnouncements = posts
-      .filter(post => {
-        const isOfficial = post.type === 'official';
-        const isFeaturedAnnouncement = post.featured && (post.type === 'news' || post.type === 'official');
-        return (isOfficial || isFeaturedAnnouncement) && !post.isHidden;
-      })
-      .sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+      .filter(isVisibleFeedPost)
+      .sort((a, b) => {
+        const dateA = new Date(getPostDate(a) || 0).getTime();
+        const dateB = new Date(getPostDate(b) || 0).getTime();
+
+        return dateB - dateA;
+      });
 
     if (selectedLeague) {
       return visibleAnnouncements.filter(post =>
         post.leagueId === selectedLeague ||
-        post.teamIds?.includes(selectedLeague)
+        getPostTeamIds(post).includes(selectedLeague)
       );
     }
 
@@ -82,11 +126,13 @@ export default function Announcements() {
       <LeagueFilter leagues={leagues} selected={selectedLeague} onSelect={setSelectedLeague} />
 
       <div className="px-4 py-4">
-        <h1 className="text-2xl font-bold mb-6">Ankündigungen</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          Feed
+        </h1>
 
         {announcements.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground text-sm">
-            Keine Ankündigungen vorhanden.
+            Keine Beiträge vorhanden.
           </div>
         ) : (
           <div className="space-y-4">
@@ -118,17 +164,19 @@ export default function Announcements() {
                 post.authorVerified ??
                 false;
 
-              const timeAgo = post.created_date
-                ? formatDistanceToNow(new Date(post.created_date), { addSuffix: true, locale: de })
+              const postDate = getPostDate(post);
+              const timeAgo = postDate
+                ? formatDistanceToNow(new Date(postDate), { addSuffix: true, locale: de })
                 : '';
 
-              const image = post.images?.[0];
+              const image = getPostImages(post)[0];
               const excerpt = post.teaser || post.text;
+              const clubNews = isClubNews(post);
 
               return (
                 <Link
                   key={post.id}
-                  to={`/announcement/${post.id}`}
+                  to={`/post/${post.id}`}
                   className="block rounded-2xl overflow-hidden border border-border/40 bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-black/30 active:scale-[0.99] transition-all duration-200 group"
                 >
                   {image ? (
@@ -147,7 +195,7 @@ export default function Announcements() {
                       <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full bg-primary/90 backdrop-blur-sm">
                         <Megaphone className="w-2.5 h-2.5 text-white" />
                         <span className="text-[10px] font-bold text-white uppercase tracking-wide">
-                          {roleLabel}
+                          {clubNews ? 'Vereinsnews' : post.category || roleLabel}
                         </span>
                       </div>
 
@@ -179,13 +227,27 @@ export default function Announcements() {
                       <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/80">
                         <Megaphone className="w-2.5 h-2.5 text-white" />
                         <span className="text-[10px] font-bold text-white uppercase tracking-wide">
-                          {roleLabel}
+                          {clubNews ? 'Vereinsnews' : post.category || roleLabel}
                         </span>
                       </div>
                     </div>
                   )}
 
                   <div className="px-4 pt-3.5 pb-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {clubNews && (
+                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/10 rounded-full px-2 py-0.5">
+                          Vereinsnews
+                        </span>
+                      )}
+
+                      {post.category && (
+                        <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 rounded-full px-2 py-0.5">
+                          {post.category}
+                        </span>
+                      )}
+                    </div>
+
                     {post.title && (
                       <h3 className="font-bold text-sm sm:text-base leading-snug line-clamp-2 text-foreground mb-1.5">
                         {post.title}
@@ -198,7 +260,9 @@ export default function Announcements() {
                       </p>
                     )}
 
-                    <p className="text-[11px] text-muted-foreground">{timeAgo}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {timeAgo}
+                    </p>
                   </div>
                 </Link>
               );

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
+
 export default function AppLayout() {
   const location = useLocation();
 
@@ -60,7 +61,7 @@ export default function AppLayout() {
           overflowAnchor: "none",
         }}
       >
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="wait">
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0 }}

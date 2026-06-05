@@ -3,35 +3,16 @@ import { Link } from 'react-router-dom';
 import { useGlobalData } from '@/lib/GlobalDataContext';
 import { getImageUrl } from '@/lib/imageUtils';
 
-const FOOTER_SECTIONS = [
-  {
-    key: 'business',
-    title: 'Partner',
-  },
-  {
-    key: 'club',
-    title: 'Vereinspartner',
-  },
-  {
-    key: 'media',
-    title: 'Media Network',
-  },
-];
-
-function getPartnerCategory(partner) {
-  return partner.category || partner.type || 'business';
-}
-
 function PartnerLogoLink({ partner }) {
   const logo = partner.logoUrl || partner.logo;
   const linkUrl = partner.linkUrl || partner.url || '';
 
   const content = (
-    <div className="h-12 sm:h-14 flex items-center justify-center transition-transform duration-200 hover:scale-105">
+    <div className="h-16 w-32 flex items-center justify-center px-3">
       <img
         src={getImageUrl(logo)}
         alt={partner.name || ''}
-        className="max-h-10 sm:max-h-12 max-w-[105px] sm:max-w-[125px] w-auto h-auto object-contain"
+        className="max-h-14 max-w-full w-auto h-auto object-contain"
         loading="lazy"
       />
     </div>
@@ -44,7 +25,7 @@ function PartnerLogoLink({ partner }) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label={partner.name || ''}
-        className="block min-w-0"
+        className="shrink-0"
       >
         {content}
       </a>
@@ -52,33 +33,54 @@ function PartnerLogoLink({ partner }) {
   }
 
   return (
-    <div
-      aria-label={partner.name || ''}
-      className="block min-w-0"
-    >
+    <div aria-label={partner.name || ''} className="shrink-0">
       {content}
     </div>
   );
 }
 
-function FooterPartnerSection({ title, items }) {
-  if (items.length === 0) return null;
+function PartnerLogoRail({ partners }) {
+  if (partners.length === 0) return null;
+
+  const loopPartners = partners.length >= 4
+    ? [...partners, ...partners]
+    : [...partners, ...partners, ...partners, ...partners];
 
   return (
-    <section>
-      <div className="flex items-center gap-3 mb-4">
-        <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.18em] whitespace-nowrap">
-          {title}
+    <section className="mb-8 pb-8 border-b border-border/30 overflow-hidden">
+      <div className="flex items-center gap-3 mb-5">
+        <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] whitespace-nowrap">
+          Unsere Partner
         </h3>
 
-        <div className="h-px flex-1 bg-border/25" />
+        <div className="h-px flex-1 bg-border/30" />
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6 gap-x-6 gap-y-6 items-center">
-        {items.map((partner) => (
-          <PartnerLogoLink key={partner.id} partner={partner} />
-        ))}
+      <div className="relative overflow-hidden">
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-background to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-background to-transparent" />
+
+        <div className="flex w-max animate-[partner-marquee_28s_linear_infinite]">
+          {loopPartners.map((partner, index) => (
+            <PartnerLogoLink
+              key={`${partner.id || partner.name || 'partner'}-${index}`}
+              partner={partner}
+            />
+          ))}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes partner-marquee {
+          from {
+            transform: translateX(0);
+          }
+
+          to {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
     </section>
   );
 }
@@ -86,8 +88,8 @@ function FooterPartnerSection({ title, items }) {
 export default function Footer() {
   const { partners = [] } = useGlobalData();
 
-  const groupedPartners = useMemo(() => {
-    const visiblePartners = [...partners]
+  const visiblePartners = useMemo(() => {
+    return [...partners]
       .filter(partner => partner.logoUrl || partner.logo)
       .sort((a, b) => {
         const sortA = Number(a.sortOrder || 0);
@@ -97,16 +99,7 @@ export default function Footer() {
 
         return String(a.name || '').localeCompare(String(b.name || ''));
       });
-
-    return FOOTER_SECTIONS.map(section => ({
-      ...section,
-      items: visiblePartners.filter(partner =>
-        getPartnerCategory(partner) === section.key
-      ),
-    }));
   }, [partners]);
-
-  const hasAnyPartner = groupedPartners.some(section => section.items.length > 0);
 
   const legalLinks = [
     { label: 'Impressum', href: '/legal/impressum' },
@@ -118,17 +111,7 @@ export default function Footer() {
   return (
     <footer className="bg-background border-t border-border/30 pt-7 pb-[calc(110px+env(safe-area-inset-bottom))]">
       <div className="max-w-7xl mx-auto px-4">
-        {hasAnyPartner && (
-          <div className="mb-7 pb-7 border-b border-border/30 space-y-8">
-            {groupedPartners.map(section => (
-              <FooterPartnerSection
-                key={section.key}
-                title={section.title}
-                items={section.items}
-              />
-            ))}
-          </div>
-        )}
+        <PartnerLogoRail partners={visiblePartners} />
 
         <div className="flex flex-wrap gap-x-4 gap-y-2 justify-center mb-5 text-xs">
           {legalLinks.map((link) => (

@@ -14,17 +14,23 @@ import {
   Clock,
   Database,
   FileText,
+  KeyRound,
   Loader2,
   MapPin,
+  Newspaper,
   Plus,
   Radio,
   Save,
+  Star,
   Swords,
   Trophy,
+  User,
   X,
 } from 'lucide-react';
 import { useGlobalData } from '@/lib/GlobalDataContext';
+import { useAuth } from '@/lib/AuthContext';
 import { toast } from 'sonner';
+
 const EMPTY_GAME = {
   leagueId: '',
   homeTeamId: '',
@@ -51,7 +57,12 @@ const STATUS_LABELS = {
   scheduled: 'Geplant',
   live: 'Live',
   final: 'Final',
+  cancelled: 'Abgesagt',
 };
+
+function normalizeRole(value) {
+  return String(value || '').trim().toLowerCase();
+}
 
 function getStatusLabel(status) {
   return STATUS_LABELS[status] || status || 'Geplant';
@@ -68,6 +79,84 @@ function formatDate(date) {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function formatWeekRange(start, end) {
+  return `${formatDate(start.toISOString().slice(0, 10))} - ${formatDate(end.toISOString().slice(0, 10))}`;
+}
+
+function getGameDate(game) {
+  if (!game?.date) return null;
+
+  const [year, month, day] = String(game.date).split('-').map(Number);
+  const [hour, minute] = String(game.time || game.kickoffTime || '00:00').split(':').map(Number);
+
+  if (!year || !month || !day) return null;
+
+  return new Date(
+    year,
+    month - 1,
+    day,
+    Number.isFinite(hour) ? hour : 0,
+    Number.isFinite(minute) ? minute : 0,
+    0,
+    0
+  );
+}
+
+function getUpcomingWeekendWindow() {
+  const now = new Date();
+  const start = new Date(now);
+  const day = start.getDay();
+  const daysUntilSaturday = (6 - day + 7) % 7;
+
+  start.setDate(start.getDate() + daysUntilSaturday);
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 1);
+  end.setHours(0, 0, 0, 0);
+
+  return { start, end };
+}
+
+function getNextSevenDaysWindow() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 7);
+  end.setHours(23, 59, 59, 999);
+
+  return { start, end };
+}
+
+function isGameInWindow(game, window) {
+  const date = getGameDate(game);
+  if (!date) return false;
+
+  return date >= window.start && date < window.end;
+}
+
+function isAllowedMediaLeague(league) {
+  if (!league) return false;
+
+  const values = [
+    league.name,
+    league.shortName,
+    league.slug,
+    league.code,
+    league.abbreviation,
+  ]
+    .filter(Boolean)
+    .map(value => String(value).trim().toLowerCase());
+
+  return values.some(value =>
+    value === 'efa' ||
+    value === 'afle' ||
+    value.includes('european football alliance') ||
+    value.includes('american football league europe')
+  );
 }
 
 function getTeamName(team, fallback) {
@@ -409,14 +498,525 @@ function GameForm({ form, teams, leagues, onChange, onSave, onCancel, saving, ti
   );
 }
 
-export default function DataEditorDashboard() {
+function MediaAccountSettings({ appUser, onSaved }) {
+  const [username, setUsername] = useState(appUser?.username || appUser?.internalUsername || '');
+  const [displayName, setDisplayName] = useState(appUser?.displayName || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const saveAccount = async () => {
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanDisplayName = displayName.trim();
+    const cleanNewPassword = newPassword.trim();
+
+    if (!appUser?.id) {
+      toast.error('Account konnte nicht geladen werden.');
+      return;
+    }
+
+    if (!cleanUsername) {
+      toast.error('Bitte Benutzernamen eingeben.');
+      return;
+    }
+
+    if (!cleanDisplayName) {
+      toast.error('Bitte Anzeigenamen eingeben.');
+      return;
+    }
+
+    if (cleanNewPassword) {
+      const storedPassword =
+        appUser.internalPassword ||
+        appUser.password ||
+        appUser.loginPassword ||
+        appUser.temporaryPassword ||
+        '';
+
+      if (!currentPassword.trim()) {
+        toast.error('Bitte aktuelles Passwort eingeben.');
+        return;
+      }
+
+      if (String(storedPassword) !== currentPassword.trim()) {
+        toast.error('Aktuelles Passwort ist falsch.');
+        return;
+      }
+    }
+
+    setSaving(true);
+
+    try {
+      const payload = {
+        username: cleanUsername,
+        internalUsername: cleanUsername,
+        displayName: cleanDisplayName,
+        updatedAtUtc: new Date().toISOString(),
+      };
+
+      if (cleanNewPassword) {
+        payload.internalPassword = cleanNewPassword;
+      }
+
+      await base44.entities.AppUser.update(appUser.id, payload);
+
+      setCurrentPassword('');
+      setNewPassword('');
+      await onSaved?.();
+
+      toast.success('Account aktualisiert');
+    } catch (error) {
+      console.error('MEDIA ACCOUNT UPDATE ERROR:', error);
+      toast.error(error.message || 'Account konnte nicht aktualisiert werden');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <User className="w-5 h-5 text-primary" />
+        </div>
+
+        <div>
+          <h2 className="text-sm font-bold">
+            Profil & Login
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Benutzername und Passwort für diesen Media-Zugang ändern.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Input
+          value={username}
+          onChange={event => setUsername(event.target.value)}
+          placeholder="Benutzername"
+          autoComplete="username"
+        />
+
+        <Input
+          value={displayName}
+          onChange={event => setDisplayName(event.target.value)}
+          placeholder="Anzeigename"
+          autoComplete="name"
+        />
+
+        <div className="rounded-xl border border-border/50 bg-secondary/20 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <KeyRound className="w-4 h-4 text-primary" />
+            <p className="text-xs font-bold">
+              Passwort ändern
+            </p>
+          </div>
+
+          <Input
+            type="password"
+            value={currentPassword}
+            onChange={event => setCurrentPassword(event.target.value)}
+            placeholder="Aktuelles Passwort"
+            autoComplete="current-password"
+          />
+
+          <Input
+            type="password"
+            value={newPassword}
+            onChange={event => setNewPassword(event.target.value)}
+            placeholder="Neues Passwort optional"
+            autoComplete="new-password"
+          />
+        </div>
+
+        <Button
+          type="button"
+          onClick={saveAccount}
+          disabled={saving}
+          className="w-full"
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <Save className="w-4 h-4 mr-2" />
+          )}
+          Account speichern
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSelect, selecting }) {
+  const home = teamsMap.get(game.homeTeamId);
+  const away = teamsMap.get(game.awayTeamId);
+  const league = leaguesMap.get(game.leagueId);
+
+  return (
+    <Card className={`p-4 border ${selected ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <p className="text-[10px] text-muted-foreground truncate">
+            {league?.shortName || league?.name || 'Keine Liga'}
+          </p>
+
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            {formatDate(game.date)} · {game.time || game.kickoffTime || 'ohne Uhrzeit'}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-1.5 flex-shrink-0">
+          {selected && (
+            <Badge className="text-[10px] bg-primary text-primary-foreground border-0">
+              Game of the Week
+            </Badge>
+          )}
+
+          <Badge
+            className={`text-[10px] border-0 ${
+              game.status === 'live'
+                ? 'bg-red-500/15 text-red-400'
+                : game.status === 'final'
+                ? 'bg-green-500/15 text-green-400'
+                : game.status === 'cancelled'
+                ? 'bg-orange-500/15 text-orange-400'
+                : 'bg-secondary text-muted-foreground'
+            }`}
+          >
+            {getStatusLabel(game.status)}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
+        <p className="text-sm font-bold truncate">
+          {getTeamName(home, game.homeTeamPlaceholder)}
+        </p>
+
+        <div className="text-center min-w-[72px]">
+          {game.status === 'live' || game.status === 'final' ? (
+            <p className="text-lg font-black">
+              {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
+            </p>
+          ) : (
+            <p className="text-xs font-bold text-muted-foreground">
+              VS
+            </p>
+          )}
+        </div>
+
+        <p className="text-sm font-bold truncate text-right">
+          {getTeamName(away, game.awayTeamPlaceholder)}
+        </p>
+      </div>
+
+      {(game.venue || game.city || game.roundName || selected) && (
+        <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-muted-foreground">
+          {(game.venue || game.city) && (
+            <span className="flex items-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {[game.venue, game.city].filter(Boolean).join(', ')}
+            </span>
+          )}
+
+          {game.roundName && (
+            <span>
+              {game.roundName}
+            </span>
+          )}
+
+          {selected && (
+            <span className="text-primary font-bold">
+              {game.gameOfTheWeekLabel || creditLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-4">
+        <Button
+          type="button"
+          onClick={() => onSelect(game)}
+          disabled={selecting || game.status === 'cancelled'}
+          variant={selected ? 'outline' : 'default'}
+          className="w-full"
+        >
+          {selecting ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <Star className="w-4 h-4 mr-2" />
+          )}
+          {selected ? 'Ausgewählt' : 'Als Game of the Week setzen'}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) {
   useSetHeader({
     mode: 'back',
-    title: 'Daten bearbeiten',
+    title: 'Media',
   });
 
+  const { appUserSnapshot, refreshAuth } = useAuth();
+  const [tab, setTab] = useState('weekend');
+  const [creditLabel, setCreditLabel] = useState('by EuroFBShow');
+  const [selectingId, setSelectingId] = useState(null);
+
+  const upcomingWeekend = useMemo(() => getUpcomingWeekendWindow(), []);
+  const nextSevenDays = useMemo(() => getNextSevenDaysWindow(), []);
+
+  const sortedGames = useMemo(() => {
+    return [...games].sort((a, b) => {
+      const dateA = getGameDate(a)?.getTime() || 0;
+      const dateB = getGameDate(b)?.getTime() || 0;
+
+      return dateB - dateA;
+    });
+  }, [games]);
+
+  const currentSelection = sortedGames.find(game => game.isGameOfTheWeek === true) || null;
+
+  const mediaLeagueGames = sortedGames.filter(game => {
+    const league = leaguesMap.get(game.leagueId);
+    return isAllowedMediaLeague(league);
+  });
+
+  const weekendGames = mediaLeagueGames
+    .filter(game => isGameInWindow(game, upcomingWeekend))
+    .filter(game => game.status !== 'cancelled')
+    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
+
+  const upcomingGames = mediaLeagueGames
+    .filter(game => isGameInWindow(game, nextSevenDays))
+    .filter(game => game.status !== 'cancelled')
+    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
+
+    const selectGameOfTheWeek = async game => {
+    if (!game?.id) return;
+
+    const isAlreadySelected = game.isGameOfTheWeek === true;
+    const label = creditLabel.trim() || 'by Media';
+
+    setSelectingId(game.id);
+
+    try {
+      if (isAlreadySelected) {
+        await base44.entities.Game.update(game.id, {
+          isGameOfTheWeek: false,
+          gameOfTheWeekLabel: '',
+          gameOfTheWeekSelectedBy: '',
+          gameOfTheWeekSelectedAtUtc: '',
+          updatedAtUtc: new Date().toISOString(),
+        });
+
+        invalidate();
+        toast.success('Game of the Week abgewählt');
+        return;
+      }
+
+      const selectedGames = games.filter(item => item.isGameOfTheWeek === true && item.id !== game.id);
+
+      await Promise.all(
+        selectedGames.map(item =>
+          base44.entities.Game.update(item.id, {
+            isGameOfTheWeek: false,
+            gameOfTheWeekLabel: '',
+            gameOfTheWeekSelectedBy: '',
+            gameOfTheWeekSelectedAtUtc: '',
+            updatedAtUtc: new Date().toISOString(),
+          })
+        )
+      );
+
+      await base44.entities.Game.update(game.id, {
+        isGameOfTheWeek: true,
+        gameOfTheWeekLabel: label,
+        gameOfTheWeekSelectedBy: appUserSnapshot?.id || '',
+        gameOfTheWeekSelectedAtUtc: new Date().toISOString(),
+        updatedAtUtc: new Date().toISOString(),
+      });
+
+      invalidate();
+      toast.success('Game of the Week aktualisiert');
+    } catch (error) {
+      console.error('MEDIA GAME OF THE WEEK ERROR:', error);
+      toast.error(error.message || 'Game of the Week konnte nicht gespeichert werden');
+    } finally {
+      setSelectingId(null);
+    }
+  };
+
+  const renderMediaGames = list => {
+    if (isLoading) {
+      return (
+        <div className="flex justify-center py-10">
+          <Loader2 className="w-5 h-5 animate-spin text-primary" />
+        </div>
+      );
+    }
+
+    if (list.length === 0) {
+      return (
+        <div className="text-center py-10 text-muted-foreground text-sm">
+          Keine EFA- oder AFLE-Spiele in diesem Zeitraum gefunden.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {list.map(game => (
+          <MediaGameCard
+            key={game.id}
+            game={game}
+            teamsMap={teamsMap}
+            leaguesMap={leaguesMap}
+            selected={game.isGameOfTheWeek === true}
+            creditLabel={creditLabel}
+            onSelect={selectGameOfTheWeek}
+            selecting={selectingId === game.id}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 py-6 pb-24">
+      <div className="mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+          Game of the Week
+        </p>
+
+        <h1 className="text-xl font-black mt-1">
+          Media Auswahl
+        </h1>
+
+        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          Wähle vor dem Wochenende ein EFA- oder AFLE-Spiel aus. Die automatische Berechnung wird nicht mehr genutzt.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        <StatTile
+          icon={Calendar}
+          label="Wochenende"
+          value={weekendGames.length}
+        />
+
+        <StatTile
+          icon={CheckCircle2}
+          label="Geplant"
+          value={weekendGames.filter(game => game.status === 'scheduled').length}
+          tone="text-green-400"
+          bg="bg-green-500/10"
+        />
+
+        <StatTile
+          icon={Star}
+          label="Auswahl"
+          value={currentSelection ? 1 : 0}
+          tone="text-yellow-400"
+          bg="bg-yellow-500/10"
+        />
+      </div>
+
+      <Card className="p-4 mb-4">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Newspaper className="w-5 h-5 text-primary" />
+          </div>
+
+          <div>
+            <h2 className="text-sm font-bold">
+              Anzeige-Text
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Dieser Text steht auf der Startseite am Game of the Week.
+            </p>
+          </div>
+        </div>
+
+        <Input
+          value={creditLabel}
+          onChange={event => setCreditLabel(event.target.value)}
+          placeholder="z.B. by EuroFBShow"
+        />
+
+        {currentSelection && (
+          <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+              Aktuell ausgewählt
+            </p>
+            <p className="text-sm font-bold mt-1">
+              {getTeamName(teamsMap.get(currentSelection.homeTeamId), currentSelection.homeTeamPlaceholder)}
+              {' vs '}
+              {getTeamName(teamsMap.get(currentSelection.awayTeamId), currentSelection.awayTeamPlaceholder)}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {currentSelection.gameOfTheWeekLabel || 'by Media'}
+            </p>
+          </div>
+        )}
+      </Card>
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="w-full mb-4">
+          <TabsTrigger value="weekend" className="flex-1 text-xs">
+            Wochenende
+          </TabsTrigger>
+
+          <TabsTrigger value="upcoming" className="flex-1 text-xs">
+            7 Tage
+          </TabsTrigger>
+
+          <TabsTrigger value="account" className="flex-1 text-xs">
+            Konto
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="weekend">
+          <p className="text-xs text-muted-foreground mb-3">
+            EFA- und AFLE-Spiele für das kommende Wochenende: {formatWeekRange(upcomingWeekend.start, upcomingWeekend.end)}
+          </p>
+
+          {renderMediaGames(weekendGames)}
+        </TabsContent>
+
+        <TabsContent value="upcoming">
+          <p className="text-xs text-muted-foreground mb-3">
+            EFA- und AFLE-Spiele der nächsten 7 Tage.
+          </p>
+
+          {renderMediaGames(upcomingGames)}
+        </TabsContent>
+
+        <TabsContent value="account">
+          <MediaAccountSettings
+            appUser={appUserSnapshot}
+            onSaved={refreshAuth}
+          />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+export default function DataEditorDashboard() {
   const queryClient = useQueryClient();
   const { teams = [], leagues = [] } = useGlobalData();
+  const { appUserSnapshot } = useAuth();
+
+  const roleSlug = normalizeRole(appUserSnapshot?.roleSlug || appUserSnapshot?.role);
+  const isMediaPartner = roleSlug === 'media_partner';
+
+  useSetHeader({
+    mode: 'back',
+    title: isMediaPartner ? 'Media' : 'Daten bearbeiten',
+  });
 
   const [tab, setTab] = useState('overview');
   const [editingGameId, setEditingGameId] = useState(null);
@@ -457,6 +1057,18 @@ export default function DataEditorDashboard() {
     queryClient.invalidateQueries({ queryKey: ['games'] });
     queryClient.invalidateQueries({ queryKey: ['standingsConfigs'] });
   };
+
+  if (isMediaPartner) {
+    return (
+      <MediaDashboard
+        games={games}
+        isLoading={isLoading}
+        teamsMap={teamsMap}
+        leaguesMap={leaguesMap}
+        invalidate={invalidate}
+      />
+    );
+  }
 
   const makePayload = form => {
     const streamLinks = buildStreamLinks(form);
@@ -514,75 +1126,74 @@ export default function DataEditorDashboard() {
     setEditForm(EMPTY_GAME);
   };
 
-const validateGameForm = form => {
-  const hasHome = form.homeTeamId || form.homeTeamPlaceholder.trim();
-  const hasAway = form.awayTeamId || form.awayTeamPlaceholder.trim();
+  const validateGameForm = form => {
+    const hasHome = form.homeTeamId || form.homeTeamPlaceholder.trim();
+    const hasAway = form.awayTeamId || form.awayTeamPlaceholder.trim();
 
-  if (!form.leagueId) {
-    toast.error('Bitte Liga auswählen');
-    return false;
-  }
+    if (!form.leagueId) {
+      toast.error('Bitte Liga auswählen');
+      return false;
+    }
 
-  if (!hasHome) {
-    toast.error('Bitte Heimteam auswählen oder Heimteam-Name eintragen');
-    return false;
-  }
+    if (!hasHome) {
+      toast.error('Bitte Heimteam auswählen oder Heimteam-Name eintragen');
+      return false;
+    }
 
-  if (!hasAway) {
-    toast.error('Bitte Gastteam auswählen oder Gastteam-Name eintragen');
-    return false;
-  }
+    if (!hasAway) {
+      toast.error('Bitte Gastteam auswählen oder Gastteam-Name eintragen');
+      return false;
+    }
 
-  if (form.homeTeamId && form.awayTeamId && form.homeTeamId === form.awayTeamId) {
-    toast.error('Heimteam und Gastteam dürfen nicht gleich sein');
-    return false;
-  }
+    if (form.homeTeamId && form.awayTeamId && form.homeTeamId === form.awayTeamId) {
+      toast.error('Heimteam und Gastteam dürfen nicht gleich sein');
+      return false;
+    }
 
-  return true;
-};
+    return true;
+  };
 
   const saveExistingGame = async () => {
-  if (!editingGameId) return;
+    if (!editingGameId) return;
+    if (!validateGameForm(editForm)) return;
 
-  if (!validateGameForm(editForm)) return;
+    setSaving(true);
 
-  setSaving(true);
-
-  try {
-    await base44.entities.Game.update(editingGameId, makePayload(editForm));
-    invalidate();
-    cancelEdit();
-    toast.success('Spiel gespeichert');
-  } catch (error) {
-    console.error('DATA EDITOR UPDATE GAME ERROR:', error);
-    toast.error(error.message || 'Spiel konnte nicht gespeichert werden');
-  } finally {
-    setSaving(false);
-  }
-};
+    try {
+      await base44.entities.Game.update(editingGameId, makePayload(editForm));
+      invalidate();
+      cancelEdit();
+      toast.success('Spiel gespeichert');
+    } catch (error) {
+      console.error('DATA EDITOR UPDATE GAME ERROR:', error);
+      toast.error(error.message || 'Spiel konnte nicht gespeichert werden');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const createGame = async () => {
-  if (!validateGameForm(createForm)) return;
+    if (!validateGameForm(createForm)) return;
 
-  setSaving(true);
+    setSaving(true);
 
-  try {
-    await base44.entities.Game.create({
-      ...makePayload(createForm),
-      createdAtUtc: new Date().toISOString(),
-    });
+    try {
+      await base44.entities.Game.create({
+        ...makePayload(createForm),
+        createdAtUtc: new Date().toISOString(),
+      });
 
-    invalidate();
-    setCreateForm(EMPTY_GAME);
-    setTab('games');
-    toast.success('Spiel erstellt');
-  } catch (error) {
-    console.error('DATA EDITOR CREATE GAME ERROR:', error);
-    toast.error(error.message || 'Spiel konnte nicht erstellt werden');
-  } finally {
-    setSaving(false);
-  }
-};
+      invalidate();
+      setCreateForm(EMPTY_GAME);
+      setTab('games');
+      toast.success('Spiel erstellt');
+    } catch (error) {
+      console.error('DATA EDITOR CREATE GAME ERROR:', error);
+      toast.error(error.message || 'Spiel konnte nicht erstellt werden');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const quickUpdateGame = async (game, payload) => {
     await base44.entities.Game.update(game.id, {
@@ -629,6 +1240,12 @@ const validateGameForm = form => {
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
+            {game.isGameOfTheWeek && (
+              <Badge className="text-[10px] bg-primary text-primary-foreground border-0">
+                GOTW
+              </Badge>
+            )}
+
             {hasStream && (
               <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-0">
                 Stream
