@@ -11,6 +11,45 @@ const ENTITY_TABLES = {
   AppUpdate: 'app_updates',
 };
 
+const EMPTY_ENTITY_NAMES = [
+  'Club',
+  'ClubFollow',
+  'Comment',
+  'Follow',
+  'LeagueFollow',
+  'LegalPage',
+  'Like',
+  'ModerationLog',
+  'Notification',
+  'NotificationSettings',
+  'Role',
+  'RoleApplication',
+  'StandingsConfig',
+  'SupportRequest',
+  'SupportTicket',
+  'User',
+];
+
+const OMIT_FIELDS = {
+  AppUser: new Set([
+    'bannedUntil',
+    'createdByAdminId',
+    'deleteAfterUtc',
+    'deletionRequested',
+    'deletionRequestedAtUtc',
+    'deletionStatus',
+    'followersCount',
+    'followingCount',
+    'moderationNote',
+    'needsOnboarding',
+    'roleId',
+    'usernameChangeHistory',
+    'warningsCount',
+  ]),
+  AppUpdate: new Set(['showAsPopup']),
+  Post: new Set(['authorId']),
+};
+
 const FIELD_TO_COLUMN = {
   AppUser: {
     internalUsername: 'internal_username',
@@ -172,7 +211,7 @@ function toField(entityName, column) {
 function toDbPayload(entityName, data = {}) {
   return Object.fromEntries(
     Object.entries(data)
-      .filter(([, value]) => value !== undefined)
+      .filter(([field, value]) => value !== undefined && !OMIT_FIELDS[entityName]?.has(field))
       .map(([field, value]) => [toColumn(entityName, field), value])
   );
 }
@@ -271,12 +310,77 @@ function createEntityApi(entityName) {
       if (error) throw error;
       return { id };
     },
+
+    subscribe() {
+      return () => {};
+    },
   };
 }
 
-export const yardline = {
-  entities: Object.fromEntries(
+function createEmptyEntityApi() {
+  return {
+    async list() {
+      return [];
+    },
+    async filter() {
+      return [];
+    },
+    async get() {
+      return null;
+    },
+    async create(data) {
+      return { id: crypto.randomUUID(), ...data };
+    },
+    async update(id, data) {
+      return { id, ...data };
+    },
+    async delete(id) {
+      return { id };
+    },
+    subscribe() {
+      return () => {};
+    },
+  };
+}
+
+const entityApis = {
+  ...Object.fromEntries(
     Object.keys(ENTITY_TABLES).map(entityName => [entityName, createEntityApi(entityName)])
   ),
-  auth: supabase.auth,
+  ...Object.fromEntries(
+    EMPTY_ENTITY_NAMES.map(entityName => [entityName, createEmptyEntityApi()])
+  ),
+};
+
+export const yardline = {
+  entities: entityApis,
+  auth: {
+    async me() {
+      throw Object.assign(new Error('Not authenticated'), { status: 401 });
+    },
+    async logout(redirectTo) {
+      await supabase.auth.signOut();
+      if (redirectTo) window.location.href = redirectTo;
+    },
+    redirectToLogin(redirectTo = '/') {
+      window.location.href = redirectTo;
+    },
+    async isAuthenticated() {
+      const { data } = await supabase.auth.getSession();
+      return !!data.session;
+    },
+  },
+  functions: {
+    async invoke(name) {
+      console.warn(`Function ${name} is not available after Base44 migration.`);
+      return null;
+    },
+  },
+  integrations: {
+    Core: {
+      async UploadFile() {
+        throw new Error('Datei-Upload ist noch nicht auf Supabase Storage umgestellt.');
+      },
+    },
+  },
 };
