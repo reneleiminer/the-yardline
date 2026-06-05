@@ -32,6 +32,245 @@ const EMPTY_ENTITY_NAMES = [
   'User',
 ];
 
+const ENTITY_COLUMNS = {
+  AppUser: new Set([
+    'id',
+    'username',
+    'email',
+    'internal_username',
+    'password_hash',
+    'is_internal_user',
+    'display_name',
+    'avatar',
+    'banner',
+    'role',
+    'role_slug',
+    'verified',
+    'bio',
+    'status',
+    'is_owner',
+    'connected_team_id',
+    'linked_league_id',
+    'website',
+    'instagram',
+    'twitter',
+    'tiktok',
+    'youtube',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  League: new Set([
+    'id',
+    'name',
+    'short_name',
+    'logo',
+    'banner',
+    'primary_color',
+    'secondary_color',
+    'accent_color',
+    'region',
+    'region_state',
+    'country',
+    'tier',
+    'tier_label',
+    'season',
+    'is_european_league',
+    'groups_enabled',
+    'public_table_mode',
+    'show_overall_standings_public',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  Team: new Set([
+    'id',
+    'name',
+    'short_name',
+    'logo',
+    'banner',
+    'primary_color',
+    'secondary_color',
+    'league_id',
+    'group_id',
+    'city',
+    'region',
+    'country',
+    'stadium',
+    'stadium_address',
+    'stadiums',
+    'website',
+    'instagram',
+    'youtube',
+    'stream_url',
+    'contact_email',
+    'founded_year',
+    'status',
+    'withdrawn',
+    'withdrawn_before_season',
+    'description',
+    'roster',
+    'coaches',
+    'linked_user_id',
+    'assigned_user_id',
+    'managed_by_user_id',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  Game: new Set([
+    'id',
+    'league_id',
+    'group_id',
+    'season',
+    'week',
+    'home_team_id',
+    'away_team_id',
+    'home_team_placeholder',
+    'away_team_placeholder',
+    'date',
+    'time',
+    'kickoff_time',
+    'kickoff_at',
+    'status',
+    'score_home',
+    'score_away',
+    'venue',
+    'stadium_address',
+    'city',
+    'stream_url',
+    'stream_links',
+    'notes',
+    'referee_crew',
+    'attendance',
+    'weather',
+    'competition_id',
+    'tournament_id',
+    'round_name',
+    'is_competition_game',
+    'is_game_of_the_week',
+    'game_of_the_week_label',
+    'game_of_the_week_selected_by',
+    'game_of_the_week_selected_at_utc',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  Post: new Set([
+    'id',
+    'type',
+    'source_type',
+    'author_id',
+    'author_username',
+    'author_avatar',
+    'author_verified',
+    'author_role',
+    'author_role_slug',
+    'title',
+    'teaser',
+    'text',
+    'images',
+    'video_url',
+    'category',
+    'league_id',
+    'team_ids',
+    'team_id',
+    'club_id',
+    'connected_team_id',
+    'game_id',
+    'is_game_report',
+    'mentions',
+    'published_at_utc',
+    'likes_count',
+    'comments_count',
+    'featured',
+    'is_hidden',
+    'is_deleted',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  Partner: new Set([
+    'id',
+    'name',
+    'logo_url',
+    'link_url',
+    'category',
+    'type',
+    'sort_order',
+    'is_partner_club',
+    'connected_team_id',
+    'partner_status',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  Tournament: new Set([
+    'id',
+    'name',
+    'logo',
+    'banner',
+    'league_id',
+    'season',
+    'type',
+    'system',
+    'qualification_description',
+    'start_date',
+    'end_date',
+    'status',
+    'is_active',
+    'is_published',
+    'team_ids',
+    'game_ids',
+    'bracket',
+    'brackets',
+    'public_display_settings',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  AppUpdate: new Set([
+    'id',
+    'title',
+    'message',
+    'image_url',
+    'version',
+    'is_active',
+    'published_at_utc',
+    'legacy_data',
+    'created_at',
+    'updated_at',
+  ]),
+  StandingsConfig: new Set([
+    'id',
+    'league_id',
+    'group_id',
+    'public_table_mode',
+    'zones',
+    'created_at',
+    'updated_at',
+  ]),
+};
+
+const NULLABLE_FOREIGN_KEY_COLUMNS = {
+  AppUser: new Set(['connected_team_id', 'linked_league_id']),
+  League: new Set([]),
+  Team: new Set(['league_id', 'group_id', 'linked_user_id', 'assigned_user_id', 'managed_by_user_id']),
+  Game: new Set([
+    'league_id',
+    'group_id',
+    'home_team_id',
+    'away_team_id',
+    'competition_id',
+    'tournament_id',
+    'game_of_the_week_selected_by',
+  ]),
+  Post: new Set(['author_id', 'league_id', 'team_id', 'club_id', 'connected_team_id', 'game_id']),
+  Partner: new Set(['connected_team_id']),
+  Tournament: new Set(['league_id']),
+  StandingsConfig: new Set(['league_id', 'group_id']),
+};
+
 const OMIT_FIELDS = {
   AppUser: new Set([
     'bannedUntil',
@@ -345,11 +584,38 @@ function toField(entityName, column) {
 }
 
 function toDbPayload(entityName, data = {}) {
-  return Object.fromEntries(
-    Object.entries(data)
-      .filter(([field, value]) => value !== undefined && !OMIT_FIELDS[entityName]?.has(field))
-      .map(([field, value]) => [toColumn(entityName, field), value])
-  );
+  const payload = {};
+  const legacyData = {};
+  const knownColumns = ENTITY_COLUMNS[entityName];
+  const nullableForeignKeys = NULLABLE_FOREIGN_KEY_COLUMNS[entityName] || new Set();
+
+  Object.entries(data).forEach(([field, value]) => {
+    if (value === undefined || OMIT_FIELDS[entityName]?.has(field)) return;
+
+    const column = toColumn(entityName, field);
+    const normalizedValue = value === '' && nullableForeignKeys.has(column)
+      ? null
+      : value;
+
+    if (knownColumns && !knownColumns.has(column)) {
+      legacyData[field] = normalizedValue;
+      return;
+    }
+
+    payload[column] = normalizedValue;
+  });
+
+  if (
+    Object.keys(legacyData).length > 0 &&
+    ENTITY_COLUMNS[entityName]?.has('legacy_data')
+  ) {
+    payload.legacy_data = {
+      ...(data.legacy_data && typeof data.legacy_data === 'object' ? data.legacy_data : {}),
+      ...legacyData,
+    };
+  }
+
+  return payload;
 }
 
 function fromDbRow(entityName, row) {
@@ -358,6 +624,14 @@ function fromDbRow(entityName, row) {
   const item = Object.fromEntries(
     Object.entries(row).map(([column, value]) => [toField(entityName, column), value])
   );
+
+  if (row.legacy_data && typeof row.legacy_data === 'object') {
+    Object.entries(row.legacy_data).forEach(([field, value]) => {
+      if (item[field] === undefined) {
+        item[field] = value;
+      }
+    });
+  }
 
   item.created_date = row.created_at || item.created_date;
   item.updated_date = row.updated_at || item.updated_date;
