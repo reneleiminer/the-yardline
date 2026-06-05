@@ -1405,7 +1405,14 @@ export default function Home() {
   const { data: homeAppUpdates = [] } = useQuery({
     queryKey: ["home-app-updates"],
     queryFn: async () => {
-      return await base44.entities.AppUpdate.list("-created_date");
+      const updateGroups = await Promise.all([
+        base44.entities.AppUpdate.filter({ version: HIGHLIGHT_VERSION }),
+        base44.entities.AppUpdate.filter({ version: SPOTLIGHT_VERSION }),
+        base44.entities.AppUpdate.filter({ version: AD_BANNER_VERSION }),
+        base44.entities.AppUpdate.filter({ version: GAMEDAY_SHOT_VERSION }),
+      ]);
+
+      return updateGroups.flat();
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,

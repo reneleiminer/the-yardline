@@ -1,77 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
-import { base44 } from "@/api/base44Client";
-
-const ANALYTICS_VERSION = "analytics_event";
-
-function getVisitorId() {
-  const storageKey = "yardline_visitor_id";
-  const existing = localStorage.getItem(storageKey);
-
-  if (existing) return existing;
-
-  const nextId = `visitor_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-  localStorage.setItem(storageKey, nextId);
-
-  return nextId;
-}
-
-function shouldTrackPath(pathname) {
-  if (!pathname) return false;
-
-  if (pathname.startsWith("/admin")) return false;
-  if (pathname.startsWith("/data-editor")) return false;
-  if (pathname.startsWith("/settings")) return false;
-
-  return true;
-}
-
-async function trackPageView(location) {
-  const pathname = location.pathname || "/";
-  const search = location.search || "";
-
-  if (!shouldTrackPath(pathname)) return;
-
-  const visitorId = getVisitorId();
-  const now = new Date().toISOString();
-
-  const pageKey = `${pathname}${search}`;
-  const throttleKey = `yardline_last_track_${pageKey}`;
-  const lastTracked = Number(localStorage.getItem(throttleKey) || 0);
-  const currentTime = Date.now();
-
-  if (currentTime - lastTracked < 60 * 1000) return;
-
-  localStorage.setItem(throttleKey, String(currentTime));
-
-  try {
-    await base44.entities.AppUpdate.create({
-      title: "Analytics Event",
-      version: ANALYTICS_VERSION,
-      isActive: false,
-      showAsPopup: false,
-      imageUrl: "",
-      message: JSON.stringify({
-        type: "page_view",
-        visitor_id: visitorId,
-        path: pathname,
-        search,
-        full_path: `${pathname}${search}`,
-        created_at: now,
-        date: now.slice(0, 10),
-      }),
-      createdAtUtc: now,
-      updatedAtUtc: now,
-    });
-  } catch (error) {
-    console.error("ANALYTICS PAGE VIEW ERROR:", error);
-  }
-}
-
 export default function AppLayout() {
   const location = useLocation();
 
@@ -93,10 +25,6 @@ export default function AppLayout() {
     "/admin",
     "/data-editor",
   ];
-
-  useEffect(() => {
-    trackPageView(location);
-  }, [location.pathname, location.search]);
 
   const showFooter = footerVisibleRoutes.some((route) =>
     route === "/" ? location.pathname === "/" : location.pathname.startsWith(route)

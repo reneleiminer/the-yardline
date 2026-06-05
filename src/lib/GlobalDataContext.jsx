@@ -8,7 +8,6 @@ import React, {
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { base44 } from "@/api/base44Client";
-import { useGameStatusAutoCheck } from "@/hooks/useGameStatusAutoCheck";
 
 const GlobalDataContext = createContext();
 
@@ -83,7 +82,6 @@ function makeListQuery({ key, entity, staleTime, sort, limit }) {
 export const GlobalDataProvider = ({ children }) => {
   const queryClient = useQueryClient();
 
-  useGameStatusAutoCheck();
   useRealtimeSubscriptions(queryClient);
 
   const { data: leagues = [], isLoading: leaguesLoading } = useQuery(
