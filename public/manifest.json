@@ -1,0 +1,19 @@
+{
+  "name": "The Yardline",
+  "short_name": "Yardline",
+  "description": "News, Scores und Rankings fuer American Football.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/yardline-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

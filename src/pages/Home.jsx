@@ -1578,47 +1578,18 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
   }, [filteredGames, lastSevenDays, leagueRanks, leaguesById, today]);
 
   const homeHighlights = useMemo(() => {
-  const maxAgeDate = subDays(today, 7);
+    const maxAgeDate = subDays(today, 7);
 
-  return [...highlights]
-    .filter(highlight => highlight.active !== false)
-    .filter(highlight => {
-      const linkedGame = highlight.game_id
-        ? gamesById.get(highlight.game_id)
-        : null;
-
-      const gameDate = linkedGame ? getGameDate(linkedGame) : null;
-
-      // Wenn ein Highlight einem Spiel zugeordnet ist,
-      // zählt das Spiel-Datum.
-      if (gameDate) {
-        return !isBefore(gameDate, maxAgeDate) && !isAfter(gameDate, addDays(today, 1));
-      }
-
-      // Wenn kein Spiel zugeordnet ist, nutzen wir als Fallback das Highlight-Datum.
-      const rawDate =
-        highlight.date ||
-        highlight.createdAtUtc ||
-        highlight.created_date ||
-        '';
-
-      if (!rawDate) return true;
-
-      const highlightDate = startOfDay(new Date(rawDate));
-
-      if (Number.isNaN(highlightDate.getTime())) return true;
-
-      return !isBefore(highlightDate, maxAgeDate);
-    })
-    .filter(highlight => highlightMatchesCurrentFilter(
+    const matchesCurrentView = highlight => highlightMatchesCurrentFilter(
       highlight,
       selectedLeagueId,
       query,
       teamsById,
       leaguesById,
       gamesById
-    ))
-    .sort((a, b) => {
+    );
+
+    const sortByNewest = (a, b) => {
       const gameA = a.game_id ? gamesById.get(a.game_id) : null;
       const gameB = b.game_id ? gamesById.get(b.game_id) : null;
 
@@ -1633,9 +1604,47 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
       ).getTime();
 
       return dateB - dateA;
-    })
-    .slice(0, 8);
-}, [gamesById, highlights, leaguesById, query, selectedLeagueId, teamsById, today]);
+    };
+
+    const activeHighlights = [...highlights]
+      .filter(highlight => highlight.active !== false)
+      .filter(matchesCurrentView);
+
+    const recentHighlights = activeHighlights
+      .filter(highlight => {
+        const linkedGame = highlight.game_id
+          ? gamesById.get(highlight.game_id)
+          : null;
+
+        const gameDate = linkedGame ? getGameDate(linkedGame) : null;
+
+        if (gameDate) {
+          return !isBefore(gameDate, maxAgeDate) && !isAfter(gameDate, addDays(today, 1));
+        }
+
+        const rawDate =
+          highlight.date ||
+          highlight.createdAtUtc ||
+          highlight.created_date ||
+          '';
+
+        if (!rawDate) return true;
+
+        const highlightDate = startOfDay(new Date(rawDate));
+
+        if (Number.isNaN(highlightDate.getTime())) return true;
+
+        return !isBefore(highlightDate, maxAgeDate);
+      })
+      .sort(sortByNewest)
+      .slice(0, 8);
+
+    if (recentHighlights.length > 0) return recentHighlights;
+
+    return activeHighlights
+      .sort(sortByNewest)
+      .slice(0, 8);
+  }, [gamesById, highlights, leaguesById, query, selectedLeagueId, teamsById, today]);
 
   const activeAdBanners = useMemo(() => {
     return [...adBanners]
@@ -1720,84 +1729,78 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
 }, [filteredGames, nextSevenDays]);
 
   const gameDayShotGames = useMemo(() => {
-  const grouped = new Map();
-  const maxAgeDate = subDays(today, 7);
+    const grouped = new Map();
+    const maxAgeDate = subDays(today, 14);
 
-  gameDayShots
-    .filter(shot => shot.active !== false && shot.game_id && shot.image_url)
-    .forEach(shot => {
-      const game = gamesById.get(shot.game_id);
-      if (!game) return;
-      if (getEffectiveGameStatus(game) === "cancelled") return;
+    gameDayShots
+      .filter(shot => shot.active !== false && shot.game_id && shot.image_url)
+      .forEach(shot => {
+        const game = gamesById.get(shot.game_id);
+        if (!game) return;
+        if (getEffectiveGameStatus(game) === "cancelled") return;
 
-      const gameDate = getGameDate(game);
-      if (!gameDate) return;
+        const gameDate = getGameDate(game);
+        if (gameDate && isBefore(gameDate, maxAgeDate)) return;
+        if (gameDate && isAfter(gameDate, addDays(today, 1))) return;
 
-      // Nur Spiele anzeigen, die maximal 7 Tage zurückliegen.
-      // Ab dem 8. Tag verschwinden sie automatisch.
-      if (isBefore(gameDate, maxAgeDate)) return;
+        if (selectedLeagueId && game.leagueId !== selectedLeagueId) return;
 
-      // Nur vergangene oder heutige Spiele anzeigen, keine zukünftigen.
-      if (isAfter(gameDate, addDays(today, 1))) return;
+        if (query) {
+          const home = teamsById.get(game.homeTeamId);
+          const away = teamsById.get(game.awayTeamId);
+          const league = leaguesById.get(game.leagueId);
 
-      if (selectedLeagueId && game.leagueId !== selectedLeagueId) return;
+          const haystack = [
+            home?.name,
+            home?.shortName,
+            away?.name,
+            away?.shortName,
+            league?.name,
+            league?.shortName,
+            game.homeTeamPlaceholder,
+            game.awayTeamPlaceholder,
+            game.roundName,
+            shot.caption,
+            shot.credit,
+            shot.instagram,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
 
-      if (query) {
-        const home = teamsById.get(game.homeTeamId);
-        const away = teamsById.get(game.awayTeamId);
-        const league = leaguesById.get(game.leagueId);
+          if (!haystack.includes(query)) return;
+        }
 
-        const haystack = [
-          home?.name,
-          home?.shortName,
-          away?.name,
-          away?.shortName,
-          league?.name,
-          league?.shortName,
-          game.homeTeamPlaceholder,
-          game.awayTeamPlaceholder,
-          game.roundName,
-          shot.caption,
-          shot.credit,
-          shot.instagram,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
+        if (!grouped.has(shot.game_id)) {
+          grouped.set(shot.game_id, {
+            game,
+            shots: [],
+          });
+        }
 
-        if (!haystack.includes(query)) return;
-      }
+        grouped.get(shot.game_id).shots.push(shot);
+      });
 
-      if (!grouped.has(shot.game_id)) {
-        grouped.set(shot.game_id, {
-          game,
-          shots: [],
-        });
-      }
+    return Array.from(grouped.values())
+      .map(item => ({
+        ...item,
+        shots: item.shots.sort((a, b) => {
+          if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
 
-      grouped.get(shot.game_id).shots.push(shot);
-    });
+          const dateA = new Date(a.created_at || a.createdAtUtc || a.created_date || 0).getTime();
+          const dateB = new Date(b.created_at || b.createdAtUtc || b.created_date || 0).getTime();
 
-  return Array.from(grouped.values())
-    .map(item => ({
-      ...item,
-      shots: item.shots.sort((a, b) => {
-        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+          return dateA - dateB;
+        }),
+      }))
+      .sort((a, b) => {
+        const dateA = getGameDate(a.game)?.getTime() || 0;
+        const dateB = getGameDate(b.game)?.getTime() || 0;
 
-        const dateA = new Date(a.created_at || a.createdAtUtc || a.created_date || 0).getTime();
-        const dateB = new Date(b.created_at || b.createdAtUtc || b.created_date || 0).getTime();
-
-        return dateA - dateB;
-      }),
-    }))
-    .sort((a, b) => {
-      const dateA = getGameDate(a.game)?.getTime() || 0;
-      const dateB = getGameDate(b.game)?.getTime() || 0;
-
-      return dateB - dateA;
-    })
-    .slice(0, 10);
-}, [gameDayShots, gamesById, leaguesById, query, selectedLeagueId, teamsById, today]);
+        return dateB - dateA;
+      })
+      .slice(0, 10);
+  }, [gameDayShots, gamesById, leaguesById, query, selectedLeagueId, teamsById, today]);
 
   const activeSpotlight = useMemo(() => {
     const candidates = spotlights

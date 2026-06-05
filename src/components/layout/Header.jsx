@@ -43,8 +43,11 @@ function useAppBranding() {
   const { data: branding = null } = useQuery({
     queryKey: ["app-branding"],
     queryFn: async () => {
-      const all = await base44.entities.AppUpdate.list("-created_date");
-      const item = all.find(entry => entry.version === APP_BRANDING_VERSION);
+      const items = await base44.entities.AppUpdate.filter({
+        version: APP_BRANDING_VERSION,
+      });
+
+      const item = items[0];
 
       return item ? normalizeBranding(item) : null;
     },
@@ -127,7 +130,11 @@ function BrandLogo({ centered = false }) {
           className="h-[52px] max-w-[76vw] w-auto object-contain"
           loading="eager"
         />
-      ) : null}
+      ) : (
+        <span className="text-lg font-black uppercase tracking-wide text-white">
+          <span className="text-primary">Y</span>ardline
+        </span>
+      )}
     </Link>
   );
 }
