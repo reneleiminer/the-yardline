@@ -22,6 +22,52 @@ const CORE_ENTITY_CONFIG = [
   { key: "legalPages", entity: "LegalPage" },
 ];
 
+const AUTO_LIVE_CHECK_INTERVAL_MS = 60 * 1000;
+const AUTO_LIVE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+
+function getGameDate(game) {
+  if (game?.date) {
+    const rawTime = game.time || game.kickoffTime || "00:00";
+    const [year, month, day] = String(game.date).split("-").map(Number);
+    const [hour, minute] = String(rawTime).split(":").map(Number);
+
+    if (year && month && day) {
+      return new Date(
+        year,
+        month - 1,
+        day,
+        Number.isFinite(hour) ? hour : 0,
+        Number.isFinite(minute) ? minute : 0,
+        0,
+        0
+      );
+    }
+  }
+
+  if (game?.kickoffAt) {
+    const kickoff = new Date(game.kickoffAt);
+    if (!Number.isNaN(kickoff.getTime())) return kickoff;
+  }
+
+  return null;
+}
+
+function shouldAutoSwitchToLive(game, now = new Date()) {
+  if (!game) return false;
+
+  const status = String(game.status || "scheduled").toLowerCase();
+
+  if (status !== "scheduled") return false;
+  if (status === "cancelled" || status === "final" || status === "live") return false;
+
+  const kickoff = getGameDate(game);
+  if (!kickoff) return false;
+
+  const diff = now.getTime() - kickoff.getTime();
+
+  return diff >= 0 && diff <= AUTO_LIVE_MAX_AGE_MS;
+}
+
 function useRealtimeSubscriptions(queryClient) {
   const unsubscribeRefs = useRef([]);
 
@@ -61,6 +107,54 @@ function useRealtimeSubscriptions(queryClient) {
       });
     };
   }, [queryClient]);
+}
+
+function useAutomaticGameStatus(games, queryClient) {
+  const runningRef = useRef(false);
+  const touchedRef = useRef(new Set());
+
+  const runCheck = useCallback(async () => {
+    if (runningRef.current) return;
+    if (!Array.isArray(games) || games.length === 0) return;
+
+    const now = new Date();
+    const candidates = games.filter(game =>
+      shouldAutoSwitchToLive(game, now) &&
+      !touchedRef.current.has(game.id)
+    );
+
+    if (candidates.length === 0) return;
+
+    runningRef.current = true;
+
+    try {
+      await Promise.all(
+        candidates.map(game => {
+          touchedRef.current.add(game.id);
+
+          return base44.entities.Game.update(game.id, {
+            status: "live",
+            updatedAtUtc: now.toISOString(),
+          });
+        })
+      );
+
+      queryClient.invalidateQueries({ queryKey: ["games"] });
+    } catch (error) {
+      candidates.forEach(game => touchedRef.current.delete(game.id));
+      console.error("AUTO GAME STATUS UPDATE ERROR:", error);
+    } finally {
+      runningRef.current = false;
+    }
+  }, [games, queryClient]);
+
+  useEffect(() => {
+    runCheck();
+
+    const interval = window.setInterval(runCheck, AUTO_LIVE_CHECK_INTERVAL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [runCheck]);
 }
 
 function makeListQuery({ key, entity, staleTime, sort, limit }) {
@@ -111,6 +205,8 @@ export const GlobalDataProvider = ({ children }) => {
       limit: 500,
     })
   );
+
+  useAutomaticGameStatus(games, queryClient);
 
   const { data: partners = [], isLoading: partnersLoading } = useQuery(
     makeListQuery({
