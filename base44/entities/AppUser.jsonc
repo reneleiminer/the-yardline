@@ -1,0 +1,200 @@
+{
+  "name": "AppUser",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "description": "Unique username"
+    },
+    "internalUsername": {
+      "type": "string",
+      "description": "Internal login username for admin/data editor accounts"
+    },
+    "internalPassword": {
+      "type": "string",
+      "description": "Internal login password for admin/data editor accounts"
+    },
+    "isInternalUser": {
+      "type": "boolean",
+      "default": false
+    },
+    "needsOnboarding": {
+      "type": "boolean",
+      "default": false
+    },
+    "createdByAdminId": {
+      "type": "string"
+    },
+    "displayName": {
+      "type": "string",
+      "description": "Display name"
+    },
+    "avatar": {
+      "type": "string",
+      "description": "Avatar image URL"
+    },
+    "banner": {
+      "type": "string",
+      "description": "Profile banner image URL"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "Fan",
+        "Creator",
+        "Fotograf",
+        "Journalist",
+        "Verein",
+        "Liga",
+        "official_media",
+        "Moderator",
+        "DataEditor",
+        "Media",
+        "Admin"
+      ],
+      "default": "Fan",
+      "description": "Legacy role name. New code should use roleSlug."
+    },
+    "roleSlug": {
+      "type": "string",
+      "enum": [
+        "fan",
+        "journalist",
+        "photographer",
+        "creator",
+        "official_media",
+        "club",
+        "league",
+        "moderator",
+        "data_editor",
+        "media_partner",
+        "admin"
+      ],
+      "default": "fan",
+      "description": "Canonical role slug"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "bio": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "description": "Auth email reference"
+    },
+    "followersCount": {
+      "type": "number",
+      "default": 0
+    },
+    "followingCount": {
+      "type": "number",
+      "default": 0
+    },
+    "linkedClubId": {
+      "type": "string",
+      "description": "Legacy club reference. Prefer connectedTeamId for club accounts."
+    },
+    "connectedClubId": {
+      "type": "string",
+      "description": "Legacy club reference. Prefer connectedTeamId for club accounts."
+    },
+    "connectedTeamId": {
+      "type": "string",
+      "description": "Team page managed by an official club account"
+    },
+    "linkedLeagueId": {
+      "type": "string",
+      "description": "League page managed by an official league account"
+    },
+    "roleId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "warned",
+        "suspended",
+        "banned",
+        "inactive",
+        "blocked"
+      ],
+      "default": "active"
+    },
+    "warningsCount": {
+      "type": "number",
+      "default": 0
+    },
+    "bannedUntil": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "moderationNote": {
+      "type": "string"
+    },
+    "isOwner": {
+      "type": "boolean",
+      "default": false
+    },
+    "website": {
+      "type": "string"
+    },
+    "instagram": {
+      "type": "string"
+    },
+    "twitter": {
+      "type": "string"
+    },
+    "tiktok": {
+      "type": "string"
+    },
+    "youtube": {
+      "type": "string"
+    },
+    "usernameChangeHistory": {
+      "type": "array",
+      "description": "History of username changes for rate limiting",
+      "items": {
+        "type": "object",
+        "properties": {
+          "oldUsername": {
+            "type": "string"
+          },
+          "newUsername": {
+            "type": "string"
+          },
+          "changedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "deletionRequested": {
+      "type": "boolean",
+      "default": false
+    },
+    "deletionRequestedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deleteAfterUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deletionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "cancelled",
+        "completed"
+      ]
+    }
+  },
+  "required": [
+    "username",
+    "email"
+  ]
+}

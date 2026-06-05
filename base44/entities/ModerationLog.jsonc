@@ -1,0 +1,52 @@
+{
+  "name": "ModerationLog",
+  "type": "object",
+  "properties": {
+    "moderatorId": {
+      "type": "string",
+      "description": "Admin/Moderator ID who took the action"
+    },
+    "targetUserId": {
+      "type": "string",
+      "description": "User being moderated (may be different from content author)"
+    },
+    "targetType": {
+      "type": "string",
+      "enum": [
+        "user",
+        "post",
+        "comment"
+      ],
+      "description": "What type of entity is being moderated"
+    },
+    "targetId": {
+      "type": "string",
+      "description": "ID of the entity (userId, postId, commentId)"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "warn",
+        "suspend",
+        "unsuspend",
+        "ban",
+        "unban",
+        "hide",
+        "unhide",
+        "delete"
+      ],
+      "description": "Action taken"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for the action"
+    }
+  },
+  "required": [
+    "moderatorId",
+    "targetUserId",
+    "targetType",
+    "targetId",
+    "action"
+  ]
+}

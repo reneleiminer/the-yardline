@@ -1,0 +1,81 @@
+{
+  "name": "Notification",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "AppUser ID who receives the notification"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "game_starting",
+        "game_live",
+        "final_score",
+        "official_announcement",
+        "transfer",
+        "news",
+        "post_mention",
+        "comment_mention",
+        "post_like",
+        "post_save",
+        "post_share"
+      ],
+      "description": "Notification type"
+    },
+    "title": {
+      "type": "string",
+      "description": "Notification title"
+    },
+    "message": {
+      "type": "string",
+      "description": "Notification message"
+    },
+    "targetType": {
+      "type": "string",
+      "enum": [
+        "game",
+        "post",
+        "comment",
+        "team",
+        "league",
+        "profile"
+      ],
+      "description": "What the notification is about"
+    },
+    "targetId": {
+      "type": "string",
+      "description": "ID of the target (gameId, postId, commentId, teamId, etc.)"
+    },
+    "imageUrl": {
+      "type": "string",
+      "description": "Optional image URL (team/league logo)"
+    },
+    "iconType": {
+      "type": "string",
+      "enum": [
+        "football",
+        "scoreboard",
+        "badge",
+        "arrows",
+        "newspaper",
+        "bell"
+      ],
+      "description": "Icon type for display"
+    },
+    "isRead": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user has read the notification"
+    }
+  },
+  "required": [
+    "userId",
+    "type",
+    "title",
+    "message",
+    "targetType",
+    "targetId",
+    "iconType"
+  ]
+}

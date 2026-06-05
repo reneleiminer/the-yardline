@@ -1,0 +1,29 @@
+{
+  "name": "LegalPage",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "enum": [
+        "impressum",
+        "datenschutz",
+        "nutzungsbedingungen",
+        "community-guidelines"
+      ],
+      "description": "Page identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Page title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Page content (HTML/markdown)"
+    }
+  },
+  "required": [
+    "slug",
+    "title",
+    "content"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Like",
+  "type": "object",
+  "properties": {
+    "postId": {
+      "type": "string",
+      "description": "Post ID being liked"
+    },
+    "userId": {
+      "type": "string",
+      "description": "AppUser ID who liked the post"
+    },
+    "createdAtUtc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO UTC timestamp when like was created"
+    }
+  },
+  "required": [
+    "postId",
+    "userId"
+  ]
+}

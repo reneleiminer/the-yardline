@@ -1,0 +1,174 @@
+{
+  "name": "Club",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Club name"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Club logo URL"
+    },
+    "banner": {
+      "type": "string",
+      "description": "Club banner image URL"
+    },
+    "primaryColor": {
+      "type": "string",
+      "description": "Primary brand color (hex)"
+    },
+    "secondaryColor": {
+      "type": "string",
+      "description": "Secondary brand color (hex)"
+    },
+    "accentColor": {
+      "type": "string",
+      "description": "Accent color (hex)"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Is club verified"
+    },
+    "leagueId": {
+      "type": "string",
+      "description": "League ID"
+    },
+    "groupId": {
+      "type": "string",
+      "description": "Group/Conference ID if applicable"
+    },
+    "city": {
+      "type": "string",
+      "description": "Club city"
+    },
+    "stadium": {
+      "type": "string",
+      "description": "Stadium name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Club description"
+    },
+    "founded": {
+      "type": "number",
+      "description": "Founded year"
+    },
+    "website": {
+      "type": "string",
+      "description": "Official website URL"
+    },
+    "instagram": {
+      "type": "string",
+      "description": "Instagram handle or URL"
+    },
+    "facebook": {
+      "type": "string",
+      "description": "Facebook page URL"
+    },
+    "tiktok": {
+      "type": "string",
+      "description": "TikTok handle or URL"
+    },
+    "twitter": {
+      "type": "string",
+      "description": "X/Twitter handle or URL"
+    },
+    "youtube": {
+      "type": "string",
+      "description": "YouTube channel URL"
+    },
+    "twitch": {
+      "type": "string",
+      "description": "Twitch channel URL"
+    },
+    "discord": {
+      "type": "string",
+      "description": "Discord server URL"
+    },
+    "threads": {
+      "type": "string",
+      "description": "Threads handle or URL"
+    },
+    "linkedin": {
+      "type": "string",
+      "description": "LinkedIn page URL"
+    },
+    "shop": {
+      "type": "string",
+      "description": "Shop/Merch URL"
+    },
+    "tickets": {
+      "type": "string",
+      "description": "Tickets URL"
+    },
+    "managerId": {
+      "type": "string",
+      "description": "AppUser ID of club manager/admin"
+    },
+    "assignedUserId": {
+      "type": "string",
+      "description": "AppUser ID connected to manage this club"
+    },
+    "managedByUserId": {
+      "type": "string",
+      "description": "AppUser ID who manages this club (same as assignedUserId)"
+    },
+    "roster": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "type": "number"
+          },
+          "position": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Player roster"
+    },
+    "coaches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Coaching staff"
+    },
+    "partners": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Partner IDs"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

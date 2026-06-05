@@ -1,0 +1,150 @@
+{
+  "name": "League",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "League name"
+    },
+    "shortName": {
+      "type": "string",
+      "description": "Short abbreviation"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Logo URL"
+    },
+    "banner": {
+      "type": "string",
+      "description": "Banner image URL"
+    },
+    "primaryColor": {
+      "type": "string",
+      "description": "Primary brand color (hex)"
+    },
+    "secondaryColor": {
+      "type": "string",
+      "description": "Secondary brand color (hex)"
+    },
+    "accentColor": {
+      "type": "string",
+      "description": "Accent color (hex)"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "country": {
+      "type": "string",
+      "default": "Deutschland",
+      "description": "Country name (German)"
+    },
+    "regionState": {
+      "type": "string",
+      "description": "State or region (e.g. Bayern, Tirol)"
+    },
+    "continent": {
+      "type": "string",
+      "default": "Europa",
+      "description": "Continent (Europa, Amerika, etc.)"
+    },
+    "season": {
+      "type": "string",
+      "description": "Current season (e.g. 2025/2026)"
+    },
+    "description": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "instagram": {
+      "type": "string"
+    },
+    "facebook": {
+      "type": "string"
+    },
+    "tiktok": {
+      "type": "string"
+    },
+    "twitter": {
+      "type": "string"
+    },
+    "youtube": {
+      "type": "string"
+    },
+    "twitch": {
+      "type": "string"
+    },
+    "discord": {
+      "type": "string"
+    },
+    "threads": {
+      "type": "string"
+    },
+    "tickets": {
+      "type": "string"
+    },
+    "managerId": {
+      "type": "string"
+    },
+    "level": {
+      "type": "number",
+      "default": 0,
+      "description": "Liga-Level: 0 = h\u00f6chste Liga, h\u00f6here Zahl = niedrigere Liga"
+    },
+    "tierLabel": {
+      "type": "string",
+      "description": "Display label for tier (e.g. 1. Liga, GFL, Oberliga)"
+    },
+    "isEuropeanLeague": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for European/international competitions"
+    },
+    "groupsEnabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this league uses groups/conferences"
+    },
+    "groups": {
+      "type": "array",
+      "description": "Group/conference definitions",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "shortName": {
+            "type": "string"
+          },
+          "displayOrder": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "publicTableMode": {
+      "type": "string",
+      "enum": [
+        "groups_only",
+        "groups_and_overall",
+        "overall_only"
+      ],
+      "default": "groups_only",
+      "description": "Controls public standings visibility"
+    },
+    "showOverallStandingsPublic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the public standings page may show the overall table"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

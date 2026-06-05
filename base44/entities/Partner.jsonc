@@ -1,0 +1,37 @@
+{
+  "name": "Partner",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Partner name"
+    },
+    "logoUrl": {
+      "type": "string",
+      "description": "Logo image URL"
+    },
+    "linkUrl": {
+      "type": "string",
+      "description": "External link URL"
+    },
+    "category": {
+      "type": "string",
+      "default": "business",
+      "description": "Partner category: business, club, media"
+    },
+    "type": {
+      "type": "string",
+      "default": "business",
+      "description": "Fallback partner category: business, club, media"
+    },
+    "sortOrder": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    }
+  },
+  "required": [
+    "name",
+    "logoUrl"
+  ]
+}

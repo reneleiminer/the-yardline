@@ -1,0 +1,64 @@
+{
+  "name": "GameStatistic",
+  "type": "object",
+  "properties": {
+    "gameId": {
+      "type": "string",
+      "description": "Related game id"
+    },
+    "leagueId": {
+      "type": "string",
+      "description": "Related league id"
+    },
+    "season": {
+      "type": "string",
+      "description": "Season"
+    },
+    "homeTeamId": {
+      "type": "string",
+      "description": "Home team id"
+    },
+    "awayTeamId": {
+      "type": "string",
+      "description": "Away team id"
+    },
+    "homeTeamNameSnapshot": {
+      "type": "string",
+      "description": "Home team name snapshot"
+    },
+    "awayTeamNameSnapshot": {
+      "type": "string",
+      "description": "Away team name snapshot"
+    },
+    "homeStats": {
+      "type": "object",
+      "description": "Home team game stats"
+    },
+    "awayStats": {
+      "type": "object",
+      "description": "Away team game stats"
+    },
+    "leaders": {
+      "type": "object",
+      "description": "Game leaders by category"
+    },
+    "source": {
+      "type": "string",
+      "description": "Stats source"
+    },
+    "status": {
+      "type": "string",
+      "default": "published",
+      "description": "published or draft"
+    },
+    "createdAtUtc": {
+      "type": "string"
+    },
+    "updatedAtUtc": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "gameId"
+  ]
+}

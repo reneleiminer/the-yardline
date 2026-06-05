@@ -1,0 +1,258 @@
+{
+  "name": "Team",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Full team name"
+    },
+    "shortName": {
+      "type": "string",
+      "description": "Short abbreviation"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Logo URL"
+    },
+    "banner": {
+      "type": "string",
+      "description": "Banner image URL"
+    },
+    "primaryColor": {
+      "type": "string",
+      "description": "Primary brand color hex"
+    },
+    "secondaryColor": {
+      "type": "string",
+      "description": "Secondary brand color hex"
+    },
+    "leagueId": {
+      "type": "string",
+      "description": "League ID"
+    },
+    "groupId": {
+      "type": "string",
+      "description": "Group/Conference ID matching League.groups"
+    },
+    "city": {
+      "type": "string",
+      "description": "Team city"
+    },
+    "region": {
+      "type": "string",
+      "description": "Region or federal state"
+    },
+    "country": {
+      "type": "string",
+      "description": "Country"
+    },
+    "stadium": {
+      "type": "string",
+      "description": "Primary home stadium or venue"
+    },
+    "stadiumAddress": {
+      "type": "string",
+      "description": "Primary home stadium address"
+    },
+    "stadiums": {
+      "type": "array",
+      "description": "Saved stadiums/venues for this team",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Local stadium id"
+          },
+          "name": {
+            "type": "string",
+            "description": "Stadium or venue name"
+          },
+          "address": {
+            "type": "string",
+            "description": "Street and number"
+          },
+          "city": {
+            "type": "string",
+            "description": "City"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region or federal state"
+          },
+          "country": {
+            "type": "string",
+            "description": "Country"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "default": false,
+            "description": "Default home stadium"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Optional notes"
+          }
+        }
+      },
+      "default": []
+    },
+    "website": {
+      "type": "string",
+      "description": "Official website URL"
+    },
+    "instagram": {
+      "type": "string",
+      "description": "Instagram handle without @"
+    },
+    "youtube": {
+      "type": "string",
+      "description": "YouTube, Hudl or video URL"
+    },
+    "streamUrl": {
+      "type": "string",
+      "description": "Optional stream URL"
+    },
+    "contactEmail": {
+      "type": "string",
+      "description": "Public or admin contact email"
+    },
+    "foundedYear": {
+      "type": "number",
+      "description": "Founded year"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive",
+        "paused"
+      ],
+      "default": "active",
+      "description": "Team status"
+    },
+    "withdrawn": {
+      "type": "boolean",
+      "default": false,
+      "description": "Team has withdrawn from competition"
+    },
+    "withdrawnBeforeSeason": {
+      "type": "boolean",
+      "default": false,
+      "description": "Team withdrew before season started"
+    },
+    "description": {
+      "type": "string",
+      "description": "About text or team description"
+    },
+    "roster": {
+      "type": "array",
+      "description": "Team player roster",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Local player id"
+          },
+          "name": {
+            "type": "string",
+            "description": "Player name"
+          },
+          "number": {
+            "type": "number",
+            "description": "Jersey number"
+          },
+          "position": {
+            "type": "string",
+            "description": "Player position"
+          },
+          "height": {
+            "type": "string",
+            "description": "Player height optional"
+          },
+          "weight": {
+            "type": "string",
+            "description": "Player weight optional"
+          },
+          "birthYear": {
+            "type": "number",
+            "description": "Birth year optional"
+          },
+          "nationality": {
+            "type": "string",
+            "description": "Nationality optional"
+          },
+          "image": {
+            "type": "string",
+            "description": "Player image URL"
+          },
+          "isCaptain": {
+            "type": "boolean",
+            "default": false,
+            "description": "Team captain"
+          },
+          "isImport": {
+            "type": "boolean",
+            "default": false,
+            "description": "Import player"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "injured",
+              "inactive"
+            ],
+            "default": "active",
+            "description": "Player status"
+          }
+        }
+      }
+    },
+    "coaches": {
+      "type": "array",
+      "description": "Team coaching staff",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Local coach id"
+          },
+          "name": {
+            "type": "string",
+            "description": "Coach name"
+          },
+          "role": {
+            "type": "string",
+            "description": "Coach role, e.g. Head Coach"
+          },
+          "image": {
+            "type": "string",
+            "description": "Coach image URL"
+          },
+          "bio": {
+            "type": "string",
+            "description": "Coach bio optional"
+          }
+        }
+      }
+    },
+    "linkedUserId": {
+      "type": "string",
+      "description": "AppUser ID connected to manage this team"
+    },
+    "assignedUserId": {
+      "type": "string",
+      "description": "Legacy AppUser ID connected to manage this team"
+    },
+    "managedByUserId": {
+      "type": "string",
+      "description": "Legacy AppUser ID who manages this team"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

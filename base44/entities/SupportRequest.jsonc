@@ -1,0 +1,101 @@
+{
+  "name": "SupportRequest",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "description": "AppUser ID requesting support or provider"
+    },
+    "email": {
+      "type": "string",
+      "description": "User email"
+    },
+    "username": {
+      "type": "string",
+      "description": "User username"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "account_unban_request",
+        "streaming_provider",
+        "streaming_provider_request",
+        "other"
+      ],
+      "default": "account_unban_request",
+      "description": "Support request type"
+    },
+    "message": {
+      "type": "string",
+      "description": "User message"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "approved",
+        "rejected"
+      ],
+      "default": "open",
+      "description": "Request status"
+    },
+    "providerName": {
+      "type": "string",
+      "description": "Streaming provider name"
+    },
+    "providerLogo": {
+      "type": "string",
+      "description": "Streaming provider logo URL"
+    },
+    "providerWebsite": {
+      "type": "string",
+      "description": "Streaming provider website URL"
+    },
+    "providerDescription": {
+      "type": "string",
+      "description": "Short provider description"
+    },
+    "providerIsActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether provider is active/selectable"
+    },
+    "providerSortOrder": {
+      "type": "number",
+      "default": 0,
+      "description": "Sort order for providers"
+    },
+    "requestedByRole": {
+      "type": "string",
+      "description": "club, league, admin etc."
+    },
+    "requestedTeamId": {
+      "type": "string",
+      "description": "Team ID if requested by club"
+    },
+    "requestedLeagueId": {
+      "type": "string",
+      "description": "League ID if requested by league"
+    },
+    "reviewedBy": {
+      "type": "string",
+      "description": "Admin ID who reviewed the request"
+    },
+    "reviewedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When request was reviewed"
+    },
+    "reviewNote": {
+      "type": "string",
+      "description": "Admin note on review"
+    }
+  },
+  "required": [
+    "userId",
+    "email",
+    "username",
+    "type",
+    "message"
+  ]
+}

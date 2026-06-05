@@ -1,0 +1,305 @@
+{
+  "name": "Game",
+  "type": "object",
+  "properties": {
+    "leagueId": {
+      "type": "string",
+      "description": "League ID"
+    },
+    "groupId": {
+      "type": "string",
+      "description": "Group/Conference ID optional"
+    },
+    "season": {
+      "type": "string",
+      "description": "Season, e.g. 2026"
+    },
+    "week": {
+      "type": "number",
+      "description": "Week or game day number optional"
+    },
+    "homeTeamId": {
+      "type": "string",
+      "description": "Home team ID. Can be empty for competition placeholders."
+    },
+    "awayTeamId": {
+      "type": "string",
+      "description": "Away team ID. Can be empty for competition placeholders."
+    },
+    "homeTeamPlaceholder": {
+      "type": "string",
+      "description": "Home placeholder before auto qualification, e.g. Nord Platz 1"
+    },
+    "awayTeamPlaceholder": {
+      "type": "string",
+      "description": "Away placeholder before auto qualification, e.g. S\u00fcd Platz 2"
+    },
+    "homeTeamSeed": {
+      "type": "number",
+      "description": "Seed used to resolve home team later"
+    },
+    "awayTeamSeed": {
+      "type": "number",
+      "description": "Seed used to resolve away team later"
+    },
+    "teamsResolved": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when placeholder teams have been resolved"
+    },
+    "date": {
+      "type": "string",
+      "description": "Game date optional, YYYY-MM-DD"
+    },
+    "time": {
+      "type": "string",
+      "description": "Game time optional, HH:MM"
+    },
+    "kickoffTime": {
+      "type": "string",
+      "description": "Actual kickoff time HH:MM optional"
+    },
+    "kickoffAt": {
+      "type": "string",
+      "description": "Scheduled kickoff ISO datetime optional"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "live",
+        "final",
+        "cancelled"
+      ],
+      "default": "scheduled",
+      "description": "Game status: scheduled, live, final, or cancelled"
+    },
+    "scoreHome": {
+      "type": "number",
+      "default": 0
+    },
+    "scoreAway": {
+      "type": "number",
+      "default": 0
+    },
+    "liveStartedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finalizedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Stadium/Venue name optional"
+    },
+    "stadiumAddress": {
+      "type": "string",
+      "description": "Stadium address optional"
+    },
+    "city": {
+      "type": "string",
+      "description": "City optional"
+    },
+    "streamUrl": {
+      "type": "string",
+      "description": "Primary stream URL"
+    },
+    "streamPlatform": {
+      "type": "string",
+      "description": "Legacy/provider display name for primary stream"
+    },
+    "streamProviderId": {
+      "type": "string",
+      "description": "Selected streaming provider SupportRequest ID"
+    },
+    "streamProviderName": {
+      "type": "string",
+      "description": "Selected provider name"
+    },
+    "streamProviderLogo": {
+      "type": "string",
+      "description": "Provider logo URL"
+    },
+    "streamProviderDefaultUrl": {
+      "type": "string",
+      "description": "Official provider default URL"
+    },
+    "streamLabel": {
+      "type": "string",
+      "description": "Primary stream label"
+    },
+    "streamEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "streamStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending"
+    },
+    "streamSubmittedByUserId": {
+      "type": "string"
+    },
+    "streamUpdatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "streamChangeRequested": {
+      "type": "boolean",
+      "default": false
+    },
+    "streamRequestedUrl": {
+      "type": "string"
+    },
+    "streamRequestedProviderName": {
+      "type": "string"
+    },
+    "streamRequestedByUserId": {
+      "type": "string"
+    },
+    "streamRequestedByRole": {
+      "type": "string"
+    },
+    "streamRequestStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "approved"
+    },
+    "streamAdminNote": {
+      "type": "string"
+    },
+    "streamLinks": {
+      "type": "array",
+      "description": "Optional multiple stream links for this game",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Local stream link id"
+          },
+          "label": {
+            "type": "string",
+            "description": "Visible label, e.g. Hauptstream, Away Stream, Radio"
+          },
+          "url": {
+            "type": "string",
+            "description": "Stream URL"
+          },
+          "providerId": {
+            "type": "string",
+            "description": "Streaming provider SupportRequest ID"
+          },
+          "providerName": {
+            "type": "string",
+            "description": "Streaming provider name"
+          },
+          "providerLogo": {
+            "type": "string",
+            "description": "Streaming provider logo URL"
+          },
+          "platform": {
+            "type": "string",
+            "description": "Legacy/provider display name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "default": "approved"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "submittedByUserId": {
+            "type": "string"
+          },
+          "submittedByRole": {
+            "type": "string",
+            "description": "admin, club, league etc."
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "default": []
+    },
+    "notes": {
+      "type": "string"
+    },
+    "refereeCrew": {
+      "type": "string"
+    },
+    "attendance": {
+      "type": "number"
+    },
+    "weather": {
+      "type": "string"
+    },
+    "competitionId": {
+      "type": "string",
+      "description": "Tournament/Competition ID"
+    },
+    "tournamentId": {
+      "type": "string",
+      "description": "Legacy Tournament ID"
+    },
+    "competitionRound": {
+      "type": "number"
+    },
+    "round": {
+      "type": "number"
+    },
+    "roundName": {
+      "type": "string"
+    },
+    "matchupIndex": {
+      "type": "number"
+    },
+    "bracketPosition": {
+      "type": "string"
+    },
+    "isCompetitionGame": {
+      "type": "boolean",
+      "default": false
+    },
+    "isGameOfTheWeek": {
+      "type": "boolean",
+      "default": false,
+      "description": "Manual Game of the Week selection"
+    },
+    "gameOfTheWeekLabel": {
+      "type": "string",
+      "description": "Visible label/credit for the manually selected Game of the Week"
+    },
+    "gameOfTheWeekSelectedBy": {
+      "type": "string",
+      "description": "AppUser ID that selected this Game of the Week"
+    },
+    "gameOfTheWeekSelectedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": []
+}
