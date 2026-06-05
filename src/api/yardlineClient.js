@@ -1,5 +1,7 @@
 import { supabase } from './supabaseClient';
 
+const STORAGE_BUCKET = 'yardline-media';
+
 const ENTITY_TABLES = {
   AppUser: 'app_users',
   League: 'leagues',
@@ -343,6 +345,67 @@ function createEmptyEntityApi() {
   };
 }
 
+function slugifyFileName(value) {
+  return String(value || 'upload')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+}
+
+function getFileExtension(file) {
+  const nameExtension = file?.name?.split('.').pop();
+
+  if (nameExtension && nameExtension !== file.name) {
+    return nameExtension.toLowerCase();
+  }
+
+  const mimeExtension = String(file?.type || '').split('/').pop();
+  return mimeExtension && mimeExtension !== 'octet-stream' ? mimeExtension : 'bin';
+}
+
+function buildStoragePath(file) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const extension = getFileExtension(file);
+  const cleanName = slugifyFileName(file?.name || `upload.${extension}`);
+  const baseName = cleanName.includes('.') ? cleanName : `${cleanName}.${extension}`;
+  const uniqueId = crypto.randomUUID();
+
+  return `uploads/${year}/${month}/${uniqueId}-${baseName}`;
+}
+
+async function uploadFileToStorage(file) {
+  if (!file) {
+    throw new Error('Keine Datei zum Hochladen ausgewählt.');
+  }
+
+  const filePath = buildStoragePath(file);
+  const { error } = await supabase.storage
+    .from(STORAGE_BUCKET)
+    .upload(filePath, file, {
+      cacheControl: '31536000',
+      contentType: file.type || 'application/octet-stream',
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(error.message || 'Datei konnte nicht hochgeladen werden.');
+  }
+
+  const { data } = supabase.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(filePath);
+
+  return {
+    file_url: data.publicUrl,
+    url: data.publicUrl,
+    path: filePath,
+  };
+}
+
 const entityApis = {
   ...Object.fromEntries(
     Object.keys(ENTITY_TABLES).map(entityName => [entityName, createEntityApi(entityName)])
@@ -378,8 +441,8 @@ export const yardline = {
   },
   integrations: {
     Core: {
-      async UploadFile() {
-        throw new Error('Datei-Upload ist noch nicht auf Supabase Storage umgestellt.');
+      async UploadFile({ file } = {}) {
+        return uploadFileToStorage(file);
       },
     },
   },
