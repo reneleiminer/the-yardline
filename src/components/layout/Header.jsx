@@ -87,6 +87,7 @@ function getBackFallback(pathname) {
   if (pathname.startsWith("/admin/")) return "/admin";
   if (pathname === "/admin") return "/";
   if (pathname === "/data-editor") return "/";
+  if (pathname === "/podcast") return "/";
 
   if (pathname.startsWith("/legal/")) return "/legal";
   if (pathname === "/settings") return "/";
@@ -285,7 +286,7 @@ function HeaderMenu({ open, onClose }) {
 
     const internalLoginItem = {
     label: "Interner Login",
-    description: "Admin, Dateneditor, Media oder Verein",
+    description: "Admin, Dateneditor, Media, Podcast oder Verein",
     icon: ShieldCheck,
     route: "/settings?login=internal",
   };

@@ -4,12 +4,14 @@ import {
   isAdminBySlug,
   isDataEditorBySlug,
   isGameOfWeekEditorBySlug,
+  isPodcastPartnerBySlug,
   getRoleSlug,
 } from "./roleDefinitions";
 
 const INTERNAL_ROUTES = [
   "/admin",
   "/data-editor",
+  "/podcast",
 ];
 
 function normalizeRole(role) {
@@ -42,6 +44,15 @@ function isGameOfWeekEditorRole(role) {
   return (
     slug === "media_partner" ||
     isGameOfWeekEditorBySlug(slug)
+  );
+}
+
+function isPodcastPartnerRole(role) {
+  const slug = normalizeRole(role);
+
+  return (
+    slug === "podcast_partner" ||
+    isPodcastPartnerBySlug(slug)
   );
 }
 
@@ -103,6 +114,12 @@ export const canSelectGameOfTheWeek = userOrRole => {
   const role = getUserRole(userOrRole);
 
   return isAdminRole(role) || isGameOfWeekEditorRole(role);
+};
+
+export const canManagePodcast = userOrRole => {
+  const role = getUserRole(userOrRole);
+
+  return isAdminRole(role) || isPodcastPartnerRole(role);
 };
 
 /**
@@ -230,6 +247,10 @@ export const checkRouteAccess = (userRole, route) => {
 
   if (normalizedRoute.startsWith("/data-editor")) {
     return isDataEditorRole(userRole) || isGameOfWeekEditorRole(userRole) || isAdminRole(userRole);
+  }
+
+  if (normalizedRoute.startsWith("/podcast")) {
+    return isPodcastPartnerRole(userRole) || isAdminRole(userRole);
   }
 
   return false;

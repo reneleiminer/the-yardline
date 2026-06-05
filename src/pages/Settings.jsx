@@ -36,6 +36,7 @@ function getTargetRouteForRole(roleSlug) {
   if (roleSlug === "admin") return "/admin";
   if (roleSlug === "data_editor") return "/data-editor";
   if (roleSlug === "media_partner") return "/data-editor";
+  if (roleSlug === "podcast_partner") return "/podcast";
   if (roleSlug === "club") return "/create/news";
 
   return "/";
@@ -84,7 +85,7 @@ function InternalLoginBox() {
             Interner Login
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Ein Login für Admin, Dateneditor, Media und Vereine.
+            Ein Login für Admin, Dateneditor, Media, Podcast und Vereine.
           </p>
         </div>
       </div>

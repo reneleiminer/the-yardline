@@ -20,6 +20,7 @@ import {
   LogOut,
   Megaphone,
   Newspaper,
+  Radio,
   Settings,
   Shield,
   User,
@@ -54,6 +55,7 @@ export default function ProfileMenu() {
     !isAdminBySlug(roleSlug);
 
   const isMediaPartner = roleSlug === 'media_partner';
+  const isPodcastPartner = roleSlug === 'podcast_partner';
   const isClub = roleSlug === 'club';
   const isLeague = roleSlug === 'league';
   const isOfficialMedia = roleSlug === 'official_media';
@@ -61,7 +63,8 @@ export default function ProfileMenu() {
   const isInternalSystemUser =
     isSystemRole(appUser?.roleSlug || appUser?.role) ||
     isUserAdmin ||
-    isMediaPartner;
+    isMediaPartner ||
+    isPodcastPartner;
 
   const connectedTeam = useMemo(() => {
     if (!appUser?.connectedTeamId) return null;
@@ -115,6 +118,7 @@ export default function ProfileMenu() {
   const displayName = (() => {
     if (isUserAdmin) return 'Admin';
     if (isMediaPartner) return appUser.displayName || 'Media';
+    if (isPodcastPartner) return appUser.displayName || 'Podcast';
     if (isUserModeratorOnly) return 'Moderator';
     if (isUserDataEditorOnly) return 'Datenpflege';
     if (isClub) return connectedTeam?.name || appUser.displayName || appUser.username;
@@ -125,6 +129,7 @@ export default function ProfileMenu() {
   const displayHandle = (() => {
     if (isUserAdmin) return 'Systemkonto';
     if (isMediaPartner) return 'Media-Zugang';
+    if (isPodcastPartner) return 'Podcast-Zugang';
     if (isUserModeratorOnly || isUserDataEditorOnly) return 'Ehrenamt';
     if (isClub) return 'Vereinskonto';
     if (isLeague) return 'Ligakonto';
@@ -190,6 +195,13 @@ export default function ProfileMenu() {
           <DropdownMenuItem onClick={() => navigate('/data-editor')}>
             <Newspaper className="w-4 h-4 mr-2" />
             Media-Bereich
+          </DropdownMenuItem>
+        )}
+
+        {isPodcastPartner && (
+          <DropdownMenuItem onClick={() => navigate('/podcast')}>
+            <Radio className="w-4 h-4 mr-2" />
+            Podcast-Bereich
           </DropdownMenuItem>
         )}
 

@@ -37,12 +37,15 @@ function isDeletedOrBlocked(appUser) {
 }
 
 function isInternalRole(appUser) {
-  return ["admin", "data_editor"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
+  return ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
 }
 
 function getInternalRoleLabel(roleSlug) {
   if (roleSlug === "admin") return "Admin";
   if (roleSlug === "data_editor") return "Daten-Editor";
+  if (roleSlug === "media_partner") return "Media";
+  if (roleSlug === "podcast_partner") return "Podcast";
+  if (roleSlug === "club") return "Verein";
   return "Intern";
 }
 

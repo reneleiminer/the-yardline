@@ -32,6 +32,7 @@ import { getImageUrl } from "@/lib/imageUtils";
 const HIGHLIGHT_VERSION = "game_highlight";
 const AD_BANNER_VERSION = "ad_banner";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
+const PODCAST_VERSION = "podcast_feature";
 
 function normalizeUrl(value) {
   return String(value || "").trim();
@@ -183,6 +184,22 @@ function normalizeGameDayShot(item) {
     sort_order: Number(meta.sort_order || 0),
     active: item.isActive !== false && meta.active !== false,
     created_at: meta.created_at || item.createdAtUtc || item.created_date || "",
+  };
+}
+
+function normalizePodcast(item) {
+  const meta = parseJsonMessage(item.message);
+
+  return {
+    ...item,
+    spotify_url: meta.spotify_url || meta.url || "",
+    podcast_title: meta.podcast_title || meta.show_title || "Football Germany Podcast",
+    episode_title: meta.episode_title || item.title || "",
+    description: meta.description || "",
+    thumbnail_url: meta.thumbnail_url || item.imageUrl || "",
+    partner_name: meta.partner_name || meta.author_name || "Football Germany",
+    active: item.isActive !== false && meta.active !== false,
+    updated_at: meta.updated_at || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
   };
 }
 
@@ -584,6 +601,69 @@ function AdBannerSlot({ banners, position }) {
           <AdBanner key={banner.id} banner={banner} />
         ))}
       </div>
+    </section>
+  );
+}
+
+function PodcastHomeCard({ podcast }) {
+  if (!podcast?.active || !podcast.spotify_url) return null;
+
+  const coverUrl = normalizeUrl(podcast.thumbnail_url);
+  const partnerName = podcast.partner_name || "Football Germany";
+  const episodeTitle = podcast.episode_title || "Neue Folge";
+  const podcastTitle = podcast.podcast_title || "Podcast";
+
+  return (
+    <section className="px-4 pt-6">
+      <SectionTitle icon={Radio} title="Podcast" />
+
+      <a
+        href={podcast.spotify_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="group block rounded-3xl border border-primary/20 bg-card overflow-hidden active:scale-[0.99] transition-transform"
+      >
+        <div className="p-4 flex items-center gap-4">
+          <div className="w-20 h-20 rounded-2xl bg-secondary border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
+            {coverUrl ? (
+              <img
+                src={getImageUrl(coverUrl)}
+                alt=""
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <Radio className="w-8 h-8 text-primary" />
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-primary">
+              Neue Folge
+            </p>
+
+            <h3 className="text-base font-black leading-tight mt-1 whitespace-normal break-words line-clamp-2">
+              {episodeTitle}
+            </h3>
+
+            <p className="text-xs text-muted-foreground leading-tight mt-2 whitespace-normal break-words">
+              <span className="text-foreground font-black">
+                {partnerName}
+              </span>
+              {" · "}
+              {podcastTitle}
+            </p>
+
+            {podcast.description && (
+              <p className="text-[11px] text-muted-foreground leading-relaxed mt-2 line-clamp-2">
+                {podcast.description}
+              </p>
+            )}
+          </div>
+
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+        </div>
+      </a>
     </section>
   );
 }
@@ -1351,6 +1431,17 @@ export default function Home() {
       .map(normalizeGameDayShot);
   }, [homeAppUpdates]);
 
+  const homePodcast = useMemo(() => {
+    return homeAppUpdates
+      .filter(item =>
+        item.version === PODCAST_VERSION &&
+        item.isActive !== false
+      )
+      .map(normalizePodcast)
+      .filter(item => item.active && item.spotify_url)
+      .sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")))[0] || null;
+  }, [homeAppUpdates]);
+
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
   const gamesById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
@@ -1867,6 +1958,8 @@ const sortedHomeLeagues = useMemo(() => {
             ))
           : null}
       </RailSection>
+
+      <PodcastHomeCard podcast={homePodcast} />
 
       <AdBannerSlot banners={activeAdBanners} position="after_highlights" />
 

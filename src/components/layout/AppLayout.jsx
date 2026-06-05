@@ -25,6 +25,7 @@ export default function AppLayout() {
     "/legal",
     "/admin",
     "/data-editor",
+    "/podcast",
   ];
 
   const showFooter = footerVisibleRoutes.some((route) =>

@@ -14,6 +14,7 @@ import {
   Newspaper,
   Pencil,
   Plus,
+  Radio,
   RotateCcw,
   Search,
   ShieldCheck,
@@ -36,6 +37,7 @@ const ROLE_LABELS = {
   admin: "Admin",
   data_editor: "DataEditor",
   media_partner: "Media",
+  podcast_partner: "Podcast",
   club: "Verein",
 };
 
@@ -43,6 +45,7 @@ const ROLE_DISPLAY_LABELS = {
   admin: "Admin",
   data_editor: "Dateneditor",
   media_partner: "Media",
+  podcast_partner: "Podcast",
   club: "Verein",
 };
 
@@ -50,6 +53,7 @@ const INTERNAL_ROLE_OPTIONS = [
   { value: "admin", label: "Admin" },
   { value: "data_editor", label: "Dateneditor" },
   { value: "media_partner", label: "Media" },
+  { value: "podcast_partner", label: "Podcast" },
   { value: "club", label: "Verein" },
 ];
 
@@ -74,6 +78,7 @@ function getInternalEmail(username, roleSlug = "data_editor") {
     admin: "admin",
     data_editor: "data-editor",
     media_partner: "media",
+    podcast_partner: "podcast",
     club: "verein",
   };
 
@@ -103,6 +108,7 @@ function isInternalLogin(user) {
     roleSlug === "admin" ||
     roleSlug === "data_editor" ||
     roleSlug === "media_partner" ||
+    roleSlug === "podcast_partner" ||
     roleSlug === "club"
   );
 }
@@ -117,6 +123,10 @@ function isDataEditor(user) {
 
 function isMediaPartner(user) {
   return getRoleSlug(user) === "media_partner";
+}
+
+function isPodcastPartner(user) {
+  return getRoleSlug(user) === "podcast_partner";
 }
 
 function isClubAccount(user) {
@@ -149,6 +159,7 @@ function RoleBadge({ user }) {
   const roleSlug = getRoleSlug(user);
   const admin = roleSlug === "admin";
   const media = roleSlug === "media_partner";
+  const podcast = roleSlug === "podcast_partner";
   const club = roleSlug === "club";
 
   return (
@@ -158,6 +169,8 @@ function RoleBadge({ user }) {
           ? "bg-blue-500/15 text-blue-400"
           : media
           ? "bg-pink-500/15 text-pink-400"
+          : podcast
+          ? "bg-violet-500/15 text-violet-300"
           : club
           ? "bg-emerald-500/15 text-emerald-400"
           : "bg-primary/15 text-primary"
@@ -216,7 +229,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
     const username = normalizeUsername(form.username);
     const roleSlug = normalizeRole(form.roleSlug || "data_editor");
 
-    if (!["admin", "data_editor", "media_partner", "club"].includes(roleSlug)) {
+    if (!["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug)) {
       toast.error("Bitte eine gültige Account-Art auswählen.");
       return;
     }
@@ -265,7 +278,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
           </h2>
 
           <p className="text-xs text-muted-foreground mt-0.5">
-            Login für Admin, Dateneditor, Media oder Vereinszugänge
+            Login für Admin, Dateneditor, Media, Podcast oder Vereinszugänge
           </p>
         </div>
 
@@ -628,7 +641,7 @@ export default function AdminUsers() {
           </h1>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Hier verwaltest du Admin-, Dateneditor-, Media- und Vereinszugänge. Dein Owner-Account ist geschützt.
+            Hier verwaltest du Admin-, Dateneditor-, Media-, Podcast- und Vereinszugänge. Dein Owner-Account ist geschützt.
           </p>
         </div>
 
@@ -645,7 +658,7 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-5">
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <ShieldCheck className="w-4 h-4 text-blue-400 mb-2" />
           <div className="text-xl font-black">
@@ -668,6 +681,14 @@ export default function AdminUsers() {
             {internalUsers.filter(isMediaPartner).length}
           </div>
           <div className="text-[10px] text-muted-foreground">Media</div>
+        </div>
+
+        <div className="bg-card border border-border/50 rounded-xl p-3">
+          <Radio className="w-4 h-4 text-violet-300 mb-2" />
+          <div className="text-xl font-black">
+            {internalUsers.filter(isPodcastPartner).length}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Podcast</div>
         </div>
 
         <div className="bg-card border border-border/50 rounded-xl p-3">
@@ -732,6 +753,7 @@ export default function AdminUsers() {
             { key: "admin", label: "Admin" },
             { key: "data_editor", label: "Dateneditoren" },
             { key: "media_partner", label: "Media" },
+            { key: "podcast_partner", label: "Podcast" },
             { key: "club", label: "Vereine" },
           ].map(item => (
             <button
@@ -772,7 +794,7 @@ export default function AdminUsers() {
           </h3>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle den ersten Zugang für Admin, Dateneditor, Media oder Verein.
+            Erstelle den ersten Zugang für Admin, Dateneditor, Media, Podcast oder Verein.
           </p>
         </div>
       ) : (
@@ -782,6 +804,7 @@ export default function AdminUsers() {
             const protectedAccount = isProtectedAccount(user);
             const manageable = canManageTarget(user);
             const media = isMediaPartner(user);
+            const podcast = isPodcastPartner(user);
             const club = isClubAccount(user);
             const connectedTeamName = getTeamName(
               teams,
@@ -799,6 +822,8 @@ export default function AdminUsers() {
                       <ShieldCheck className="w-5 h-5 text-blue-400" />
                     ) : media ? (
                       <Newspaper className="w-5 h-5 text-pink-400" />
+                    ) : podcast ? (
+                      <Radio className="w-5 h-5 text-violet-300" />
                     ) : club ? (
                       <Building2 className="w-5 h-5 text-emerald-400" />
                     ) : (

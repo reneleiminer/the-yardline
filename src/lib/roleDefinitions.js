@@ -9,6 +9,7 @@ export const ROLE_SLUGS = {
   MODERATOR: 'moderator',
   DATA_EDITOR: 'data_editor',
   MEDIA_PARTNER: 'media_partner',
+  PODCAST_PARTNER: 'podcast_partner',
   ADMIN: 'admin',
 
   FOTOGRAF: 'fotograf',
@@ -27,6 +28,7 @@ export const ROLES = {
   MODERATOR: 'Moderator',
   DATA_EDITOR: 'DataEditor',
   MEDIA_PARTNER: 'Media',
+  PODCAST_PARTNER: 'Podcast',
   ADMIN: 'Admin',
 };
 
@@ -41,6 +43,7 @@ export const ROLE_LABELS = {
   moderator: 'Moderator',
   data_editor: 'Daten-Editor',
   media_partner: 'Media',
+  podcast_partner: 'Podcast',
   admin: 'Admin',
 
   Fan: 'Fan',
@@ -52,6 +55,7 @@ export const ROLE_LABELS = {
   Moderator: 'Moderator',
   DataEditor: 'Daten-Editor',
   Media: 'Media',
+  Podcast: 'Podcast',
   Admin: 'Admin',
 
   fotograf: 'Fotograf',
@@ -63,6 +67,7 @@ export const ADMIN_ROLE_SLUGS = ['admin'];
 export const MODERATOR_ROLE_SLUGS = ['moderator', 'admin'];
 export const DATA_EDITOR_ROLE_SLUGS = ['data_editor', 'admin'];
 export const GAME_OF_WEEK_ROLE_SLUGS = ['media_partner', 'admin'];
+export const PODCAST_ROLE_SLUGS = ['podcast_partner', 'admin'];
 
 export const PROFESSIONAL_ROLE_SLUGS = [
   'journalist',
@@ -88,6 +93,7 @@ export const ADMIN_ROLES = [ROLES.ADMIN];
 export const MODERATOR_ROLES = [ROLES.MODERATOR, ROLES.ADMIN];
 export const DATA_EDITOR_ROLES = [ROLES.DATA_EDITOR, ROLES.ADMIN];
 export const GAME_OF_WEEK_ROLES = [ROLES.MEDIA_PARTNER, ROLES.ADMIN];
+export const PODCAST_ROLES = [ROLES.PODCAST_PARTNER, ROLES.ADMIN];
 
 export const PROFESSIONAL_ROLES = [
   ROLES.CREATOR,
@@ -135,6 +141,10 @@ export const getRoleSlug = role => {
     eurofbshow: 'media_partner',
     euro_fb_show: 'media_partner',
     eurofb: 'media_partner',
+    podcast: 'podcast_partner',
+    podcast_partner: 'podcast_partner',
+    football_germany: 'podcast_partner',
+    footballgermany: 'podcast_partner',
     official_media: 'official_media',
     offizielle_medien: 'official_media',
     organisation: 'official_media',
@@ -159,6 +169,7 @@ export const isAdminBySlug = slug => ADMIN_ROLE_SLUGS.includes(getRoleSlug(slug)
 export const isModeratorBySlug = slug => MODERATOR_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isDataEditorBySlug = slug => DATA_EDITOR_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isGameOfWeekEditorBySlug = slug => GAME_OF_WEEK_ROLE_SLUGS.includes(getRoleSlug(slug));
+export const isPodcastPartnerBySlug = slug => PODCAST_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isProfessionalBySlug = slug => PROFESSIONAL_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isOrganizationBySlug = slug => OFFICIAL_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isVolunteerBySlug = slug => VOLUNTEER_ROLE_SLUGS.includes(getRoleSlug(slug));
@@ -167,6 +178,7 @@ export const isAdmin = role => isAdminBySlug(role);
 export const isModerator = role => isModeratorBySlug(role);
 export const isDataEditor = role => isDataEditorBySlug(role);
 export const isGameOfWeekEditor = role => isGameOfWeekEditorBySlug(role);
+export const isPodcastPartner = role => isPodcastPartnerBySlug(role);
 export const isProfessional = role => isProfessionalBySlug(role);
 export const isOrganization = role => isOrganizationBySlug(role);
 export const isVolunteer = role => isVolunteerBySlug(role);
@@ -182,6 +194,7 @@ export const showBadge = role => {
     'club',
     'league',
     'media_partner',
+    'podcast_partner',
   ].includes(slug);
 };
 
@@ -196,6 +209,7 @@ export const CREATE_PERMISSIONS = {
   moderator: [],
   data_editor: [],
   media_partner: [],
+  podcast_partner: [],
   admin: ['community', 'announcement', 'news', 'transfer', 'game', 'tournament', 'app-update'],
 
   Creator: ['community'],
@@ -206,6 +220,7 @@ export const CREATE_PERMISSIONS = {
   Moderator: [],
   DataEditor: [],
   Media: [],
+  Podcast: [],
   Admin: ['community', 'announcement', 'news', 'transfer', 'game', 'tournament', 'app-update'],
 };
 
@@ -249,6 +264,7 @@ export const APPLICANT_ROLES = [
   'moderator',
   'data_editor',
   'media_partner',
+  'podcast_partner',
 
   'Journalist',
   'Fotograf',
@@ -258,4 +274,5 @@ export const APPLICANT_ROLES = [
   'Moderator',
   'DataEditor',
   'Media',
+  'Podcast',
 ];
