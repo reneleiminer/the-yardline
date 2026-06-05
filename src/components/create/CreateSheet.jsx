@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   ArrowLeftRight,
   BarChart3,
-  Camera,
   Database,
   FileText,
   Flag,
@@ -15,8 +14,6 @@ import {
   Info,
   Layers,
   Megaphone,
-  MessageCircle,
-  Mic,
   Newspaper,
   Radio,
   Shield,
@@ -158,61 +155,17 @@ const JOURNALIST_ACTIONS = {
       color: 'text-purple-400',
       bg: 'bg-purple-400/10',
     },
-    {
-      label: 'Community-Beitrag',
-      icon: MessageCircle,
-      route: '/create/community',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
-    },
   ],
 };
 
 const CREATOR_ACTIONS = {
   subtitle: 'Beitrag erstellen',
-  items: [
-    {
-      label: 'Community-Beitrag',
-      icon: MessageCircle,
-      route: '/create/community',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
-    },
-    {
-      label: 'Highlight-Beitrag',
-      icon: Trophy,
-      route: '/create/community',
-      color: 'text-yellow-400',
-      bg: 'bg-yellow-400/10',
-    },
-    {
-      label: 'Video-Beitrag',
-      icon: Mic,
-      route: '/create/community',
-      color: 'text-pink-400',
-      bg: 'bg-pink-400/10',
-    },
-  ],
+  items: [],
 };
 
 const PHOTOGRAPHER_ACTIONS = {
   subtitle: 'Beitrag erstellen',
-  items: [
-    {
-      label: 'Fotos hochladen',
-      icon: Camera,
-      route: '/create/community',
-      color: 'text-pink-400',
-      bg: 'bg-pink-400/10',
-    },
-    {
-      label: 'Galerie erstellen',
-      icon: Layers,
-      route: '/create/community',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
-    },
-  ],
+  items: [],
 };
 
 const CLUB_ACTIONS = appUser => ({
@@ -231,13 +184,6 @@ const CLUB_ACTIONS = appUser => ({
       route: '/create/transfer',
       color: 'text-purple-400',
       bg: 'bg-purple-400/10',
-    },
-    {
-      label: 'Community-Beitrag',
-      icon: MessageCircle,
-      route: '/create/community',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
     },
     {
       label: 'Vereinsseite öffnen',
@@ -267,13 +213,6 @@ const LEAGUE_ACTIONS = appUser => ({
       bg: 'bg-emerald-400/10',
     },
     {
-      label: 'Community-Beitrag',
-      icon: MessageCircle,
-      route: '/create/community',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
-    },
-    {
       label: 'Ligaseite öffnen',
       icon: Globe,
       route: appUser?.linkedLeagueId ? `/league/${appUser.linkedLeagueId}` : '/profile',
@@ -299,13 +238,6 @@ const OFFICIAL_MEDIA_ACTIONS = {
       route: '/create/announcement',
       color: 'text-orange-400',
       bg: 'bg-orange-400/10',
-    },
-    {
-      label: 'Community-Beitrag',
-      icon: MessageCircle,
-      route: '/create/community',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
     },
   ],
 };

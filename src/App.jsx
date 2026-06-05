@@ -26,7 +26,6 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Legal = lazy(() => import("@/pages/Legal"));
 const Updates = lazy(() => import("@/pages/Updates"));
-const ClipSubmit = lazy(() => import("@/components/interactions/LikesList"));
 const GameStatistics = lazy(() => import("@/components/profile/UserProfile"));
 
 const Impressum = lazy(() => import("@/pages/legal/Impressum"));
@@ -41,8 +40,6 @@ const LeagueDetail = lazy(() => import("@/pages/LeagueDetail"));
 const LeagueStandings = lazy(() => import("@/pages/LeagueStandings"));
 const GameDetail = lazy(() => import("@/pages/GameDetail"));
 const DataEditorDashboard = lazy(() => import("@/pages/DataEditorDashboard"));
-const ModerationDashboard = lazy(() => import("@/pages/ModerationDashboard"));
-
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
 const AdminPartners = lazy(() => import("@/pages/admin/AdminPartners"));
@@ -122,8 +119,6 @@ function AppRoutes() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/user/statistics" element={<GameStatistics />} />
 
-            <Route path="/clip-einsenden" element={<ClipSubmit />} />
-
             <Route path="/legal" element={<Legal />} />
             <Route path="/updates" element={<Updates />} />
             <Route path="/legal/impressum" element={<Impressum />} />
@@ -167,15 +162,6 @@ function AppRoutes() {
               element={
                 <AdminRoute>
                   <AdminHighlights />
-                </AdminRoute>
-              }
-            />
-
-            <Route
-              path="/admin/community-clips"
-              element={
-                <AdminRoute>
-                  <ModerationDashboard />
                 </AdminRoute>
               }
             />

@@ -18,7 +18,6 @@ import {
   CalendarDays,
   Camera,
   ChevronRight,
-  Flame,
   Image as ImageIcon,
   Instagram,
   Play,
@@ -35,7 +34,6 @@ import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
 
 const HIGHLIGHT_VERSION = "game_highlight";
-const COMMUNITY_CLIP_VERSION = "community_clip";
 const SPOTLIGHT_VERSION = "team_spotlight";
 const AD_BANNER_VERSION = "ad_banner";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
@@ -156,25 +154,6 @@ function isNewContent(item, maxAgeHours = 24) {
   if (ageMs < 0) return true;
 
   return ageMs <= maxAgeHours * 60 * 60 * 1000;
-}
-
-function normalizeCommunityClip(item) {
-  const meta = parseJsonMessage(item.message);
-
-  return {
-    ...item,
-    title: item.title || "",
-    description: meta.description || "",
-    thumbnail_url: meta.thumbnail_url || item.imageUrl || "",
-    external_video_url: meta.external_video_url || "",
-    source_name: meta.source_name || "Community Clip",
-    league_id: meta.league_id || "",
-    game_id: meta.game_id || "",
-    team_id: meta.team_id || "",
-    date: meta.date || "",
-    active: item.isActive !== false && meta.active !== false,
-    preview_video_url: meta.preview_video_url || "",
-  };
 }
 
 function normalizeSpotlight(item) {
@@ -1444,15 +1423,6 @@ export default function Home() {
       .map(normalizeHighlight);
   }, [homeAppUpdates]);
 
-  const communityClips = useMemo(() => {
-    return homeAppUpdates
-      .filter(item =>
-        item.version === COMMUNITY_CLIP_VERSION &&
-        item.isActive !== false
-      )
-      .map(normalizeCommunityClip);
-  }, [homeAppUpdates]);
-
   const spotlights = useMemo(() => {
     return homeAppUpdates
       .filter(item =>
@@ -1659,26 +1629,6 @@ const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
     })
     .slice(0, 8);
 }, [gamesById, highlights, leaguesById, query, selectedLeagueId, teamsById, today]);
-
-  const homeCommunityClips = useMemo(() => {
-    return [...communityClips]
-      .filter(clip => clip.active !== false)
-      .filter(clip => highlightMatchesCurrentFilter(
-        clip,
-        selectedLeagueId,
-        query,
-        teamsById,
-        leaguesById,
-        gamesById
-      ))
-      .sort((a, b) => {
-        const dateA = new Date(a.date || a.createdAtUtc || a.created_date || 0).getTime();
-        const dateB = new Date(b.date || b.createdAtUtc || b.created_date || 0).getTime();
-
-        return dateB - dateA;
-      })
-      .slice(0, 8);
-  }, [communityClips, gamesById, leaguesById, query, selectedLeagueId, teamsById]);
 
   const activeAdBanners = useMemo(() => {
     return [...adBanners]
@@ -2004,24 +1954,6 @@ const sortedHomeLeagues = useMemo(() => {
           leaguesById={leaguesById}
         />
       )}
-
-      <RailSection
-        icon={Flame}
-        title="Community Clips"
-        emptyLabel="Noch keine Community Clips"
-      >
-        {homeCommunityClips.length > 0
-          ? homeCommunityClips.map((clip) => (
-              <HighlightReelCard
-                key={clip.id}
-                highlight={clip}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-                gamesById={gamesById}
-              />
-            ))
-          : null}
-      </RailSection>
 
       <RailSection
         icon={ShieldCheck}

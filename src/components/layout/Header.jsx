@@ -8,7 +8,6 @@ import {
   FileText,
   Headphones,
   Menu,
-  Send,
   Settings,
   ShieldCheck,
   X,
@@ -92,7 +91,6 @@ function getBackFallback(pathname) {
   if (pathname === "/support") return "/";
   if (pathname === "/legal") return "/";
   if (pathname === "/updates") return "/";
-  if (pathname === "/clip-einsenden") return "/";
 
   return "/";
 }
@@ -104,8 +102,7 @@ function shouldUseFallback(location) {
     search.includes("login=") ||
     location.pathname === "/settings" ||
     location.pathname === "/support" ||
-    location.pathname === "/legal" ||
-    location.pathname === "/clip-einsenden"
+    location.pathname === "/legal"
   );
 }
 
@@ -264,11 +261,6 @@ function HeaderMenu({ open, onClose }) {
 
   const items = [
     {
-      label: "Clip einsenden",
-      icon: Send,
-      route: "/clip-einsenden",
-    },
-    {
       label: "Einstellungen",
       icon: Settings,
       route: "/settings",
@@ -400,7 +392,6 @@ export default function Header() {
     "/settings",
     "/support",
     "/legal",
-    "/clip-einsenden",
   ].includes(location.pathname);
 
   const contextPrimary =

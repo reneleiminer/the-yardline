@@ -165,7 +165,7 @@ export default function ProfileSetup() {
           full_name: displayName,
         });
       } catch {
-        // AppUser ist maßgeblich; Base44-Profil muss nicht überall beschreibbar sein.
+        // AppUser ist maßgeblich; externe Profil-Syncs dürfen fehlschlagen.
       }
 
       toast.success('Profil eingerichtet');

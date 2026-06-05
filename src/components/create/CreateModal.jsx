@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAppUser } from '@/lib/useAppUser';
-import { FileText, Camera, Newspaper, Image as ImageIcon, Megaphone, Shuffle } from 'lucide-react';
+import { Camera, Newspaper, Image as ImageIcon, Megaphone, Shuffle } from 'lucide-react';
 
 const ROLE_OPTIONS = {
-  Fan: [{ type: 'community', label: 'Community Post', icon: FileText }],
+  Fan: [],
   Creator: [
-    { type: 'community', label: 'Community Post', icon: FileText },
     { type: 'highlight', label: 'Highlight Post', icon: Camera },
   ],
   Fotograf: [
@@ -14,10 +13,8 @@ const ROLE_OPTIONS = {
   ],
   Journalist: [
     { type: 'news', label: 'News Article', icon: Newspaper },
-    { type: 'community', label: 'Community Post', icon: FileText },
   ],
   Verein: [
-    { type: 'community', label: 'Community Post', icon: FileText },
     { type: 'official', label: 'Official Post', icon: Megaphone },
     { type: 'transfer', label: 'Transfer News', icon: Shuffle },
   ],
@@ -26,14 +23,10 @@ const ROLE_OPTIONS = {
     { type: 'news', label: 'News Article', icon: Newspaper },
   ],
   Moderator: [
-    { type: 'community', label: 'Community Post', icon: FileText },
     { type: 'news', label: 'News Article', icon: Newspaper },
   ],
-  DataEditor: [
-    { type: 'community', label: 'Community Post', icon: FileText },
-  ],
+  DataEditor: [],
   Admin: [
-    { type: 'community', label: 'Community Post', icon: FileText },
     { type: 'news', label: 'News Article', icon: Newspaper },
     { type: 'official', label: 'Official Post', icon: Megaphone },
     { type: 'transfer', label: 'Transfer News', icon: Shuffle },

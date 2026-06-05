@@ -11,7 +11,6 @@ import {
   CalendarDays,
   ChevronRight,
   FileText,
-  Flame,
   Handshake,
   HeadphonesIcon,
   Image,
@@ -35,8 +34,6 @@ import { getImageUrl } from '@/lib/imageUtils';
 
 const TEAM_SPOTLIGHT_VERSION = 'team_spotlight';
 const AD_BANNER_VERSION = 'ad_banner';
-const COMMUNITY_CLIP_VERSION = 'community_clip';
-const COMMUNITY_CLIP_SUBMISSION_VERSION = 'community_clip_submission';
 const GAMEDAY_SHOT_VERSION = 'gameday_photo';
 const ANALYTICS_VERSION = 'analytics_event';
 const APP_BRANDING_VERSION = 'app_branding';
@@ -1017,19 +1014,6 @@ export default function AdminDashboard() {
     },
   });
 
-  const { data: communityClipItems = [] } = useQuery({
-    queryKey: ['admin-count-community-clips'],
-    queryFn: async () => {
-      const all = await base44.entities.AppUpdate.list('-created_date');
-
-      return all.filter(item =>
-        item.version === COMMUNITY_CLIP_VERSION ||
-        item.version === COMMUNITY_CLIP_SUBMISSION_VERSION
-      );
-    },
-  });
-
-
   const { data: gameDayShots = [] } = useQuery({
     queryKey: ['admin-count-gameday-shots'],
     queryFn: async () => {
@@ -1363,15 +1347,6 @@ export default function AdminDashboard() {
   const activeBanners = adBanners.filter(item => getDateStatus(item) === 'Aktiv');
   const analyticsStats = buildAnalyticsStats(analyticsEvents);
 
-  const pendingCommunitySubmissions = communityClipItems.filter(item =>
-    item.version === COMMUNITY_CLIP_SUBMISSION_VERSION
-  );
-
-  const activeCommunityClips = communityClipItems.filter(item =>
-    item.version === COMMUNITY_CLIP_VERSION &&
-    item.isActive !== false
-  );
-
   const sections = [
     {
       icon: UserCog,
@@ -1417,16 +1392,7 @@ export default function AdminDashboard() {
       color: 'text-cyan-400',
       bg: 'bg-cyan-400/10',
     },
-    {
-      icon: Flame,
-      title: 'Community Clips',
-      description: 'Einsendungen prÃ¼fen und Clips verÃ¶ffentlichen',
-      route: '/admin/community-clips',
-      count: activeCommunityClips.length,
-      badge: pendingCommunitySubmissions.length > 0 ? `${pendingCommunitySubmissions.length} neu` : null,
-      color: 'text-orange-400',
-      bg: 'bg-orange-400/10',
-    },    {
+{
       icon: Trophy,
       title: 'Ligen',
       description: 'Ligen, Logos, Farben und Gruppen verwalten',
@@ -1732,4 +1698,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

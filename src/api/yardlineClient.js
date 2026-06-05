@@ -569,7 +569,7 @@ export const yardline = {
   },
   functions: {
     async invoke(name) {
-      console.warn(`Function ${name} is not available after Base44 migration.`);
+      console.warn(`Function ${name} is not available in the Supabase adapter.`);
       return null;
     },
   },
