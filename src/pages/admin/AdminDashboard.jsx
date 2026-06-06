@@ -18,6 +18,7 @@ import {
   ListOrdered,
   Loader2,
   Menu,
+  MousePointer,
   Pencil,
   PlaySquare,
   Radio,
