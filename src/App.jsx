@@ -10,6 +10,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { GlobalDataProvider } from "@/lib/GlobalDataContext";
 import { HeaderProvider } from "@/lib/HeaderContext";
 import { AppUserProvider } from "@/lib/useAppUser";
+import { I18nProvider } from "@/lib/i18n";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 
@@ -322,20 +323,22 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <GlobalDataProvider>
-            <HeaderProvider>
-              <ScrollToTop />
-              <AppRoutes />
-            </HeaderProvider>
-          </GlobalDataProvider>
-        </Router>
+    <I18nProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClientInstance}>
+          <Router>
+            <GlobalDataProvider>
+              <HeaderProvider>
+                <ScrollToTop />
+                <AppRoutes />
+              </HeaderProvider>
+            </GlobalDataProvider>
+          </Router>
 
-        <Toaster />
-      </QueryClientProvider>
-    </AuthProvider>
+          <Toaster />
+        </QueryClientProvider>
+      </AuthProvider>
+    </I18nProvider>
   );
 }
 

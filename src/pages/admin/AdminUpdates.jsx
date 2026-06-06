@@ -33,8 +33,17 @@ const EMPTY_FORM = {
   message: '',
   imageUrl: '',
   version: '',
+  updateType: 'update',
   isActive: true,
 };
+
+const UPDATE_TYPES = [
+  { value: 'fix', label: 'Fix' },
+  { value: 'update', label: 'Update' },
+  { value: 'performance', label: 'Performance' },
+  { value: 'admin', label: 'Admin' },
+  { value: 'content', label: 'Content' },
+];
 
 function normalizeVersion(value) {
   return String(value || '').trim().replace(/^v/i, '');
@@ -50,6 +59,20 @@ function validateVersion(value) {
 
 function getUpdateMessage(update) {
   return update?.message || update?.text || '';
+}
+
+function getUpdateMeta(update) {
+  const raw = update?.legacyData || update?.legacy_data;
+  if (!raw) return {};
+
+  if (typeof raw === 'object') return raw;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 export default function AdminUpdates() {
@@ -123,6 +146,11 @@ export default function AdminUpdates() {
       imageUrl: formData.imageUrl.trim() || '',
       version: normalizeVersion(formData.version) || '',
       isActive: formData.isActive === true,
+      legacyData: {
+        updateType: formData.updateType || 'update',
+        source: 'admin_updates',
+        createdBy: 'admin',
+      },
     };
   };
 
@@ -172,6 +200,7 @@ export default function AdminUpdates() {
       message: getUpdateMessage(update),
       imageUrl: update.imageUrl || '',
       version: update.version || '',
+      updateType: getUpdateMeta(update).updateType || 'update',
       isActive: update.isActive === true,
     });
     setEditingId(update.id);
@@ -244,6 +273,24 @@ export default function AdminUpdates() {
               placeholder="z.B. v0.9.9 Beta"
               className="h-11 text-sm"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase">
+              Typ
+            </label>
+
+            <select
+              value={formData.updateType}
+              onChange={event => setFormData(current => ({ ...current, updateType: event.target.value }))}
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {UPDATE_TYPES.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -354,6 +401,10 @@ export default function AdminUpdates() {
             </Badge>
           )}
 
+          <Badge className="w-fit">
+            {UPDATE_TYPES.find(type => type.value === formData.updateType)?.label || 'Update'}
+          </Badge>
+
           <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
             {formData.message || 'Update-Text'}
           </p>
@@ -370,6 +421,8 @@ export default function AdminUpdates() {
         ) : (
           updates.map(update => {
             const message = getUpdateMessage(update);
+            const meta = getUpdateMeta(update);
+            const typeLabel = UPDATE_TYPES.find(type => type.value === meta.updateType)?.label || 'Update';
 
             return (
               <article key={update.id} className="rounded-2xl border border-border/50 bg-card p-4">
@@ -385,6 +438,10 @@ export default function AdminUpdates() {
                           v{normalizeVersion(update.version)}
                         </Badge>
                       )}
+
+                      <Badge className="text-[10px] bg-primary/15 text-primary">
+                        {typeLabel}
+                      </Badge>
 
                       {update.isActive && (
                         <Badge className="text-[10px] bg-green-500/20 text-green-400">

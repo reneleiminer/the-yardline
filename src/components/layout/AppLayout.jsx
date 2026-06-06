@@ -68,14 +68,14 @@ export default function AppLayout() {
           overflowAnchor: "none",
         }}
       >
-        <AnimatePresence initial={false} mode="wait">
+        <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 0.96 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={{ opacity: 0.98 }}
             transition={{
-              duration: 0.12,
+              duration: 0.08,
               ease: "easeOut",
             }}
             className="min-h-full"

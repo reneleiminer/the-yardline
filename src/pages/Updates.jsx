@@ -42,6 +42,27 @@ function getUpdateMessage(update) {
   return update?.message || update?.text || '';
 }
 
+const UPDATE_TYPE_LABELS = {
+  fix: 'Fix',
+  update: 'Update',
+  performance: 'Performance',
+  admin: 'Admin',
+  content: 'Content',
+};
+
+function getUpdateMeta(update) {
+  const raw = update?.legacyData || update?.legacy_data;
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function Updates() {
   useSetHeader({ mode: 'back', title: 'Updates' });
 
@@ -100,6 +121,7 @@ export default function Updates() {
           {updates.map(update => {
             const updateDate = getUpdateDate(update);
             const message = getUpdateMessage(update);
+            const updateType = getUpdateMeta(update).updateType || 'update';
 
             return (
               <article
@@ -129,11 +151,17 @@ export default function Updates() {
                       )}
                     </div>
 
-                    {update.version && (
-                      <Badge variant="outline" className="text-xs flex-shrink-0">
-                        v{update.version}
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <Badge className="text-[10px] bg-primary/15 text-primary">
+                        {UPDATE_TYPE_LABELS[updateType] || 'Update'}
                       </Badge>
-                    )}
+
+                      {update.version && (
+                        <Badge variant="outline" className="text-xs">
+                          v{update.version}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">

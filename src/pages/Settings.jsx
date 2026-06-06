@@ -7,13 +7,13 @@ import {
   ChevronRight,
   Database,
   Globe2,
-  Lock,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import useSetHeader from "@/hooks/useSetHeader";
 import { useAuth } from "@/lib/AuthContext";
+import { useI18n } from "@/lib/i18n";
 import {
   disablePushNotifications,
   enablePushNotifications,
@@ -28,11 +28,6 @@ const APP_VERSION =
   import.meta.env.VITE_APP_VERSION ||
   import.meta.env.VITE_VERSION ||
   "0.0.0";
-
-const LANGUAGE_OPTIONS = [
-  { key: "de", label: "Deutsch" },
-  { key: "en", label: "English" },
-];
 
 function normalizeRole(value) {
   return String(value || "").trim().toLowerCase();
@@ -135,47 +130,61 @@ function InternalLoginBox() {
 }
 
 function LanguageSettings() {
-  const language = localStorage.getItem("yardline-language") || "de";
+  const {
+    language,
+    languages,
+    mode,
+    setLanguage,
+    t,
+  } = useI18n();
 
   return (
-    <div className="bg-card/60 border border-border/50 rounded-2xl overflow-hidden opacity-60">
+    <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-4 border-b border-border/30">
         <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
-          <Globe2 className="w-5 h-5 text-muted-foreground" />
+          <Globe2 className="w-5 h-5 text-primary" />
         </div>
 
         <div className="flex-1 min-w-0">
           <h2 className="text-sm font-bold">
-            Sprache
+            {t("Sprache")}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Sprachwechsel ist noch in Arbeit
+            {mode === "auto" ? t("Handy-Sprache übernehmen") : languages.find(item => item.code === language)?.nativeLabel}
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 rounded-full bg-secondary/70 border border-border/50 px-2.5 py-1">
-          <Lock className="w-3 h-3 text-muted-foreground" />
+        <button
+          type="button"
+          onClick={() => setLanguage(language, mode === "auto" ? "manual" : "auto")}
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition-colors ${
+            mode === "auto"
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-border/50 bg-secondary/70 text-muted-foreground"
+          }`}
+        >
+          <Check className="w-3 h-3" />
           <span className="text-[10px] font-bold text-muted-foreground">
-            Bald
+            {t("Automatisch")}
           </span>
-        </div>
+        </button>
       </div>
 
-      <div className="p-2 pointer-events-none select-none">
-        {LANGUAGE_OPTIONS.map(option => {
-          const active = language === option.key;
+      <div className="p-2">
+        {languages.map(option => {
+          const active = language === option.code && mode !== "auto";
 
           return (
             <button
-              key={option.key}
+              key={option.code}
               type="button"
-              disabled
-              className={`w-full flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-left cursor-not-allowed ${
+              onClick={() => setLanguage(option.code, "manual")}
+              className={`w-full flex items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition-colors ${
                 active ? "bg-primary/10 text-primary" : "text-muted-foreground"
               }`}
             >
               <span className="text-sm font-semibold">
-                {option.label}
+                {option.nativeLabel}
               </span>
 
               {active && <Check className="w-4 h-4" />}

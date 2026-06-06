@@ -262,25 +262,25 @@ function buildAnalyticsStats(events = []) {
 
 function AnalyticsMetricCard({ icon: Icon, label, value, hint, tone = 'text-primary' }) {
   return (
-    <div className="rounded-xl border border-border/50 bg-background/45 p-3">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+    <div className="rounded-xl border border-border/50 bg-background/45 px-2.5 py-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">
             {label}
           </p>
 
-          <p className={`text-2xl font-black mt-1 ${tone}`}>
+          <p className={`text-xl font-black leading-none mt-1 ${tone}`}>
             {value}
           </p>
         </div>
 
-        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-4 h-4 text-primary" />
+        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-3.5 h-3.5 text-primary" />
         </div>
       </div>
 
       {hint && (
-        <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+        <p className="hidden sm:block text-[10px] text-muted-foreground mt-2 leading-relaxed">
           {hint}
         </p>
       )}
@@ -292,22 +292,22 @@ function AnalyticsList({ title, items, formatter = value => formatNumber(value) 
   const max = Math.max(...items.map(item => item.value), 1);
 
   return (
-    <div className="rounded-xl border border-border/50 bg-background/35 p-3">
-      <h3 className="text-xs font-black mb-3">
+    <div className="rounded-xl border border-border/50 bg-background/35 p-2.5">
+      <h3 className="text-[11px] font-black mb-2">
         {title}
       </h3>
 
-      <div className="space-y-2.5">
+      <div className="space-y-1.5">
         {items.length === 0 ? (
           <p className="text-xs text-muted-foreground">Noch keine Daten</p>
         ) : items.map(item => (
           <div key={item.label}>
-            <div className="flex items-center justify-between gap-3 text-[11px] mb-1">
+            <div className="flex items-center justify-between gap-2 text-[10px] mb-1">
               <span className="font-semibold truncate">{item.label}</span>
               <span className="text-muted-foreground flex-shrink-0">{formatter(item.value)}</span>
             </div>
 
-            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+            <div className="h-1 rounded-full bg-secondary overflow-hidden">
               <div
                 className="h-full rounded-full bg-primary"
                 style={{ width: `${Math.max(6, (item.value / max) * 100)}%` }}
@@ -324,55 +324,55 @@ function AnalyticsDashboard({ stats }) {
   const maxDaily = Math.max(...stats.daily.map(day => day.views), 1);
 
   return (
-    <section className="rounded-2xl border border-primary/20 bg-card p-4 mb-6">
-      <div className="flex items-start justify-between gap-3 mb-4">
+    <section className="rounded-2xl border border-primary/20 bg-card p-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
             App Analytics
           </p>
 
-          <h2 className="text-base font-black mt-0.5">
+          <h2 className="text-sm font-black mt-0.5">
             Reichweite & Werbewert
           </h2>
 
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
             Doppelte Refreshes werden herausgerechnet. Besucher sind eindeutige Geraete, Sessions laufen nach 30 Minuten Inaktivitaet aus.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
-        <AnalyticsMetricCard icon={Users} label="Besucher 7 Tage" value={formatNumber(stats.active7d)} hint="Unique Visitors" />
-        <AnalyticsMetricCard icon={Activity} label="Sessions 7 Tage" value={formatNumber(stats.sessions7d)} hint="Besuche ohne Doppelzaehlung" />
-        <AnalyticsMetricCard icon={Eye} label="Pageviews 7 Tage" value={formatNumber(stats.views7d)} hint="Bereinigte Seitenaufrufe" />
-        <AnalyticsMetricCard icon={TrendingUp} label="Seiten / Session" value={formatDecimal(stats.pagesPerSession7d)} hint="Engagement-Wert" />
+      <div className="grid grid-cols-4 gap-1.5 mb-3">
+        <AnalyticsMetricCard icon={Users} label="Besucher" value={formatNumber(stats.active7d)} hint="7 Tage" />
+        <AnalyticsMetricCard icon={Activity} label="Sessions" value={formatNumber(stats.sessions7d)} hint="7 Tage" />
+        <AnalyticsMetricCard icon={Eye} label="Views" value={formatNumber(stats.views7d)} hint="7 Tage" />
+        <AnalyticsMetricCard icon={TrendingUp} label="Seiten/S." value={formatDecimal(stats.pagesPerSession7d)} hint="Engagement" />
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
         {[
           { label: '24h Besucher', value: stats.active24h },
           { label: '30 Tage Besucher', value: stats.active30d },
           { label: '30 Tage Views', value: stats.views30d },
         ].map(item => (
-          <div key={item.label} className="rounded-xl border border-border/40 bg-background/35 p-2.5 text-center">
-            <p className="text-lg font-black text-primary">{formatNumber(item.value)}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
+          <div key={item.label} className="rounded-lg border border-border/40 bg-background/35 p-2 text-center">
+            <p className="text-base font-black text-primary">{formatNumber(item.value)}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{item.label}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-xl border border-border/50 bg-background/35 p-3 mb-3">
-        <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="rounded-xl border border-border/50 bg-background/35 p-2.5 mb-2.5">
+        <div className="flex items-center justify-between gap-3 mb-2">
           <h3 className="text-xs font-black">Letzte 14 Tage</h3>
           <span className="text-[10px] text-muted-foreground">Views / Besucher</span>
         </div>
 
-        <div className="flex items-end gap-1 h-24">
+        <div className="flex items-end gap-1 h-16">
           {stats.daily.map(day => (
             <div key={day.date} className="flex-1 min-w-0 flex flex-col items-center justify-end gap-1">
               <div
                 className="w-full rounded-t bg-primary/80 min-h-[4px]"
-                style={{ height: `${Math.max(4, (day.views / maxDaily) * 76)}px` }}
+                style={{ height: `${Math.max(4, (day.views / maxDaily) * 48)}px` }}
                 title={`${day.date}: ${day.views} Views, ${day.visitors} Besucher`}
               />
               <span className="text-[8px] text-muted-foreground">
@@ -383,14 +383,14 @@ function AnalyticsDashboard({ stats }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <AnalyticsList title="Top Seiten 7 Tage" items={stats.topPages} />
         <AnalyticsList title="Bereiche 7 Tage" items={stats.routeGroups} />
         <AnalyticsList title="Geraete" items={stats.devices} />
         <AnalyticsList title="Traffic Quellen" items={stats.referrers} />
       </div>
 
-      <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+      <div className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
         <div className="flex items-start gap-2">
           <MousePointer className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">

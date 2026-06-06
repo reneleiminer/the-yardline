@@ -722,6 +722,7 @@ const FIELD_TO_COLUMN = {
   AppUpdate: {
     imageUrl: 'image_url',
     isActive: 'is_active',
+    legacyData: 'legacy_data',
     publishedAtUtc: 'published_at_utc',
     created_date: 'created_at',
     createdAtUtc: 'created_at',
