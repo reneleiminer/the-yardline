@@ -5,10 +5,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import ImageUploadField from '@/components/common/ImageUploadField';
 import {
+  Activity,
   BarChart3,
   Building2,
   Camera,
   ChevronRight,
+  Eye,
   FileText,
   Handshake,
   HeadphonesIcon,
@@ -21,8 +23,10 @@ import {
   Radio,
   Swords,
   Trash2,
+  TrendingUp,
   Trophy,
   UserCog,
+  Users,
   Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -86,6 +90,84 @@ function getVisitorIdFromEvent(item) {
   return meta.visitor_id || meta.user_id || meta.userId || '';
 }
 
+function getSessionIdFromEvent(item) {
+  const meta = parseMessage(item.message);
+  return meta.session_id || meta.sessionId || '';
+}
+
+function getEventPath(item) {
+  const meta = parseMessage(item.message);
+  return meta.full_path || meta.path || '/';
+}
+
+function getEventRouteGroup(item) {
+  const meta = parseMessage(item.message);
+  return meta.route_group || 'other';
+}
+
+function getEventDevice(item) {
+  const meta = parseMessage(item.message);
+  return meta.device_type || 'unknown';
+}
+
+function getEventReferrer(item) {
+  const meta = parseMessage(item.message);
+  return meta.referrer_host || 'direct';
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat('de-DE').format(Number(value || 0));
+}
+
+function formatDecimal(value) {
+  return new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function getDateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getLastDays(days) {
+  return Array.from({ length: days }).map((_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (days - 1 - index));
+    return getDateKey(date);
+  });
+}
+
+function compactPathLabel(path) {
+  if (path === '/') return 'Home';
+  if (path.startsWith('/game/')) return 'Game Detail';
+  if (path.startsWith('/team/')) return 'Team Detail';
+  if (path.startsWith('/club/')) return 'Club Detail';
+  if (path.startsWith('/league/')) return 'Liga Detail';
+  if (path.startsWith('/wettbewerbe/')) return 'Wettbewerb Detail';
+
+  return path
+    .replace('/spiele', 'Spiele')
+    .replace('/tabellen', 'Tabellen')
+    .replace('/wettbewerbe', 'Wettbewerbe')
+    .replace('/highlights', 'Highlights')
+    .replace('/feed', 'Feed')
+    .replace('/post/', 'Post ');
+}
+
+function pushCount(map, key) {
+  const normalizedKey = key || 'unknown';
+  map.set(normalizedKey, (map.get(normalizedKey) || 0) + 1);
+}
+
+function topEntries(map, limit = 5) {
+  return Array.from(map.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
 function buildAnalyticsStats(events = []) {
   const now = new Date();
 
@@ -93,44 +175,230 @@ function buildAnalyticsStats(events = []) {
   const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const since30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const unique24h = new Set();
-  const unique7d = new Set();
-  const unique30d = new Set();
+  const windows = {
+    day: { visitors: new Set(), sessions: new Set(), views: 0 },
+    week: { visitors: new Set(), sessions: new Set(), views: 0 },
+    month: { visitors: new Set(), sessions: new Set(), views: 0 },
+  };
 
-  let views24h = 0;
-  let views7d = 0;
-  let views30d = 0;
+  const seenEventKeys = new Set();
+  const topPages = new Map();
+  const routeGroups = new Map();
+  const devices = new Map();
+  const referrers = new Map();
+  const dailyViews = new Map(getLastDays(14).map(day => [day, 0]));
+  const dailyVisitors = new Map(getLastDays(14).map(day => [day, new Set()]));
 
   events.forEach(event => {
     const date = getEventDate(event);
     if (!date) return;
 
     const visitorId = getVisitorIdFromEvent(event);
+    const sessionId = getSessionIdFromEvent(event) || `${visitorId}_${getDateKey(date)}`;
+    const path = getEventPath(event);
+    const eventKey = [
+      visitorId || 'anonymous',
+      sessionId || 'session',
+      path,
+      Math.floor(date.getTime() / (30 * 60 * 1000)),
+    ].join('|');
 
-    if (date >= since24h) {
-      views24h += 1;
-      if (visitorId) unique24h.add(visitorId);
-    }
+    if (seenEventKeys.has(eventKey)) return;
+    seenEventKeys.add(eventKey);
+
+    const applyWindow = windowStats => {
+      windowStats.views += 1;
+      if (visitorId) windowStats.visitors.add(visitorId);
+      if (sessionId) windowStats.sessions.add(sessionId);
+    };
+
+    if (date >= since24h) applyWindow(windows.day);
 
     if (date >= since7d) {
-      views7d += 1;
-      if (visitorId) unique7d.add(visitorId);
+      applyWindow(windows.week);
+      pushCount(topPages, compactPathLabel(path));
+      pushCount(routeGroups, getEventRouteGroup(event));
+      pushCount(devices, getEventDevice(event));
+      pushCount(referrers, getEventReferrer(event));
     }
 
-    if (date >= since30d) {
-      views30d += 1;
-      if (visitorId) unique30d.add(visitorId);
+    if (date >= since30d) applyWindow(windows.month);
+
+    const dayKey = getDateKey(date);
+    if (dailyViews.has(dayKey)) {
+      dailyViews.set(dayKey, dailyViews.get(dayKey) + 1);
+      if (visitorId) dailyVisitors.get(dayKey).add(visitorId);
     }
   });
 
+  const weekSessions = windows.week.sessions.size;
+  const weekVisitors = windows.week.visitors.size;
+  const weekViews = windows.week.views;
+
   return {
-    active24h: unique24h.size,
-    active7d: unique7d.size,
-    active30d: unique30d.size,
-    views24h,
-    views7d,
-    views30d,
+    active24h: windows.day.visitors.size,
+    active7d: weekVisitors,
+    active30d: windows.month.visitors.size,
+    sessions24h: windows.day.sessions.size,
+    sessions7d: weekSessions,
+    sessions30d: windows.month.sessions.size,
+    views24h: windows.day.views,
+    views7d: weekViews,
+    views30d: windows.month.views,
+    pagesPerSession7d: weekSessions > 0 ? weekViews / weekSessions : 0,
+    viewsPerVisitor7d: weekVisitors > 0 ? weekViews / weekVisitors : 0,
+    topPages: topEntries(topPages, 6),
+    routeGroups: topEntries(routeGroups, 5),
+    devices: topEntries(devices, 4),
+    referrers: topEntries(referrers, 4),
+    daily: Array.from(dailyViews.entries()).map(([date, views]) => ({
+      date,
+      views,
+      visitors: dailyVisitors.get(date)?.size || 0,
+    })),
   };
+}
+
+function AnalyticsMetricCard({ icon: Icon, label, value, hint, tone = 'text-primary' }) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/45 p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {label}
+          </p>
+
+          <p className={`text-2xl font-black mt-1 ${tone}`}>
+            {value}
+          </p>
+        </div>
+
+        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-4 h-4 text-primary" />
+        </div>
+      </div>
+
+      {hint && (
+        <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AnalyticsList({ title, items, formatter = value => formatNumber(value) }) {
+  const max = Math.max(...items.map(item => item.value), 1);
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/35 p-3">
+      <h3 className="text-xs font-black mb-3">
+        {title}
+      </h3>
+
+      <div className="space-y-2.5">
+        {items.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Noch keine Daten</p>
+        ) : items.map(item => (
+          <div key={item.label}>
+            <div className="flex items-center justify-between gap-3 text-[11px] mb-1">
+              <span className="font-semibold truncate">{item.label}</span>
+              <span className="text-muted-foreground flex-shrink-0">{formatter(item.value)}</span>
+            </div>
+
+            <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.max(6, (item.value / max) * 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsDashboard({ stats }) {
+  const maxDaily = Math.max(...stats.daily.map(day => day.views), 1);
+
+  return (
+    <section className="rounded-2xl border border-primary/20 bg-card p-4 mb-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+            App Analytics
+          </p>
+
+          <h2 className="text-base font-black mt-0.5">
+            Reichweite & Werbewert
+          </h2>
+
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            Doppelte Refreshes werden herausgerechnet. Besucher sind eindeutige Geraete, Sessions laufen nach 30 Minuten Inaktivitaet aus.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 mb-4">
+        <AnalyticsMetricCard icon={Users} label="Besucher 7 Tage" value={formatNumber(stats.active7d)} hint="Unique Visitors" />
+        <AnalyticsMetricCard icon={Activity} label="Sessions 7 Tage" value={formatNumber(stats.sessions7d)} hint="Besuche ohne Doppelzaehlung" />
+        <AnalyticsMetricCard icon={Eye} label="Pageviews 7 Tage" value={formatNumber(stats.views7d)} hint="Bereinigte Seitenaufrufe" />
+        <AnalyticsMetricCard icon={TrendingUp} label="Seiten / Session" value={formatDecimal(stats.pagesPerSession7d)} hint="Engagement-Wert" />
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        {[
+          { label: '24h Besucher', value: stats.active24h },
+          { label: '30 Tage Besucher', value: stats.active30d },
+          { label: '30 Tage Views', value: stats.views30d },
+        ].map(item => (
+          <div key={item.label} className="rounded-xl border border-border/40 bg-background/35 p-2.5 text-center">
+            <p className="text-lg font-black text-primary">{formatNumber(item.value)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-border/50 bg-background/35 p-3 mb-3">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h3 className="text-xs font-black">Letzte 14 Tage</h3>
+          <span className="text-[10px] text-muted-foreground">Views / Besucher</span>
+        </div>
+
+        <div className="flex items-end gap-1 h-24">
+          {stats.daily.map(day => (
+            <div key={day.date} className="flex-1 min-w-0 flex flex-col items-center justify-end gap-1">
+              <div
+                className="w-full rounded-t bg-primary/80 min-h-[4px]"
+                style={{ height: `${Math.max(4, (day.views / maxDaily) * 76)}px` }}
+                title={`${day.date}: ${day.views} Views, ${day.visitors} Besucher`}
+              />
+              <span className="text-[8px] text-muted-foreground">
+                {day.date.slice(8, 10)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <AnalyticsList title="Top Seiten 7 Tage" items={stats.topPages} />
+        <AnalyticsList title="Bereiche 7 Tage" items={stats.routeGroups} />
+        <AnalyticsList title="Geraete" items={stats.devices} />
+        <AnalyticsList title="Traffic Quellen" items={stats.referrers} />
+      </div>
+
+      <div className="mt-3 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+        <div className="flex items-start gap-2">
+          <MousePointer className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Fuer Sponsoren spaeter wichtig: Unique Visitors, Sessions, Pageviews, Top-Seiten und Geraete. Die Zahlen sind besser fuer Werbepreise als rohe Klicks, weil Reloads und schnelle Doppelaufrufe reduziert werden.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 
@@ -677,7 +945,7 @@ export default function AdminDashboard() {
   const { data: analyticsEvents = [] } = useQuery({
     queryKey: ['admin-analytics-events'],
     queryFn: async () => {
-      const all = await base44.entities.AppUpdate.list('-created_date', 2000);
+      const all = await base44.entities.AppUpdate.list('-created_date', 10000);
       return all.filter(item => item.version === ANALYTICS_VERSION);
     },
   });
@@ -1075,7 +1343,9 @@ export default function AdminDashboard() {
 
       <TodaysGamesReminder />
 
-      <div className="rounded-2xl border border-primary/20 bg-card p-4 mb-6">
+      <AnalyticsDashboard stats={analyticsStats} />
+
+      <div className="hidden rounded-2xl border border-primary/20 bg-card p-4 mb-6">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-primary">

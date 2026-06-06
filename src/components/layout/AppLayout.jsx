@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
 import PushPermissionPrompt from "@/components/notifications/PushPermissionPrompt";
+import { trackPageView } from "@/lib/analyticsTracking";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -46,6 +47,10 @@ export default function AppLayout() {
 
   const showBottomNav = !hideBottomNav;
   const showPageFooter = showFooter && !isDetailLikePage && showBottomNav;
+
+  useEffect(() => {
+    trackPageView(location);
+  }, [location.pathname, location.search]);
 
   return (
     <div className="flex flex-col min-h-dvh w-screen max-w-full bg-background overflow-x-hidden">
