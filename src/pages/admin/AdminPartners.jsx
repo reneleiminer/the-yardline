@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import ImageUploadField from '@/components/create/ImageUploadField';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import { getImageUrl } from '@/lib/imageUtils';
 
 const EMPTY_FORM = {

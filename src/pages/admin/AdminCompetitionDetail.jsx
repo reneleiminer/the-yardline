@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ImageUploadField from '@/components/create/ImageUploadField';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import { getImageUrl } from '@/lib/imageUtils';
 import {
   Calendar,

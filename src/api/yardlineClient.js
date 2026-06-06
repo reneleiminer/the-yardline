@@ -784,6 +784,19 @@ function toDbPayload(entityName, data = {}) {
   return payload;
 }
 
+function toCreatePayload(entityName, data = {}) {
+  const payload = toDbPayload(entityName, data);
+
+  if (
+    ENTITY_COLUMNS[entityName]?.has('id') &&
+    (payload.id === undefined || payload.id === null || payload.id === '')
+  ) {
+    payload.id = crypto.randomUUID();
+  }
+
+  return payload;
+}
+
 function fromDbRow(entityName, row) {
   if (!row) return row;
 
@@ -861,7 +874,7 @@ function createEntityApi(entityName) {
     async create(data) {
       const { data: created, error } = await supabase
         .from(table)
-        .insert(toDbPayload(entityName, data))
+        .insert(toCreatePayload(entityName, data))
         .select()
         .single();
 
@@ -887,8 +900,31 @@ function createEntityApi(entityName) {
       return { id };
     },
 
-    subscribe() {
-      return () => {};
+    subscribe(callback) {
+      const channel = supabase
+        .channel(`yardline:${table}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table,
+          },
+          (payload) => {
+            callback?.({
+              type: payload.eventType,
+              id: payload.new?.id || payload.old?.id || null,
+              item: payload.new ? fromDbRow(entityName, payload.new) : null,
+              oldItem: payload.old ? fromDbRow(entityName, payload.old) : null,
+              raw: payload,
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     },
   };
 }

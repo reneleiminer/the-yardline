@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import useSetHeader from '@/hooks/useSetHeader';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import ImageUploadField from '@/components/create/ImageUploadField';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import {
   BarChart3,
   Building2,
