@@ -60,7 +60,6 @@ const AdminGameResult = lazy(() => import("@/pages/admin/AdminGameResult"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
 const Announcements = lazy(() => import("@/pages/Announcements"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
-const CreateNews = lazy(() => import("@/pages/create/News"));
 
 function RouteLoader() {
   return (
@@ -118,7 +117,6 @@ function AppRoutes() {
 
             <Route path="/feed" element={<Announcements />} />
             <Route path="/post/:id" element={<PostDetail />} />
-            <Route path="/create/news" element={<CreateNews />} />
             <Route path="/spiele" element={<Games />} />
             <Route path="/highlights" element={<Highlights />} />
             <Route path="/game/:id" element={<GameDetail />} />
