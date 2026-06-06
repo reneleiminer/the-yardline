@@ -1295,14 +1295,14 @@ function UpcomingGameCard({ game, teamsById, leaguesById, partnerTeamIds }) {
   return (
     <Link
       to={`/game/${game.id}`}
-      className={`snap-start shrink-0 w-[286px] rounded-2xl border p-3 active:scale-[0.99] transition-transform overflow-hidden ${
+      className={`snap-start shrink-0 w-[315px] rounded-2xl border p-3 overflow-hidden active:scale-[0.99] transition-transform ${
         recommended ? "border-primary/45" : "border-white/10"
       }`}
       style={{
-        background: `linear-gradient(135deg, ${homeColor}20 0%, #101722 45%, ${awayColor}18 100%)`,
+        background: `linear-gradient(135deg, ${homeColor}18 0%, #101722 48%, ${awayColor}18 100%)`,
         boxShadow: recommended
-          ? `inset 5px 0 0 ${homeColor}, inset -5px 0 0 ${awayColor}, 0 0 0 1px rgba(0,91,255,0.18), 0 16px 32px rgba(0,91,255,0.14)`
-          : `inset 5px 0 0 ${homeColor}, inset -5px 0 0 ${awayColor}, 0 10px 24px rgba(0,0,0,0.22)`,
+          ? `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}, 0 0 0 1px rgba(0,91,255,0.18), 0 16px 32px rgba(0,91,255,0.14)`
+          : `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}`,
       }}
     >
       <div className="flex items-center justify-between gap-2 mb-4">
@@ -1324,26 +1324,46 @@ function UpcomingGameCard({ game, teamsById, leaguesById, partnerTeamIds }) {
           </p>
         </div>
 
-        {hasStream(game) && <Radio className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {hasStream(game) && (
+            <span className="inline-flex items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary w-5 h-5">
+              <Radio className="w-3 h-3" />
+            </span>
+          )}
+
+          <span className={`text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-0.5 ${getGameStatusClass(game)}`}>
+            {getGameStatusLabel(game)}
+          </span>
+
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-        <div className="min-w-0 flex flex-col items-center text-center">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 items-center">
+        <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
           <TeamMark team={home} fallback={homeName} size="lg" />
 
-          <span className="text-[11px] font-black leading-tight text-center mt-2 whitespace-normal break-words line-clamp-2">
+          <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
             {homeName}
           </span>
         </div>
 
-        <span className="text-xs font-black text-muted-foreground rounded-xl border border-white/10 px-2 py-1">
-          VS
-        </span>
+        <div className="text-center px-2">
+          <div className="flex items-center justify-center">
+            <span className="text-sm font-black text-muted-foreground rounded-xl border border-white/10 px-3 py-1">
+              VS
+            </span>
+          </div>
 
-        <div className="min-w-0 flex flex-col items-center text-center">
+          <p className="text-[9px] text-muted-foreground mt-0.5">
+            {date ? format(date, "dd.MM.", { locale: de }) : getGameStatusLabel(game)}
+          </p>
+        </div>
+
+        <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
           <TeamMark team={away} fallback={awayName} size="lg" />
 
-          <span className="text-[11px] font-black leading-tight text-center mt-2 whitespace-normal break-words line-clamp-2">
+          <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
             {awayName}
           </span>
         </div>
