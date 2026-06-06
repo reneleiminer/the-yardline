@@ -16,6 +16,5 @@ export default function useSetHeader(config) {
   useEffect(() => {
     if (config) setHeader(config);
     return () => resetHeader();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(config)]);
 }

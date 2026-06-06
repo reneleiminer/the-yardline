@@ -8,10 +8,8 @@ import {
   BarChart3,
   Building2,
   Camera,
-  CalendarDays,
   ChevronRight,
   FileText,
-  Flame,
   Handshake,
   HeadphonesIcon,
   Image,
@@ -1243,4 +1241,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-

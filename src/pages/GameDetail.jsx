@@ -12,7 +12,6 @@ import {
   AlertTriangle,
   BarChart3,
   Camera,
-  ExternalLink,
   Image as ImageIcon,
   Instagram,
   Loader2,

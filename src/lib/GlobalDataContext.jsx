@@ -7,6 +7,7 @@ import React, {
   useRef,
 } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 
 const GlobalDataContext = createContext();
@@ -68,11 +69,13 @@ function shouldAutoSwitchToLive(game, now = new Date()) {
   return diff >= 0 && diff <= AUTO_LIVE_MAX_AGE_MS;
 }
 
-function useRealtimeSubscriptions(queryClient) {
+function useRealtimeSubscriptions(queryClient, enabledKeys) {
   const unsubscribeRefs = useRef([]);
 
   useEffect(() => {
-    const unsubs = CORE_ENTITY_CONFIG.map(({ key, entity }) => {
+    const unsubs = CORE_ENTITY_CONFIG
+      .filter(({ key }) => enabledKeys.has(key))
+      .map(({ key, entity }) => {
       try {
         const entityApi = base44.entities[entity];
         if (!entityApi?.subscribe) return null;
@@ -106,7 +109,7 @@ function useRealtimeSubscriptions(queryClient) {
         }
       });
     };
-  }, [queryClient]);
+  }, [queryClient, enabledKeys]);
 }
 
 function useAutomaticGameStatus(games, queryClient) {
@@ -157,7 +160,7 @@ function useAutomaticGameStatus(games, queryClient) {
   }, [runCheck]);
 }
 
-function makeListQuery({ key, entity, staleTime, sort, limit }) {
+function makeListQuery({ key, entity, staleTime, sort, limit, enabled = true }) {
   return {
     queryKey: [key],
     queryFn: () => {
@@ -170,13 +173,68 @@ function makeListQuery({ key, entity, staleTime, sort, limit }) {
     retry: 2,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
+    enabled,
   };
+}
+
+function startsWithAny(pathname, prefixes) {
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
 }
 
 export const GlobalDataProvider = ({ children }) => {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const pathname = location.pathname || "/";
 
-  useRealtimeSubscriptions(queryClient);
+  const needsCoreData =
+    pathname === "/" ||
+    startsWithAny(pathname, [
+      "/spiele",
+      "/game/",
+      "/team/",
+      "/club/",
+      "/league/",
+      "/tabellen",
+      "/wettbewerbe",
+      "/highlights",
+      "/feed",
+      "/post/",
+      "/data-editor",
+      "/admin",
+    ]);
+
+  const needsPartnerData = pathname === "/" || pathname.startsWith("/spiele") || pathname.startsWith("/tabellen") || pathname.startsWith("/wettbewerbe");
+  const needsTournamentData = pathname === "/" || pathname.startsWith("/wettbewerbe") || pathname.startsWith("/admin/competitions");
+  const needsStandingsData = startsWithAny(pathname, ["/tabellen", "/league/", "/club/", "/team/"]);
+  const needsClubData = startsWithAny(pathname, ["/club/", "/team/"]);
+  const needsLegalData = startsWithAny(pathname, ["/legal", "/impressum", "/datenschutz", "/nutzungsbedingungen", "/community-guidelines", "/admin/legal"]);
+
+  const enabledRealtimeKeys = useMemo(() => {
+    const keys = new Set();
+
+    if (needsCoreData) {
+      keys.add("leagues");
+      keys.add("teams");
+      keys.add("games");
+    }
+
+    if (needsPartnerData) keys.add("partners");
+    if (needsTournamentData) keys.add("tournaments");
+    if (needsStandingsData) keys.add("standingsConfigs");
+    if (needsClubData) keys.add("clubs");
+    if (needsLegalData) keys.add("legalPages");
+
+    return keys;
+  }, [
+    needsClubData,
+    needsCoreData,
+    needsLegalData,
+    needsPartnerData,
+    needsStandingsData,
+    needsTournamentData,
+  ]);
+
+  useRealtimeSubscriptions(queryClient, enabledRealtimeKeys);
 
   const { data: leagues = [], isLoading: leaguesLoading } = useQuery(
     makeListQuery({
@@ -184,6 +242,7 @@ export const GlobalDataProvider = ({ children }) => {
       entity: "League",
       staleTime: 1000 * 60 * 5,
       sort: "name",
+      enabled: needsCoreData,
     })
   );
 
@@ -193,6 +252,7 @@ export const GlobalDataProvider = ({ children }) => {
       entity: "Team",
       staleTime: 1000 * 60 * 5,
       sort: "name",
+      enabled: needsCoreData,
     })
   );
 
@@ -203,6 +263,7 @@ export const GlobalDataProvider = ({ children }) => {
       staleTime: 1000 * 30,
       sort: "-date",
       limit: 500,
+      enabled: needsCoreData,
     })
   );
 
@@ -213,6 +274,7 @@ export const GlobalDataProvider = ({ children }) => {
       key: "partners",
       entity: "Partner",
       staleTime: 1000 * 60 * 15,
+      enabled: needsPartnerData,
     })
   );
 
@@ -223,6 +285,7 @@ export const GlobalDataProvider = ({ children }) => {
       staleTime: 1000 * 60 * 5,
       sort: "-created_date",
       limit: 100,
+      enabled: needsTournamentData,
     })
   );
 
@@ -233,6 +296,7 @@ export const GlobalDataProvider = ({ children }) => {
       staleTime: 1000 * 60 * 10,
       sort: "name",
       limit: 500,
+      enabled: needsClubData,
     })
   );
 
@@ -241,6 +305,7 @@ export const GlobalDataProvider = ({ children }) => {
       key: "standingsConfigs",
       entity: "StandingsConfig",
       staleTime: 1000 * 60 * 5,
+      enabled: needsStandingsData,
     })
   );
 
@@ -249,6 +314,7 @@ export const GlobalDataProvider = ({ children }) => {
       key: "legalPages",
       entity: "LegalPage",
       staleTime: 1000 * 60 * 30,
+      enabled: needsLegalData,
     })
   );
 

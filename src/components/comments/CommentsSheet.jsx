@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Sheet, SheetContent, SheetHeader } from '@/components/ui/sheet';
 import CommentsList from '@/components/comments/CommentsList';
 import CommentInput from '@/components/comments/CommentInput';

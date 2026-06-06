@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { requestPushEventCheck } from '@/lib/pushNotifications';
 
 const STORAGE_BUCKET = 'yardline-media';
 
@@ -818,6 +819,22 @@ function fromDbRow(entityName, row) {
   return item;
 }
 
+function shouldCheckPushEvents(entityName, data = {}) {
+  if (entityName === 'Game') return true;
+
+  if (entityName === 'AppUpdate') {
+    return ['podcast_feature', 'game_highlight'].includes(data.version);
+  }
+
+  return false;
+}
+
+function triggerPushEventCheck(entityName, data, action) {
+  if (!shouldCheckPushEvents(entityName, data)) return;
+
+  requestPushEventCheck(`${action}:${entityName}:${data?.version || ''}`);
+}
+
 function parseSort(entityName, sort) {
   if (!sort) return { column: 'created_at', ascending: false };
 
@@ -879,7 +896,10 @@ function createEntityApi(entityName) {
         .single();
 
       if (error) throw error;
-      return fromDbRow(entityName, created);
+
+      const item = fromDbRow(entityName, created);
+      triggerPushEventCheck(entityName, item, 'create');
+      return item;
     },
 
     async update(id, data) {
@@ -891,7 +911,10 @@ function createEntityApi(entityName) {
         .single();
 
       if (error) throw error;
-      return fromDbRow(entityName, updated);
+
+      const item = fromDbRow(entityName, updated);
+      triggerPushEventCheck(entityName, item, 'update');
+      return item;
     },
 
     async delete(id) {

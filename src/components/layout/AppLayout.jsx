@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
+import PushPermissionPrompt from "@/components/notifications/PushPermissionPrompt";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -80,6 +81,7 @@ export default function AppLayout() {
       </main>
 
       {showPageFooter && <Footer />}
+      {showBottomNav && <PushPermissionPrompt />}
       {showBottomNav && <BottomNav />}
     </div>
   );
