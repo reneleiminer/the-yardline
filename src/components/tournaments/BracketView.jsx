@@ -1,10 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  CalendarDays,
   ChevronRight,
   Clock,
-  MapPin,
   Shield,
   Trophy,
 } from 'lucide-react';
@@ -391,17 +389,17 @@ function resolveBracket({ tournament, league, teams = [], games = [], canResolve
   });
 }
 
-function TeamLogo({ team, fallback, winner, finalRound }) {
-  const size = finalRound ? 'w-10 h-10 rounded-2xl' : 'w-8 h-8 rounded-xl';
+function TeamLogo({ team, fallback, winner }) {
+  const size = 'w-6 h-6 rounded-lg';
 
   if (team?.logo) {
     return (
       <img
         src={getImageUrl(team.logo)}
         alt={team.name || ''}
-        className={`${size} object-contain bg-black/25 border ${
-          winner ? 'border-primary/50' : 'border-white/10'
-        } p-1 flex-shrink-0`}
+        className={`${size} object-contain bg-black/45 border ${
+          winner ? 'border-emerald-400/60' : 'border-white/10'
+        } p-0.5 flex-shrink-0`}
         loading="lazy"
       />
     );
@@ -410,49 +408,40 @@ function TeamLogo({ team, fallback, winner, finalRound }) {
   return (
     <div
       className={`${size} bg-black/20 border ${
-        winner ? 'border-primary/50 text-primary' : 'border-white/10 text-muted-foreground'
-      } flex items-center justify-center text-[10px] font-black flex-shrink-0`}
+        winner ? 'border-emerald-400/60 text-emerald-300' : 'border-white/10 text-muted-foreground'
+      } flex items-center justify-center text-[9px] font-black flex-shrink-0`}
     >
-      {fallback?.[0] || <Shield className="w-4 h-4" />}
+      {fallback?.[0] || <Shield className="w-3.5 h-3.5" />}
     </div>
   );
 }
 
-function TeamLine({ team, name, score, winner, dimmed, finalRound }) {
+function TeamLine({ team, name, score, winner, dimmed }) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-xl px-2.5 py-2 transition-colors ${
+      className={`grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-2 rounded-lg px-2 py-1.5 transition-colors ${
         winner
-          ? 'bg-primary/15'
+          ? 'bg-emerald-400/12 text-white'
           : dimmed
-          ? 'bg-black/10 opacity-60'
-          : 'bg-black/10'
+          ? 'bg-black/15 opacity-55'
+          : 'bg-black/20'
       }`}
     >
       <TeamLogo
         team={team}
         fallback={name}
         winner={winner}
-        finalRound={finalRound}
       />
 
-      <div className="min-w-0 flex-1">
-        <p className={`${finalRound ? 'text-sm' : 'text-xs'} font-black truncate`}>
+      <div className="min-w-0">
+        <p className="text-[11px] font-black leading-tight truncate">
           {name}
         </p>
-
-        {team?.name && team.shortName && team.shortName !== team.name && (
-          <p className="text-[9px] text-muted-foreground truncate mt-0.5">
-            {team.name}
-          </p>
-        )}
       </div>
 
       {score !== undefined && score !== null && score !== '' && (
         <span
-          className={`${
-            finalRound ? 'text-xl' : 'text-base'
-          } font-black tabular-nums ${winner ? 'text-primary' : 'text-muted-foreground'}`}
+          className={`text-sm font-black tabular-nums ${winner ? 'text-emerald-300' : 'text-muted-foreground'}`}
         >
           {score}
         </span>
@@ -500,33 +489,31 @@ function MatchCard({
 
   const date = formatGameDate(game);
   const time = formatGameTime(game);
-  const venue = game?.venue || game?.city || match.venue || '';
-
   return (
     <button
       type="button"
       onClick={() => {
         if (canOpen) onOpenGame(game.id);
       }}
-      className={`relative w-full text-left rounded-3xl border overflow-hidden transition-all active:scale-[0.99] ${
+      className={`relative w-full text-left rounded-xl border overflow-hidden transition-all active:scale-[0.99] ${
         finalRound
-          ? 'border-primary/35 bg-gradient-to-br from-primary/20 via-card to-card shadow-[0_16px_45px_rgba(0,0,0,0.28)]'
-          : 'border-border/50 bg-card hover:border-primary/30'
+          ? 'border-emerald-400/35 bg-gradient-to-br from-emerald-500/14 via-slate-950 to-slate-950 shadow-[0_0_24px_rgba(16,185,129,0.12)]'
+          : 'border-white/10 bg-slate-950/95 hover:border-primary/35'
       } ${canOpen ? 'cursor-pointer' : 'cursor-default'}`}
     >
       {finalRound && (
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.12),transparent_34%)]" />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_0%_0%,rgba(16,185,129,0.22),transparent_36%)]" />
       )}
 
-      <div className="relative z-10 p-3">
-        <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="relative z-10 p-2">
+        <div className="flex items-center justify-between gap-2 mb-2">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate">
+            <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground truncate">
               Spiel {Number(match.matchupIndex || 0) + 1}
             </p>
 
             {(date || time) && (
-              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
                 {[date, time].filter(Boolean).join(' · ')}
               </p>
             )}
@@ -546,7 +533,7 @@ function MatchCard({
             )}
 
             {finalRound && (
-              <Badge className="text-[9px] border-0 bg-yellow-500/15 text-yellow-400">
+              <Badge className="text-[9px] border-0 bg-emerald-500/15 text-emerald-300">
                 Finale
               </Badge>
             )}
@@ -560,7 +547,6 @@ function MatchCard({
             score={match.score1}
             winner={team1Wins}
             dimmed={isFinished && winnerId && !team1Wins}
-            finalRound={finalRound}
           />
 
           <TeamLine
@@ -569,32 +555,15 @@ function MatchCard({
             score={match.score2}
             winner={team2Wins}
             dimmed={isFinished && winnerId && !team2Wins}
-            finalRound={finalRound}
           />
         </div>
 
-        {(venue || canOpen) && (
-          <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-border/35">
-            <div className="min-w-0 flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              {venue ? (
-                <>
-                  <MapPin className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{venue}</span>
-                </>
-              ) : (
-                <>
-                  <CalendarDays className="w-3 h-3 flex-shrink-0" />
-                  <span>Termin offen</span>
-                </>
-              )}
-            </div>
-
-            {canOpen && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-black text-primary flex-shrink-0">
-                Match Center
-                <ChevronRight className="w-3 h-3" />
-              </span>
-            )}
+        {canOpen && (
+          <div className="flex items-center justify-end mt-2">
+            <span className="inline-flex items-center gap-1 text-[9px] font-black text-primary flex-shrink-0">
+              Details
+              <ChevronRight className="w-3 h-3" />
+            </span>
           </div>
         )}
       </div>
@@ -780,23 +749,17 @@ export default function BracketView({ tournament, teams: passedTeams }) {
 
   return (
     <div className="px-4 pt-4 pb-2">
-      <div className="rounded-3xl border border-border/50 bg-card/80 overflow-hidden">
-        <div className="p-4 border-b border-border/50 bg-gradient-to-br from-primary/10 via-transparent to-transparent">
-          <div className="flex items-start justify-between gap-3">
+      <div className="rounded-2xl border border-white/10 bg-black/45 overflow-hidden">
+        <div className="px-3 py-3 border-b border-white/10 bg-slate-950/85">
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Trophy className="w-4 h-4 text-primary flex-shrink-0" />
+              <div className="flex items-center gap-2">
+                <Trophy className="w-3.5 h-3.5 text-primary flex-shrink-0" />
 
-                <h2 className="text-base font-black truncate">
+                <h2 className="text-sm font-black truncate">
                   Turnierbaum
                 </h2>
               </div>
-
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                {rounds.length > 0
-                  ? 'Runden horizontal ansehen. Tippe auf ein Spiel, um ins Match Center zu wechseln.'
-                  : 'Noch keine Runden verfügbar.'}
-              </p>
 
               {subtitleParts.length > 0 && (
                 <p className="text-[10px] text-muted-foreground mt-1 truncate">
@@ -830,7 +793,7 @@ export default function BracketView({ tournament, teams: passedTeams }) {
             ref={bracketScrollerRef}
             className="overflow-x-auto hide-scrollbar snap-x snap-mandatory"
           >
-            <div className="flex gap-4 sm:gap-5 px-4 py-5 min-w-max">
+            <div className="flex gap-5 px-3 py-4 min-w-max">
               {rounds.map((roundData, roundIndex) => {
                 const isFinalRound = !!roundData.isFinalRound || roundIndex === rounds.length - 1;
 
@@ -838,19 +801,21 @@ export default function BracketView({ tournament, teams: passedTeams }) {
                   <section
                     key={`${roundData.round}-${roundIndex}`}
                     data-round-index={roundIndex}
-                    className={`snap-start shrink-0 ${
-                      isFinalRound ? 'w-[calc(100vw-3rem)] sm:w-[360px]' : 'w-[calc(100vw-4rem)] sm:w-[310px]'
-                    }`}
+                    className="relative snap-start shrink-0 w-[230px]"
                   >
-                    <div className="flex items-center justify-between gap-2 mb-3">
+                    {!isFinalRound && (
+                      <div className="absolute left-full top-[56px] h-px w-5 bg-emerald-400/35" />
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 mb-2">
                       <div
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
                           isFinalRound
-                            ? 'border-yellow-500/35 bg-yellow-500/10 text-yellow-400'
-                            : 'border-border/50 bg-secondary/40 text-muted-foreground'
+                            ? 'border-emerald-400/35 bg-emerald-500/10 text-emerald-300'
+                            : 'border-white/10 bg-white/5 text-muted-foreground'
                         }`}
                       >
-                        {isFinalRound && <Trophy className="w-3.5 h-3.5" />}
+                        {isFinalRound && <Trophy className="w-3 h-3" />}
                         {roundData.name || `Runde ${roundData.round}`}
                       </div>
 
@@ -859,7 +824,7 @@ export default function BracketView({ tournament, teams: passedTeams }) {
                       </span>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {(roundData.matchups || []).map((match, index) => (
                         <MatchCard
                           key={`${roundData.round}-${match.matchupIndex ?? index}`}
