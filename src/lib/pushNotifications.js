@@ -18,6 +18,58 @@ function urlBase64ToUint8Array(value) {
   return output;
 }
 
+function arrayBufferToBase64Url(buffer) {
+  const bytes = new Uint8Array(buffer || []);
+  let binary = "";
+
+  for (let i = 0; i < bytes.byteLength; i += 1) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return window
+    .btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+async function getVapidPublicKey() {
+  try {
+    const response = await fetch("/api/push/public-key", {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.publicKey) return data.publicKey;
+    }
+  } catch {
+    // Fall back to the bundled key so older deployments keep working.
+  }
+
+  return VAPID_PUBLIC_KEY;
+}
+
+async function savePushSubscription(subscription) {
+  const response = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      visitorId: getVisitorId(),
+      subscription,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "Push-Abo konnte nicht gespeichert werden.");
+  }
+}
+
 export function isPushSupported() {
   return (
     typeof window !== "undefined" &&
@@ -76,31 +128,34 @@ export async function enablePushNotifications() {
     throw new Error("Service Worker konnte nicht registriert werden.");
   }
 
-  const existing = await registration.pushManager.getSubscription();
+  const publicKey = await getVapidPublicKey();
+  const applicationServerKey = urlBase64ToUint8Array(publicKey);
+  let existing = await registration.pushManager.getSubscription();
+
+  const existingKey = existing?.options?.applicationServerKey
+    ? arrayBufferToBase64Url(existing.options.applicationServerKey)
+    : "";
+
+  if (existing && existingKey && existingKey !== publicKey) {
+    await existing.unsubscribe();
+    existing = null;
+  }
+
   const subscription =
     existing ||
     (await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey,
     }));
 
-  const response = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      visitorId: getVisitorId(),
-      subscription,
-    }),
-  });
-
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(data.error || "Push-Abo konnte nicht gespeichert werden.");
-  }
+  await savePushSubscription(subscription);
 
   return subscription;
+}
+
+export async function syncExistingPushSubscription() {
+  if (!isPushSupported() || Notification.permission !== "granted") return null;
+  return enablePushNotifications();
 }
 
 export async function requestPushEventCheck(reason = "client_update") {

@@ -7,6 +7,7 @@ import {
   enablePushNotifications,
   getCurrentPushSubscription,
   isPushSupported,
+  syncExistingPushSubscription,
   wasPushPromptDismissed,
 } from "@/lib/pushNotifications";
 import { Button } from "@/components/ui/button";
@@ -20,8 +21,18 @@ export default function PushPermissionPrompt() {
 
     async function check() {
       if (!isPushSupported()) return;
-      if (wasPushPromptDismissed()) return;
       if (Notification.permission === "denied") return;
+
+      if (Notification.permission === "granted") {
+        try {
+          await syncExistingPushSubscription();
+          return;
+        } catch (error) {
+          console.warn("PUSH SYNC ERROR:", error);
+        }
+      }
+
+      if (wasPushPromptDismissed()) return;
 
       const existing = await getCurrentPushSubscription();
       if (cancelled || existing) return;
@@ -45,11 +56,11 @@ export default function PushPermissionPrompt() {
 
   const enable = async () => {
     setSaving(true);
-    dismissPushPrompt();
-    setVisible(false);
 
     try {
       await enablePushNotifications();
+      dismissPushPrompt();
+      setVisible(false);
       toast.success("Benachrichtigungen aktiviert");
     } catch (error) {
       toast.error(error.message || "Benachrichtigungen konnten nicht aktiviert werden");
