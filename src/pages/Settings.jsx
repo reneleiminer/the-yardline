@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
+  Bell,
+  BellOff,
   Check,
   ChevronRight,
   Database,
@@ -8,11 +10,19 @@ import {
   Lock,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import useSetHeader from "@/hooks/useSetHeader";
 import { useAuth } from "@/lib/AuthContext";
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushSettingsState,
+  isPushSupported,
+} from "@/lib/pushNotifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
 const APP_VERSION =
   import.meta.env.VITE_APP_VERSION ||
@@ -206,6 +216,98 @@ function AppInfoSettings() {
   );
 }
 
+function PushNotificationSettings() {
+  const [state, setState] = React.useState({
+    supported: false,
+    enabled: false,
+    permission: "default",
+    disabledByUser: false,
+  });
+  const [saving, setSaving] = React.useState(false);
+
+  const refresh = React.useCallback(async () => {
+    if (!isPushSupported()) {
+      setState({
+        supported: false,
+        enabled: false,
+        permission: "unsupported",
+        disabledByUser: true,
+      });
+      return;
+    }
+
+    setState(await getPushSettingsState());
+  }, []);
+
+  React.useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleToggle = async (checked) => {
+    setSaving(true);
+
+    try {
+      if (checked) {
+        await enablePushNotifications();
+        toast.success("Benachrichtigungen aktiviert");
+      } else {
+        await disablePushNotifications();
+        toast.success("Benachrichtigungen ausgeschaltet");
+      }
+
+      await refresh();
+    } catch (error) {
+      toast.error(error.message || "Benachrichtigungen konnten nicht geändert werden");
+      await refresh();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const blocked = state.permission === "denied";
+  const disabled = saving || !state.supported || blocked;
+
+  return (
+    <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-4">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          {state.enabled ? (
+            <Bell className="w-5 h-5 text-primary" />
+          ) : (
+            <BellOff className="w-5 h-5 text-muted-foreground" />
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold">
+            Benachrichtigungen
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            {blocked
+              ? "Im Browser blockiert"
+              : state.supported
+                ? "Live-Spiele, Game of the Week, Podcast und Highlights"
+                : "Auf diesem Gerät nicht verfügbar"}
+          </p>
+        </div>
+
+        <Switch
+          checked={state.enabled}
+          disabled={disabled}
+          onCheckedChange={handleToggle}
+          aria-label="Benachrichtigungen umschalten"
+        />
+      </div>
+
+      {blocked && (
+        <div className="border-t border-border/30 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+          Du hast Benachrichtigungen im Browser blockiert. Das kannst du nur in den Website-Einstellungen deines Browsers wieder erlauben.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Settings() {
   const [searchParams] = useSearchParams();
 
@@ -226,6 +328,7 @@ export default function Settings() {
   return (
     <div className="min-h-[calc(100dvh-68px)] w-full max-w-full overflow-x-hidden px-4 pt-4 pb-24 flex flex-col">
       <div className="space-y-3">
+        <PushNotificationSettings />
         <LanguageSettings />
         <AppInfoSettings />
       </div>

@@ -1969,19 +1969,39 @@ const sortedHomeLeagues = useMemo(() => {
 
       <SearchBox value={search} onChange={setSearch} />
 
+      {liveGames.length > 0 && (
+        <RailSection
+          icon={Zap}
+          title="Live Games"
+          to="/spiele"
+          emptyLabel="Keine Live Games"
+        >
+          {liveGames.map((game) => (
+            <LiveGameCard
+              key={game.id}
+              game={game}
+              teamsById={teamsById}
+              leaguesById={leaguesById}
+            />
+          ))}
+        </RailSection>
+      )}
+
       <RailSection
-        icon={Zap}
-        title="Live Games"
-        to="/spiele"
-        emptyLabel="Keine Live Games"
+        icon={Play}
+        title="Game Highlights"
+        to="/highlights"
+        emptyLabel="Keine Highlights"
       >
-        {liveGames.length > 0
-          ? liveGames.map((game) => (
-              <LiveGameCard
-                key={game.id}
-                game={game}
+        {homeHighlights.length > 0
+          ? homeHighlights.map((highlight) => (
+              <HighlightReelCard
+                key={highlight.id}
+                highlight={highlight}
                 teamsById={teamsById}
                 leaguesById={leaguesById}
+                gamesById={gamesById}
+                wide
               />
             ))
           : null}
@@ -1996,7 +2016,7 @@ const sortedHomeLeagues = useMemo(() => {
         />
       )}
 
-           <RailSection
+      <RailSection
         icon={ImageIcon}
         title="News"
         to="/feed"
@@ -2027,26 +2047,6 @@ const sortedHomeLeagues = useMemo(() => {
                 key={`${item.record.leagueId || item.team.leagueId || "unknown"}-${item.team.id}`}
                 item={item}
                 leaguesById={leaguesById}
-              />
-            ))
-          : null}
-      </RailSection>
-
-      <RailSection
-        icon={Play}
-        title="Game Highlights"
-        to="/highlights"
-        emptyLabel="Keine Highlights"
-      >
-        {homeHighlights.length > 0
-          ? homeHighlights.map((highlight) => (
-              <HighlightReelCard
-                key={highlight.id}
-                highlight={highlight}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-                gamesById={gamesById}
-                wide
               />
             ))
           : null}

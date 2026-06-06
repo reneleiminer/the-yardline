@@ -3,6 +3,7 @@ import { Bell, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
+  arePushNotificationsDisabled,
   dismissPushPrompt,
   enablePushNotifications,
   getCurrentPushSubscription,
@@ -21,6 +22,7 @@ export default function PushPermissionPrompt() {
 
     async function check() {
       if (!isPushSupported()) return;
+      if (arePushNotificationsDisabled()) return;
       if (Notification.permission === "denied") return;
 
       if (Notification.permission === "granted") {

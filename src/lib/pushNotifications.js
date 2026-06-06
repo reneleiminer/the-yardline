@@ -3,6 +3,7 @@ const VAPID_PUBLIC_KEY =
   "BBEzKWCamx2YA9lflqjmwmBu513-pMoJQRox0FcPuPnieJElG80NTG1BM448tWtrn_tKQrOaUqNn3hUS9tWxeVc";
 
 const DISMISS_KEY = "yardline_push_prompt_dismissed";
+const DISABLED_KEY = "yardline_push_disabled";
 const VISITOR_KEY = "yardline_visitor_id";
 
 function urlBase64ToUint8Array(value) {
@@ -70,6 +71,23 @@ async function savePushSubscription(subscription) {
   }
 }
 
+async function deactivatePushSubscription(subscription) {
+  const response = await fetch("/api/push/unsubscribe", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      subscription,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || "Push-Abo konnte nicht deaktiviert werden.");
+  }
+}
+
 export function isPushSupported() {
   return (
     typeof window !== "undefined" &&
@@ -96,6 +114,15 @@ export function dismissPushPrompt() {
   window.localStorage.setItem(DISMISS_KEY, "1");
 }
 
+export function arePushNotificationsDisabled() {
+  return window.localStorage.getItem(DISABLED_KEY) === "1";
+}
+
+export function allowPushNotificationsPrompt() {
+  window.localStorage.removeItem(DISABLED_KEY);
+  window.localStorage.removeItem(DISMISS_KEY);
+}
+
 export async function registerServiceWorker() {
   if (!isPushSupported()) return null;
 
@@ -115,6 +142,8 @@ export async function enablePushNotifications() {
   if (!isPushSupported()) {
     throw new Error("Push-Benachrichtigungen werden auf diesem Geraet nicht unterstuetzt.");
   }
+
+  allowPushNotificationsPrompt();
 
   const permission = await Notification.requestPermission();
 
@@ -154,8 +183,57 @@ export async function enablePushNotifications() {
 }
 
 export async function syncExistingPushSubscription() {
-  if (!isPushSupported() || Notification.permission !== "granted") return null;
+  if (
+    !isPushSupported() ||
+    arePushNotificationsDisabled() ||
+    Notification.permission !== "granted"
+  ) {
+    return null;
+  }
+
   return enablePushNotifications();
+}
+
+export async function disablePushNotifications() {
+  if (!isPushSupported()) {
+    window.localStorage.setItem(DISABLED_KEY, "1");
+    dismissPushPrompt();
+    return false;
+  }
+
+  const registration = await registerServiceWorker();
+  const existing = registration
+    ? await registration.pushManager.getSubscription()
+    : null;
+
+  if (existing) {
+    await deactivatePushSubscription(existing);
+    await existing.unsubscribe();
+  }
+
+  window.localStorage.setItem(DISABLED_KEY, "1");
+  dismissPushPrompt();
+  return true;
+}
+
+export async function getPushSettingsState() {
+  if (!isPushSupported()) {
+    return {
+      supported: false,
+      enabled: false,
+      permission: "unsupported",
+      disabledByUser: true,
+    };
+  }
+
+  const existing = await getCurrentPushSubscription();
+
+  return {
+    supported: true,
+    enabled: Notification.permission === "granted" && !!existing && !arePushNotificationsDisabled(),
+    permission: Notification.permission,
+    disabledByUser: arePushNotificationsDisabled(),
+  };
 }
 
 export async function requestPushEventCheck(reason = "client_update") {
