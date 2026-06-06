@@ -894,8 +894,9 @@ function GameForm({
       )}
 
       <div className="rounded-xl border border-border/50 bg-secondary/20 p-3 space-y-3">
-        <p className="text-xs font-semibold">Topspiel, Tippspiel & Highlights</p>
+        <p className="text-xs font-semibold">Tippspiel</p>
 
+        {true && (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/50 px-3 py-2">
           <div>
             <p className="text-xs font-semibold">Tippspiel aktiv</p>
@@ -905,21 +906,15 @@ function GameForm({
           </div>
           <Switch checked={form.predictionEnabled !== false} onCheckedChange={(value) => set("predictionEnabled", value)} />
         </div>
+        )}
 
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-background/50 px-3 py-2">
-          <div>
-            <p className="text-xs font-semibold">Manuell als Topspiel markieren</p>
-            <p className="text-[10px] text-muted-foreground">
-              Hebt das Spiel in der automatischen Topspiel-Sortierung stark an.
-            </p>
-          </div>
-          <Switch checked={!!form.isTopGame} onCheckedChange={(value) => set("isTopGame", value)} />
-        </div>
 
+        {false && (
+          <>
         <Input
-          type="number"
+          type="hidden"
           placeholder="Zusätzlicher Topspiel-Score optional"
-          value={form.topGameScore}
+          value=""
           onChange={(event) => set("topGameScore", event.target.value)}
         />
 
@@ -932,8 +927,10 @@ function GameForm({
           </div>
           <Switch checked={!!form.isHighlight} onCheckedChange={(value) => set("isHighlight", value)} />
         </div>
+          </>
+        )}
 
-        {form.isHighlight && (
+        {false && form.isHighlight && (
           <div className="space-y-2">
             <Input
               placeholder="Highlight Video URL"
@@ -1166,21 +1163,19 @@ export default function AdminGames() {
       matchupIndex,
       isCompetitionGame: !!data.isCompetitionGame || !!competitionId,
 
-      isTopGame: status !== "cancelled" && !!data.isTopGame,
-      topGameScore: status !== "cancelled" && data.topGameScore !== "" && data.topGameScore !== null && data.topGameScore !== undefined
-        ? Number(data.topGameScore)
-        : null,
+      isTopGame: false,
+      topGameScore: null,
       predictionEnabled: status !== "cancelled" && data.predictionEnabled !== false,
 
-      isHighlight: status !== "cancelled" && !!data.isHighlight,
-      hasHighlight: status !== "cancelled" && (!!data.isHighlight || !!data.highlightVideoUrl),
-      highlightVideoUrl: status !== "cancelled" ? data.highlightVideoUrl || "" : "",
-      highlightUrl: status !== "cancelled" ? data.highlightVideoUrl || "" : "",
-      videoUrl: status !== "cancelled" ? data.highlightVideoUrl || "" : "",
-      highlightThumbnail: status !== "cancelled" ? data.highlightThumbnail || "" : "",
-      thumbnailUrl: status !== "cancelled" ? data.highlightThumbnail || "" : "",
-      highlightTitle: status !== "cancelled" ? data.highlightTitle || "" : "",
-      highlightSubtitle: status !== "cancelled" ? data.highlightSubtitle || "" : "",
+      isHighlight: false,
+      hasHighlight: false,
+      highlightVideoUrl: "",
+      highlightUrl: "",
+      videoUrl: "",
+      highlightThumbnail: "",
+      thumbnailUrl: "",
+      highlightTitle: "",
+      highlightSubtitle: "",
     };
   };
 
@@ -1443,23 +1438,9 @@ export default function AdminGames() {
                           {getStatusLabel(game.status)}
                         </Badge>
 
-                        {game.isTopGame && !isCancelled && (
-                          <Badge className="text-[10px] border-0 bg-yellow-500/15 text-yellow-400">
-                            <Star className="w-3 h-3 mr-1" />
-                            Topspiel
-                          </Badge>
-                        )}
-
                         {game.predictionEnabled === false && !isCancelled && (
                           <Badge className="text-[10px] border-0 bg-orange-500/15 text-orange-400">
                             Tippspiel aus
-                          </Badge>
-                        )}
-
-                        {(game.isHighlight || game.hasHighlight || game.highlightVideoUrl) && !isCancelled && (
-                          <Badge className="text-[10px] border-0 bg-purple-500/15 text-purple-400">
-                            <Video className="w-3 h-3 mr-1" />
-                            Highlight
                           </Badge>
                         )}
 

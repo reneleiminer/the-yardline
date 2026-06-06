@@ -441,6 +441,13 @@ function buildGamePayload({ competition, matchup, gameFormData }) {
   };
 }
 
+function findCompetitionGameForMatchup(games, round, matchup) {
+  return games.find(game =>
+    Number(game.round) === Number(round.round) &&
+    Number(game.matchupIndex) === Number(matchup.matchupIndex)
+  );
+}
+
 export default function AdminCompetitionDetail() {
   useSetHeader({ mode: 'back', title: 'Wettbewerb Details' });
 
@@ -654,7 +661,107 @@ export default function AdminCompetitionDetail() {
     });
   };
 
-  const handleSaveCompetition = () => {
+  const ensureGamesForBracket = async (nextCompetition, nextBracket) => {
+    if (!nextCompetition?.id || !Array.isArray(nextBracket) || nextBracket.length === 0) {
+      return [];
+    }
+
+    const nextGameIds = [...(nextCompetition.gameIds || [])];
+    const createdIds = [];
+
+    for (const round of nextBracket) {
+      for (const [index, matchup] of (round.matchups || []).entries()) {
+        const normalizedMatchup = {
+          ...matchup,
+          round: round.round,
+          roundName: round.name || round.roundName || `Runde ${round.round}`,
+          matchupIndex: matchup.matchupIndex ?? index,
+        };
+
+        const existingGame = findCompetitionGameForMatchup(
+          competitionGames,
+          round,
+          normalizedMatchup
+        );
+
+        if (existingGame) {
+          const updates = {};
+
+          if (!existingGame.roundName && normalizedMatchup.roundName) {
+            updates.roundName = normalizedMatchup.roundName;
+          }
+
+          if (!existingGame.homeTeamId && normalizedMatchup.team1Id) {
+            updates.homeTeamId = normalizedMatchup.team1Id;
+          }
+
+          if (!existingGame.awayTeamId && normalizedMatchup.team2Id) {
+            updates.awayTeamId = normalizedMatchup.team2Id;
+          }
+
+          if (!existingGame.homeTeamPlaceholder && normalizedMatchup.team1Placeholder) {
+            updates.homeTeamPlaceholder = normalizedMatchup.team1Placeholder;
+          }
+
+          if (!existingGame.awayTeamPlaceholder && normalizedMatchup.team2Placeholder) {
+            updates.awayTeamPlaceholder = normalizedMatchup.team2Placeholder;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await base44.entities.Game.update(existingGame.id, {
+              ...updates,
+              updatedAtUtc: new Date().toISOString(),
+            });
+          }
+
+          if (existingGame.id && !nextGameIds.includes(existingGame.id)) {
+            nextGameIds.push(existingGame.id);
+          }
+
+          continue;
+        }
+
+        const created = await base44.entities.Game.create(
+          buildGamePayload({
+            competition: nextCompetition,
+            matchup: normalizedMatchup,
+            gameFormData: {
+              homeTeamId: normalizedMatchup.team1Id || '',
+              awayTeamId: normalizedMatchup.team2Id || '',
+              date: normalizedMatchup.date || '',
+              time: normalizedMatchup.time || '',
+              venue:
+                normalizedMatchup.venue ||
+                (round.venueMode === 'fixed'
+                  ? (round.venue || round.roundVenue || nextCompetition.defaultVenue || '')
+                  : ''),
+              roundName: normalizedMatchup.roundName,
+              round: round.round,
+              matchupIndex: normalizedMatchup.matchupIndex,
+            },
+          })
+        );
+
+        if (created?.id) {
+          createdIds.push(created.id);
+          nextGameIds.push(created.id);
+        }
+      }
+    }
+
+    const uniqueGameIds = [...new Set(nextGameIds)];
+
+    if (createdIds.length > 0 || uniqueGameIds.length !== (nextCompetition.gameIds || []).length) {
+      await base44.entities.Tournament.update(nextCompetition.id, {
+        gameIds: uniqueGameIds,
+        updatedAtUtc: new Date().toISOString(),
+      });
+    }
+
+    return createdIds;
+  };
+
+  const handleSaveCompetition = async () => {
     if (!editForm?.name?.trim()) {
       toast.error('Bitte Wettbewerbsnamen eingeben.');
       return;
@@ -695,7 +802,7 @@ export default function AdminCompetitionDetail() {
       highlightFinal,
     };
 
-    updateCompetitionMutation.mutate({
+    const payload = {
       name: editForm.name.trim(),
       publicName: editForm.publicName?.trim() || '',
       displayName: editForm.publicName?.trim() || '',
@@ -721,16 +828,33 @@ export default function AdminCompetitionDetail() {
       brackets: renamedBracket,
       rounds: renamedBracket.length,
       updatedAtUtc: new Date().toISOString(),
-    });
+    };
 
-    setEditMode(false);
+    try {
+      const updatedCompetition = await updateCompetitionMutation.mutateAsync(payload);
+      const competitionForSync = {
+        ...competition,
+        ...payload,
+        ...(updatedCompetition || {}),
+        id: competition.id,
+      };
+
+      const createdIds = await ensureGamesForBracket(competitionForSync, renamedBracket);
+
+      if (createdIds.length > 0) {
+        toast.success(`${createdIds.length} Spiel${createdIds.length === 1 ? '' : 'e'} automatisch erstellt`);
+      }
+
+      invalidate();
+      setEditMode(false);
+    } catch (error) {
+      console.error('SAVE COMPETITION WITH GAMES ERROR:', error);
+      toast.error(error?.message || 'Wettbewerb konnte nicht gespeichert werden');
+    }
   };
 
   const getMatchupGame = (round, matchup) => {
-    return competitionGames.find(game =>
-      Number(game.round) === Number(round.round) &&
-      Number(game.matchupIndex) === Number(matchup.matchupIndex)
-    );
+    return findCompetitionGameForMatchup(competitionGames, round, matchup);
   };
 
   const handleAutoFillGames = async () => {
@@ -1182,13 +1306,11 @@ export default function AdminCompetitionDetail() {
       </Card>
 
       <Card className="p-4 mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">{isBracketMode ? 'Turnierbaum / Spieltermine' : 'Spielkarten / Termine'}</h3>
-
-          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={openFreeGameForm}>
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            Freier Termin
-          </Button>
+        <div className="mb-3">
+          <h3 className="font-semibold text-sm">{isBracketMode ? 'Turnierbaum / automatische Spiele' : 'Spielkarten / automatische Spiele'}</h3>
+          <p className="text-[11px] text-muted-foreground mt-1">
+            Jede Runde und jedes Matchup erzeugt automatisch ein Spiel. Datum, Uhrzeit und Teams kannst du danach am Spiel pflegen.
+          </p>
         </div>
 
         {!isBracketMode ? (
@@ -1259,15 +1381,11 @@ export default function AdminCompetitionDetail() {
                             </p>
                           </div>
 
-                          {existingGame ? (
-                            <Badge variant="outline" className="text-[10px]">
-                              {STATUS_LABELS[existingGame.status] || existingGame.status}
-                            </Badge>
-                          ) : (
-                            <Button size="sm" className="h-8 text-xs" onClick={() => openGameFormForMatchup(round, normalizedMatchup)}>
-                              Termin anlegen
-                            </Button>
-                          )}
+                          <Badge variant="outline" className="text-[10px]">
+                            {existingGame
+                              ? STATUS_LABELS[existingGame.status] || existingGame.status
+                              : 'Wird beim Speichern erstellt'}
+                          </Badge>
                         </div>
                       </div>
                     );

@@ -200,8 +200,8 @@ function buildTournamentPayload(formData) {
 
     qualificationMode: formData.qualificationMode || 'standings_sources',
     autoFillAfterRegularSeason: true,
-    autoCreateGamesAfterRegularSeason: false,
-    createMissingGamesAfterRegularSeason: false,
+    autoCreateGamesAfterRegularSeason: true,
+    createMissingGamesAfterRegularSeason: true,
     qualificationLockedUntilSeasonComplete: true,
     participantStatus: formData.participantStatus || 'pending_regular_season',
 
@@ -220,6 +220,95 @@ function buildTournamentPayload(formData) {
     createdAtUtc: formData.createdAtUtc || now,
     updatedAtUtc: now,
   };
+}
+
+function buildKickoffAt(date, time) {
+  if (!date || !time) return '';
+
+  const [hours, minutes] = String(time).split(':');
+  const [year, month, day] = String(date).split('-');
+  const kickoffDate = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours) || 0,
+    Number(minutes) || 0,
+    0,
+    0
+  );
+
+  return Number.isNaN(kickoffDate.getTime()) ? '' : kickoffDate.toISOString();
+}
+
+function buildCompetitionGamePayload({ competition, round, matchup, index }) {
+  const matchupIndex = matchup.matchupIndex ?? index;
+  const roundName = round.name || round.roundName || round.title || `Runde ${round.round || 1}`;
+  const date = matchup.date || '';
+  const time = matchup.time || '';
+  const homeTeamId = matchup.team1Id || '';
+  const awayTeamId = matchup.team2Id || '';
+
+  return {
+    leagueId: competition.leagueId || '',
+    competitionId: competition.id,
+    tournamentId: competition.id,
+    isCompetitionGame: true,
+
+    homeTeamId,
+    awayTeamId,
+    homeTeamPlaceholder: matchup.team1Placeholder || getSourceLabel(matchup.team1Source),
+    awayTeamPlaceholder: matchup.team2Placeholder || getSourceLabel(matchup.team2Source),
+    teamsResolved: !!homeTeamId && !!awayTeamId,
+
+    date,
+    time,
+    kickoffTime: time,
+    kickoffAt: buildKickoffAt(date, time),
+    venue:
+      matchup.venue ||
+      (round.venueMode === 'fixed'
+        ? (round.venue || round.roundVenue || competition.defaultVenue || '')
+        : ''),
+
+    status: 'scheduled',
+    scoreHome: 0,
+    scoreAway: 0,
+    roundName,
+    round: round.round || 1,
+    competitionRound: round.round || 1,
+    matchupIndex,
+    bracketPosition: `round_${round.round || 1}_matchup_${matchupIndex}`,
+    season: competition.season || '',
+  };
+}
+
+async function createGamesForCompetition(competition) {
+  const bracket = competition.bracket || competition.brackets || [];
+  const createdIds = [];
+
+  for (const round of bracket) {
+    for (const [index, matchup] of (round.matchups || []).entries()) {
+      const created = await base44.entities.Game.create(
+        buildCompetitionGamePayload({
+          competition,
+          round,
+          matchup,
+          index,
+        })
+      );
+
+      if (created?.id) createdIds.push(created.id);
+    }
+  }
+
+  if (createdIds.length > 0) {
+    await base44.entities.Tournament.update(competition.id, {
+      gameIds: [...new Set([...(competition.gameIds || []), ...createdIds])],
+      updatedAtUtc: new Date().toISOString(),
+    });
+  }
+
+  return createdIds;
 }
 
 export default function AdminCompetitions() {
@@ -260,11 +349,24 @@ export default function AdminCompetitions() {
   const createMutation = useMutation({
     mutationFn: async formData => {
       const payload = buildTournamentPayload(formData);
-      return base44.entities.Tournament.create(payload);
+      const created = await base44.entities.Tournament.create(payload);
+      const createdGameIds = await createGamesForCompetition({
+        ...payload,
+        ...created,
+        id: created.id,
+      });
+
+      return {
+        ...created,
+        createdGameIds,
+      };
     },
-    onSuccess: () => {
+    onSuccess: result => {
       invalidate();
-      toast.success('Wettbewerb erstellt');
+      const count = result?.createdGameIds?.length || 0;
+      toast.success(count > 0
+        ? `Wettbewerb erstellt und ${count} Spiel${count === 1 ? '' : 'e'} angelegt`
+        : 'Wettbewerb erstellt');
       setShowWizard(false);
     },
     onError: error => {
