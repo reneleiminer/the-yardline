@@ -45,10 +45,11 @@ export default function PushPermissionPrompt() {
 
   const enable = async () => {
     setSaving(true);
+    dismissPushPrompt();
+    setVisible(false);
 
     try {
       await enablePushNotifications();
-      setVisible(false);
       toast.success("Benachrichtigungen aktiviert");
     } catch (error) {
       toast.error(error.message || "Benachrichtigungen konnten nicht aktiviert werden");
