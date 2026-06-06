@@ -271,6 +271,34 @@ function getTeamColor(team, fallback = "#2563eb") {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
+function getGameStatusLabel(game) {
+  const status = getEffectiveGameStatus(game);
+
+  if (status === "live") return "Live";
+  if (status === "final") return "Final";
+  if (status === "cancelled") return "Abgesagt";
+
+  return "Geplant";
+}
+
+function getGameStatusClass(game) {
+  const status = getEffectiveGameStatus(game);
+
+  if (status === "live") {
+    return "bg-red-500/15 text-red-300 border-red-500/30";
+  }
+
+  if (status === "final") {
+    return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+  }
+
+  if (status === "cancelled") {
+    return "bg-muted text-muted-foreground border-border";
+  }
+
+  return "bg-primary/15 text-primary border-primary/30";
+}
+
 function getLeaguePriority(league) {
   const raw = league?.level ?? league?.tier ?? league?.priority ?? league?.sortOrder ?? 50;
   const value = Number(raw);
@@ -672,43 +700,82 @@ function LiveGameCard({ game, teamsById, leaguesById }) {
   const home = getTeam(game.homeTeamId, teamsById);
   const away = getTeam(game.awayTeamId, teamsById);
   const league = getLeague(game.leagueId, leaguesById);
+  const date = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
 
   const homeName = getTeamName(home, game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamPlaceholder);
 
-  const homeColor = getTeamColor(home, "#ef4444");
-  const awayColor = getTeamColor(away, "#2563eb");
+  const homeColor = getTeamColor(home, "#2563eb");
+  const awayColor = getTeamColor(away, "#ef4444");
+  const hasScore = status === "live" || status === "final";
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className="snap-start shrink-0 w-[210px] rounded-2xl border border-red-500/25 p-3 active:scale-[0.98] transition-transform overflow-hidden"
+      className="snap-start shrink-0 w-[315px] rounded-2xl border border-primary/20 overflow-hidden active:scale-[0.99] transition-transform"
       style={{
-        background: `linear-gradient(135deg, ${homeColor}26 0%, #101722 45%, ${awayColor}20 100%)`,
+        background: `linear-gradient(135deg, ${homeColor}18 0%, #101722 48%, ${awayColor}18 100%)`,
         boxShadow: `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}`,
       }}
     >
-      <div className="flex items-center justify-between gap-2 mb-3">
-        <p className="text-[10px] text-muted-foreground truncate">
-          {league?.shortName || league?.name || "Live"}
-        </p>
+      <div className="p-3">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <p className="text-[10px] text-muted-foreground truncate">
+            {league?.shortName || league?.name || "Spiel"}
+          </p>
 
-        <span className="text-[9px] font-black text-red-300 bg-red-500/15 border border-red-500/30 rounded-full px-2 py-0.5">
-          LIVE
-        </span>
-      </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className={`text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-0.5 ${getGameStatusClass(game)}`}>
+              {getGameStatusLabel(game)}
+            </span>
 
-      <div className="space-y-2">
-        <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-          <TeamMark team={home} fallback={homeName} size="lg" />
-          <span className="text-xs font-black truncate">{homeName}</span>
-          <span className="text-sm font-black">{game.scoreHome ?? 0}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
         </div>
 
-        <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
-          <TeamMark team={away} fallback={awayName} size="lg" />
-          <span className="text-xs font-black truncate">{awayName}</span>
-          <span className="text-sm font-black">{game.scoreAway ?? 0}</span>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 items-center">
+          <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
+            <TeamMark team={home} fallback={homeName} size="lg" />
+            <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
+              {homeName}
+            </span>
+          </div>
+
+          <div className="text-center px-2">
+            {hasScore ? (
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-xl font-black tabular-nums leading-none">
+                  {game.scoreHome ?? 0}
+                </span>
+
+                <span className="text-lg font-black text-muted-foreground">
+                  :
+                </span>
+
+                <span className="text-xl font-black tabular-nums leading-none">
+                  {game.scoreAway ?? 0}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center">
+                <span className="text-sm font-black text-muted-foreground rounded-xl border border-white/10 px-3 py-1">
+                  VS
+                </span>
+              </div>
+            )}
+
+            <p className="text-[9px] text-muted-foreground mt-0.5">
+              {date ? format(date, "dd.MM.", { locale: de }) : getGameStatusLabel(game)}
+            </p>
+          </div>
+
+          <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
+            <TeamMark team={away} fallback={awayName} size="lg" />
+            <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
+              {awayName}
+            </span>
+          </div>
         </div>
       </div>
     </Link>
@@ -727,6 +794,8 @@ function GameOfWeekCard({ game, teamsById, leaguesById, label }) {
   const awayName = getTeamName(away, game.awayTeamPlaceholder);
   const homeColor = getTeamColor(home, "#2563eb");
   const awayColor = getTeamColor(away, "#ef4444");
+  const status = getEffectiveGameStatus(game);
+  const hasScore = status === "live" || status === "final";
 
   return (
     <section className="px-4 pt-6">
@@ -753,6 +822,10 @@ function GameOfWeekCard({ game, teamsById, leaguesById, label }) {
                 </span>
               )}
 
+              <span className={`text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-0.5 ${getGameStatusClass(game)}`}>
+                {getGameStatusLabel(game)}
+              </span>
+
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
           </div>
@@ -766,7 +839,7 @@ function GameOfWeekCard({ game, teamsById, leaguesById, label }) {
   </div>
 
             <div className="text-center px-2">
-              {game.status === "final" || game.status === "live" ? (
+              {hasScore ? (
   <div className="flex items-center justify-center gap-2">
     <span className="text-xl font-black tabular-nums leading-none">
       {game.scoreHome ?? 0}
