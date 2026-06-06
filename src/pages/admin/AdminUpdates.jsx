@@ -26,6 +26,7 @@ const INTERNAL_APP_UPDATE_VERSIONS = new Set([
   'gameday_photo',
   'game_prediction',
   'app_branding',
+  'podcast_feature',
 ]);
 
 const EMPTY_FORM = {
@@ -75,6 +76,21 @@ function getUpdateMeta(update) {
   }
 }
 
+function isChangelogUpdate(update) {
+  if (INTERNAL_APP_UPDATE_VERSIONS.has(update.version)) return false;
+
+  const meta = getUpdateMeta(update);
+
+  if (meta.source === 'admin_updates' || meta.source === 'push_script') return true;
+  if (meta.updateType) return true;
+  if (!update.version) return false;
+
+  const message = getUpdateMessage(update).trim();
+  if (message.startsWith('{') || message.startsWith('[')) return false;
+
+  return true;
+}
+
 export default function AdminUpdates() {
   useSetHeader({ mode: 'back', title: 'App Updates' });
 
@@ -89,9 +105,7 @@ export default function AdminUpdates() {
     queryFn: async () => {
       const all = await base44.entities.AppUpdate.list('-created_date');
 
-      return all.filter(update =>
-        !INTERNAL_APP_UPDATE_VERSIONS.has(update.version)
-      );
+      return all.filter(isChangelogUpdate);
     },
   });
 

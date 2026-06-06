@@ -2035,6 +2035,8 @@ const sortedHomeLeagues = useMemo(() => {
           : null}
       </RailSection>
 
+      <PodcastHomeCard podcast={homePodcast} />
+
       <RailSection
         icon={ShieldCheck}
         title="Siegesserien"
@@ -2051,8 +2053,6 @@ const sortedHomeLeagues = useMemo(() => {
             ))
           : null}
       </RailSection>
-
-      <PodcastHomeCard podcast={homePodcast} />
 
       <AdBannerSlot banners={activeAdBanners} position="after_highlights" />
 
