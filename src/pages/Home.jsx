@@ -1973,7 +1973,7 @@ const sortedHomeLeagues = useMemo(() => {
         <RailSection
           icon={Zap}
           title="Live Games"
-          to="/spiele"
+          to="/match-center"
           emptyLabel="Keine Live Games"
         >
           {liveGames.map((game) => (
@@ -2077,7 +2077,7 @@ const sortedHomeLeagues = useMemo(() => {
       <RailSection
         icon={CalendarDays}
         title="Kommende Spiele"
-        to="/spiele"
+        to="/match-center"
         emptyLabel="Keine kommenden Spiele"
       >
         {upcomingGames.length > 0

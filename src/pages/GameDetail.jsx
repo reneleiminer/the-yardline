@@ -1333,7 +1333,7 @@ export default function GameDetail() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center">
         <p className="text-muted-foreground">Spiel nicht gefunden.</p>
-        <Button variant="ghost" className="mt-4" onClick={() => navigate('/spiele')}>
+        <Button variant="ghost" className="mt-4" onClick={() => navigate('/match-center')}>
           Zurück
         </Button>
       </div>

@@ -408,7 +408,7 @@ export default function LeagueDetail() {
       {activeTab === 'spiele' && (
         <div className="px-4 space-y-5">
           <section>
-            <SectionTitle icon={CalendarDays} title="Kommende Spiele" to="/spiele" />
+            <SectionTitle icon={CalendarDays} title="Kommende Spiele" to="/match-center" />
 
             {upcomingGames.length > 0 ? (
               <div className="space-y-2">
@@ -427,7 +427,7 @@ export default function LeagueDetail() {
           </section>
 
           <section>
-            <SectionTitle icon={Trophy} title="Letzte Ergebnisse" to="/spiele" />
+            <SectionTitle icon={Trophy} title="Letzte Ergebnisse" to="/match-center" />
 
             {recentResults.length > 0 ? (
               <div className="space-y-2">

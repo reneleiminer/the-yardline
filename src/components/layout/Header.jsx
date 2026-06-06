@@ -77,12 +77,12 @@ function useScrolled(threshold = 10) {
 }
 
 function getBackFallback(pathname) {
-  if (pathname.startsWith("/game/")) return "/spiele";
+  if (pathname.startsWith("/game/")) return "/match-center";
   if (pathname.startsWith("/team/")) return "/";
   if (pathname.startsWith("/club/")) return "/";
   if (pathname.startsWith("/league/")) return "/";
-  if (pathname.startsWith("/tabellen/")) return "/tabellen";
-  if (pathname.startsWith("/wettbewerbe/")) return "/wettbewerbe";
+  if (pathname.startsWith("/tabellen/")) return "/match-center";
+  if (pathname.startsWith("/wettbewerbe/")) return "/match-center";
 
   if (pathname.startsWith("/admin/")) return "/admin";
   if (pathname === "/admin") return "/";
@@ -411,13 +411,11 @@ export default function Header() {
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
           background: contextPrimary
-            ? `linear-gradient(180deg, ${contextPrimary}22 0%, #000 100%)`
-            : "linear-gradient(180deg, #030712 0%, #000 100%)",
+            ? `${contextPrimary}`
+            : "#000",
           boxShadow: scrolled
-            ? "0 4px 32px rgba(0,0,0,0.75), 0 1px 0 rgba(0,91,255,0.20)"
-            : "0 1px 0 rgba(0,91,255,0.18)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
+            ? "0 1px 0 rgba(255,255,255,0.12)"
+            : "0 1px 0 rgba(255,255,255,0.10)",
         }}
       >
         <div className="relative flex items-center h-[68px] px-2 sm:px-3 w-full">
@@ -478,8 +476,8 @@ export default function Header() {
           className="absolute bottom-0 left-0 right-0 h-px"
           style={{
             background: contextPrimary
-              ? `linear-gradient(to right, transparent, ${contextPrimary}70, transparent)`
-              : "linear-gradient(to right, transparent, rgba(0,91,255,0.55), transparent)",
+              ? contextPrimary
+              : "rgba(0,91,255,0.80)",
           }}
         />
       </header>

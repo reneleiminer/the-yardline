@@ -408,7 +408,7 @@ export default function LeagueStandings() {
       >
         <button
           type="button"
-          onClick={() => navigate('/tabellen')}
+          onClick={() => navigate('/match-center')}
           className="p-1.5 rounded-lg hover:bg-secondary flex-shrink-0"
         >
           <ArrowLeft className="w-5 h-5" />

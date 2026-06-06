@@ -12,10 +12,7 @@ export default function AppLayout() {
 
   const footerVisibleRoutes = [
     "/",
-    "/spiele",
-    "/tabellen",
-    "/turniere",
-    "/wettbewerbe",
+    "/match-center",
     "/team",
     "/club",
     "/league",

@@ -190,6 +190,7 @@ export const GlobalDataProvider = ({ children }) => {
     pathname === "/" ||
     startsWithAny(pathname, [
       "/spiele",
+      "/match-center",
       "/game/",
       "/team/",
       "/club/",
@@ -203,9 +204,9 @@ export const GlobalDataProvider = ({ children }) => {
       "/admin",
     ]);
 
-  const needsPartnerData = pathname === "/" || pathname.startsWith("/spiele") || pathname.startsWith("/tabellen") || pathname.startsWith("/wettbewerbe");
-  const needsTournamentData = pathname === "/" || pathname.startsWith("/wettbewerbe") || pathname.startsWith("/admin/competitions");
-  const needsStandingsData = startsWithAny(pathname, ["/tabellen", "/league/", "/club/", "/team/"]);
+  const needsPartnerData = pathname === "/" || startsWithAny(pathname, ["/spiele", "/match-center", "/tabellen", "/wettbewerbe"]);
+  const needsTournamentData = pathname === "/" || startsWithAny(pathname, ["/match-center", "/wettbewerbe", "/admin/competitions"]);
+  const needsStandingsData = startsWithAny(pathname, ["/match-center", "/tabellen", "/league/", "/club/", "/team/"]);
   const needsClubData = startsWithAny(pathname, ["/club/", "/team/"]);
   const needsLegalData = startsWithAny(pathname, ["/legal", "/impressum", "/datenschutz", "/nutzungsbedingungen", "/community-guidelines", "/admin/legal"]);
 

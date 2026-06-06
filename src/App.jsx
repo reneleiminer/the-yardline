@@ -2,7 +2,7 @@ import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClientInstance } from "@/lib/query-client";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 import PageNotFound from "./lib/PageNotFound";
@@ -17,10 +17,8 @@ import ScrollToTop from "@/components/ScrollToTop";
 import AppLayout from "@/components/layout/AppLayout.jsx";
 
 const Home = lazy(() => import("@/pages/Home"));
-const Games = lazy(() => import("@/pages/Games"));
+const MatchCenter = lazy(() => import("@/pages/MatchCenter"));
 const Highlights = lazy(() => import("@/pages/AnnouncementDetail"));
-const Tables = lazy(() => import("@/pages/Tables"));
-const Competitions = lazy(() => import("@/pages/Competitions"));
 const CompetitionDetail = lazy(() => import("@/pages/CompetitionDetail"));
 const Support = lazy(() => import("@/pages/Support"));
 const Settings = lazy(() => import("@/pages/Settings"));
@@ -118,14 +116,15 @@ function AppRoutes() {
 
             <Route path="/feed" element={<Announcements />} />
             <Route path="/post/:id" element={<PostDetail />} />
-            <Route path="/spiele" element={<Games />} />
+            <Route path="/match-center" element={<MatchCenter />} />
+            <Route path="/spiele" element={<Navigate to="/match-center" replace />} />
             <Route path="/highlights" element={<Highlights />} />
             <Route path="/game/:id" element={<GameDetail />} />
 
-            <Route path="/tabellen" element={<Tables />} />
+            <Route path="/tabellen" element={<Navigate to="/match-center" replace />} />
             <Route path="/tabellen/:leagueId" element={<LeagueStandings />} />
 
-            <Route path="/wettbewerbe" element={<Competitions />} />
+            <Route path="/wettbewerbe" element={<Navigate to="/match-center" replace />} />
             <Route path="/wettbewerbe/:competitionId" element={<CompetitionDetail />} />
 
             <Route path="/club/:clubId" element={<ClubDetail />} />

@@ -1,36 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { BarChart3, Home, PlaySquare, Trophy } from "lucide-react";
-
-function FieldIcon({ className }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect x="4" y="3" width="16" height="18" rx="2" />
-      <path d="M4 7h16" />
-      <path d="M4 17h16" />
-      <path d="M12 3v18" />
-      <circle cx="12" cy="12" r="2.2" />
-      <path d="M8 5v14" opacity="0.45" />
-      <path d="M16 5v14" opacity="0.45" />
-    </svg>
-  );
-}
+import { Home, Newspaper, RadioTower, Settings, Trophy } from "lucide-react";
 
 const navItems = [
   { path: "/", icon: Home, label: "Home" },
-  { path: "/spiele", icon: FieldIcon, label: "Spiele" },
-  { path: "/highlights", icon: PlaySquare, label: "Highlights" },
-  { path: "/wettbewerbe", icon: Trophy, label: "Cups" },
-  { path: "/tabellen", icon: BarChart3, label: "Tabellen" },
+  { path: "/match-center", icon: RadioTower, label: "Match Center" },
+  { path: "/feed", icon: Newspaper, label: "News" },
+  { path: "/updates", icon: Trophy, label: "Updates" },
+  { path: "/settings", icon: Settings, label: "Account" },
 ];
 
 function scrollMainToTop() {
@@ -55,7 +32,7 @@ export default function BottomNav() {
       }}
       aria-label="Hauptnavigation"
     >
-      <div className="absolute inset-0 pointer-events-none bg-black/94 border-t border-primary/25 backdrop-blur-xl shadow-[0_-10px_34px_rgba(0,91,255,0.12)]" />
+      <div className="absolute inset-0 pointer-events-none border-t border-white/10 bg-black" />
 
       <div className="relative grid grid-cols-5 h-[78px] w-full px-2 pt-2.5 pointer-events-auto">
         {navItems.map((item) => {
@@ -83,8 +60,8 @@ export default function BottomNav() {
               <div
                 className={`rounded-2xl flex items-center justify-center transition-all ${
                   isActive
-                    ? "bg-primary/18 text-primary border border-primary/35 shadow-[0_0_22px_rgba(0,91,255,0.32)]"
-                    : "text-muted-foreground hover:text-foreground border border-transparent"
+                    ? "bg-blue-700 text-white border border-blue-500"
+                    : "text-white/45 hover:text-white border border-transparent"
                 }`}
                 style={{
                   width: 54,
