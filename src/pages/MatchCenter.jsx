@@ -72,6 +72,12 @@ function getTeamColor(team, fallback) {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
+function withAlpha(hex, alpha = "18") {
+  const value = String(hex || "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(value)) return `${value}${alpha}`;
+  return `#eef2ff`;
+}
+
 function StatusBadge({ game }) {
   const status = getEffectiveGameStatus(game);
 
@@ -97,10 +103,15 @@ function StatusBadge({ game }) {
 }
 
 function TeamLogo({ team, fallback, color }) {
+  const logoColor = getTeamColor(team, color || "#005bff");
+
   return (
     <div
-      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-white p-2"
-      style={{ boxShadow: `inset 0 -4px 0 ${color || "#005bff"}` }}
+      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 p-2"
+      style={{
+        background: `linear-gradient(135deg, ${withAlpha(logoColor, "28")}, #ffffff 68%)`,
+        boxShadow: `inset 0 -4px 0 ${logoColor}`,
+      }}
     >
       {team?.logo ? (
         <img
@@ -200,6 +211,41 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
   );
 }
 
+function CompactGameRow({ game, teamsById, leaguesById }) {
+  const home = teamsById.get(game.homeTeamId);
+  const away = teamsById.get(game.awayTeamId);
+  const league = leaguesById.get(game.leagueId);
+  const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
+  const showScore = status === "live" || status === "final";
+
+  return (
+    <Link to={`/game/${game.id}`} className="flex items-center gap-3 rounded-[22px] bg-white p-3 text-black">
+      <TeamLogo team={home} fallback={game.homeTeamPlaceholder} color={league?.primaryColor || "#005bff"} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-black">{getTeamName(home, game.homeTeamPlaceholder)}</p>
+        <p className="truncate text-[10px] font-bold uppercase text-black/45">
+          {league?.shortName || league?.name || "Game"}
+        </p>
+      </div>
+      <div className="text-center">
+        {showScore ? (
+          <p className="text-lg font-black tabular-nums">{game.scoreHome ?? 0}:{game.scoreAway ?? 0}</p>
+        ) : (
+          <p className="text-sm font-black text-blue-700">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</p>
+        )}
+      </div>
+      <div className="min-w-0 flex-1 text-right">
+        <p className="truncate text-xs font-black">{getTeamName(away, game.awayTeamPlaceholder)}</p>
+        <p className="truncate text-[10px] font-bold uppercase text-black/45">
+          {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
+        </p>
+      </div>
+      <TeamLogo team={away} fallback={game.awayTeamPlaceholder} color="#b51222" />
+    </Link>
+  );
+}
+
 function SearchBox({ value, onChange }) {
   return (
     <div className="relative">
@@ -211,6 +257,26 @@ function SearchBox({ value, onChange }) {
         className="h-12 w-full rounded-2xl border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-black outline-none placeholder:text-zinc-400 focus:border-blue-600"
       />
     </div>
+  );
+}
+
+function QuickPath({ active, label, count, onClick, color = "blue" }) {
+  const activeClass = color === "red" ? "bg-red-700 text-white" : "bg-blue-700 text-white";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-[22px] p-4 text-left transition-colors ${active ? activeClass : "bg-white text-black"}`}
+    >
+      <p className={`text-[10px] font-black uppercase ${active ? "text-white/70" : "text-black/45"}`}>
+        Öffnen
+      </p>
+      <p className="mt-1 text-lg font-black leading-none">{label}</p>
+      <p className={`mt-2 text-xs font-bold ${active ? "text-white/70" : "text-black/45"}`}>
+        {count} Einträge
+      </p>
+    </button>
   );
 }
 
@@ -280,6 +346,9 @@ function GamesPanel({ games, teamsById, leaguesById }) {
     { key: "past", label: "Final" },
   ];
 
+  const featuredGames = visibleGames.slice(0, 2);
+  const restGames = visibleGames.slice(2);
+
   return (
     <section>
     <div className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-black/10 bg-white p-1">
@@ -302,19 +371,51 @@ function GamesPanel({ games, teamsById, leaguesById }) {
       {visibleGames.length === 0 ? (
         <EmptyState label="Keine Spiele in dieser Ansicht." />
       ) : (
-        <div className="space-y-3">
-          {visibleGames.map((game) => (
-            <MatchScoreCard
-              key={game.id}
-              game={game}
-              teamsById={teamsById}
-              leaguesById={leaguesById}
-            />
-          ))}
+        <div className="space-y-4">
+          {featuredGames.length > 0 && (
+            <div className="grid grid-cols-1 gap-3">
+              {featuredGames.map((game) => (
+                <MatchScoreCard
+                  key={game.id}
+                  game={game}
+                  teamsById={teamsById}
+                  leaguesById={leaguesById}
+                />
+              ))}
+            </div>
+          )}
+
+          {restGames.length > 0 && (
+            <div className="space-y-2">
+              {restGames.map((game) => (
+                <CompactGameRow
+                  key={game.id}
+                  game={game}
+                  teamsById={teamsById}
+                  leaguesById={leaguesById}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
   );
+}
+
+function getLeagueCountryGroup(league) {
+  const country = String(league?.country || "").toLowerCase();
+  if (
+    league?.isEuropeanLeague === true ||
+    league?.regionType === "international" ||
+    country === "europe" ||
+    country === "europa" ||
+    country === "international"
+  ) {
+    return "Europa / International";
+  }
+
+  return league.country || "Weitere Ligen";
 }
 
 function LeagueRow({ league }) {
@@ -345,18 +446,49 @@ function LeagueRow({ league }) {
   );
 }
 
+function groupLeagues(leagues) {
+  const map = new Map();
+
+  leagues.forEach((league) => {
+    const group = getLeagueCountryGroup(league);
+    if (!map.has(group)) map.set(group, []);
+    map.get(group).push(league);
+  });
+
+  return Array.from(map.entries())
+    .map(([title, items]) => ({ title, items: sortLeagues(items) }))
+    .sort((a, b) => {
+      if (a.title === "Europa / International") return -1;
+      if (b.title === "Europa / International") return 1;
+      return a.title.localeCompare(b.title, "de");
+    });
+}
+
+function LeagueCluster({ title, leagues }) {
+  return (
+    <div>
+      <h3 className="mb-2 text-xs font-black uppercase tracking-wide text-black/45">{title}</h3>
+      <div className="space-y-2">
+        {leagues.map((league) => (
+          <LeagueRow key={league.id} league={league} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function LeaguesPanel({ leagues }) {
-  const sortedLeagues = useMemo(() => sortLeagues(leagues), [leagues]);
+  const groups = useMemo(() => groupLeagues(leagues), [leagues]);
 
   return (
     <section>
-      <SectionHeader title="Ligen & Tabellen" count={sortedLeagues.length} />
-      {sortedLeagues.length === 0 ? (
+      <SectionHeader title="Ligen & Tabellen" count={leagues.length} />
+      {groups.length === 0 ? (
         <EmptyState label="Keine Ligen gefunden." />
       ) : (
-        <div className="space-y-3">
-          {sortedLeagues.map((league) => (
-            <LeagueRow key={league.id} league={league} />
+        <div className="space-y-5">
+          {groups.map((group) => (
+            <LeagueCluster key={group.title} title={group.title} leagues={group.items} />
           ))}
         </div>
       )}
@@ -515,16 +647,44 @@ export default function MatchCenter() {
   }, [query, tournaments]);
 
   const isLoading = gamesLoading || leaguesLoading || tournamentsLoading;
+  const visibleTournamentsCount = useMemo(() => {
+    return tournaments
+      .filter((item) => item.isPublished !== false)
+      .filter((item) => item.isActive !== false || item.status === "completed")
+      .length;
+  }, [tournaments]);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="space-y-4">
         <div className="mb-1">
           <h1 className="text-4xl font-black italic tracking-normal text-black">Match Center</h1>
+          <div className="yardline-stripes mt-3 h-9 rounded-2xl bg-white" />
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <QuickPath
+            active={activeTab === "games"}
+            label="Games"
+            count={games.length}
+            onClick={() => setActiveTab("games")}
+            color="red"
+          />
+          <QuickPath
+            active={activeTab === "leagues"}
+            label="Ligen"
+            count={leagues.length}
+            onClick={() => setActiveTab("leagues")}
+          />
+          <QuickPath
+            active={activeTab === "tournaments"}
+            label="Cups"
+            count={visibleTournamentsCount}
+            onClick={() => setActiveTab("tournaments")}
+          />
         </div>
 
         <SearchBox value={search} onChange={setSearch} />
-        <TabSwitch value={activeTab} onChange={setActiveTab} />
 
         {isLoading ? (
           <div className="flex justify-center py-12">

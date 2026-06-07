@@ -1,275 +1,136 @@
-import React, { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
-import { de } from 'date-fns/locale';
-import { BadgeCheck, Loader2, Megaphone } from 'lucide-react';
+import React, { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { de } from "date-fns/locale";
+import { Loader2, Search } from "lucide-react";
 
-import LeagueFilter from '@/components/home/LeagueFilter';
-import { useGlobalData } from '@/lib/GlobalDataContext';
-import { getImageUrl } from '@/lib/imageUtils';
-import useSetHeader from '@/hooks/useSetHeader';
-
-function getRoleLabel(role) {
-  const normalized = String(role || '').trim().toLowerCase();
-
-  const labels = {
-    fan: 'Fan',
-    journalist: 'Journalist',
-    photographer: 'Fotograf',
-    fotograf: 'Fotograf',
-    creator: 'Creator',
-    official_media: 'Offizielle Medien',
-    officialmedia: 'Offizielle Medien',
-    'official media': 'Offizielle Medien',
-    'offizielle medien': 'Offizielle Medien',
-    media_partner: 'Media',
-    media: 'Media',
-    club: 'Verein',
-    verein: 'Verein',
-    league: 'Liga',
-    liga: 'Liga',
-    moderator: 'Moderator',
-    data_editor: 'Data Editor',
-    dataeditor: 'Data Editor',
-    'data editor': 'Data Editor',
-    admin: 'Admin',
-  };
-
-  return labels[normalized] || role || 'Offiziell';
-}
+import { base44 } from "@/api/base44Client";
+import { getImageUrl } from "@/lib/imageUtils";
 
 function getPostImages(post) {
   if (Array.isArray(post?.images)) return post.images.filter(Boolean);
   if (post?.imageUrl) return [post.imageUrl];
   if (post?.image) return [post.image];
-
+  if (post?.coverImageUrl) return [post.coverImageUrl];
   return [];
 }
 
-function getPostTeamIds(post) {
-  const ids = [];
-
-  if (Array.isArray(post?.teamIds)) ids.push(...post.teamIds);
-  if (post?.teamId) ids.push(post.teamId);
-  if (post?.clubId) ids.push(post.clubId);
-  if (post?.connectedTeamId) ids.push(post.connectedTeamId);
-
-  return Array.from(new Set(ids.filter(Boolean)));
-}
-
 function getPostDate(post) {
-  return (
-    post?.publishedAtUtc ||
-    post?.createdAtUtc ||
-    post?.created_date ||
-    post?.createdAt ||
-    ''
-  );
+  return post?.publishedAtUtc || post?.createdAtUtc || post?.created_date || post?.createdAt || "";
 }
 
-function isClubNews(post) {
-  return post?.sourceType === 'club_news';
-}
-
-function isVisibleFeedPost(post) {
+function isVisibleNews(post) {
   if (!post) return false;
   if (post.isHidden || post.isDeleted) return false;
   if (post.isActive === false) return false;
+  return post.type === "news" || post.type === "official";
+}
 
-  return post.type === 'official' || post.type === 'news';
+function NewsCard({ post, featured = false }) {
+  const image = getPostImages(post)[0];
+  const date = getPostDate(post);
+  const timeAgo = date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: de }) : "";
+  const category = post.category || (post.sourceType === "club_news" ? "Vereinsnews" : "News");
+
+  return (
+    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[24px] bg-white text-black">
+      {image && (
+        <div className={featured ? "aspect-[16/9] bg-slate-200" : "aspect-[16/10] bg-slate-200"}>
+          <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" loading="lazy" />
+        </div>
+      )}
+
+      <div className={featured ? "p-4" : "p-3"}>
+        <p className="text-[10px] font-black uppercase tracking-wide text-red-700">{category}</p>
+        <h2 className={`${featured ? "text-xl" : "text-sm"} mt-1 line-clamp-2 font-black leading-tight`}>
+          {post.title || "News"}
+        </h2>
+        {(post.teaser || post.text) && (
+          <p className="mt-2 line-clamp-2 text-xs font-semibold leading-relaxed text-black/55">
+            {post.teaser || post.text}
+          </p>
+        )}
+        {timeAgo && <p className="mt-3 text-[11px] font-bold text-black/40">{timeAgo}</p>}
+      </div>
+    </Link>
+  );
 }
 
 export default function Announcements() {
-  const navigate = useNavigate();
-  const [selectedLeague, setSelectedLeague] = useState(null);
-  const { leagues, posts, postsLoading, appUsersById } = useGlobalData();
+  const [search, setSearch] = useState("");
 
-  useSetHeader({
-    mode: 'back',
-    title: 'Feed',
-    onBack: () => {
-      if (window.history.length > 1) navigate(-1);
-      else navigate('/');
-    },
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ["news-page-posts"],
+    queryFn: () => base44.entities.Post.list("-publishedAtUtc", 80),
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
   });
 
-  const announcements = useMemo(() => {
-    const visibleAnnouncements = posts
-      .filter(isVisibleFeedPost)
+  const visiblePosts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return posts
+      .filter(isVisibleNews)
+      .filter((post) => {
+        if (!query) return true;
+        return [post.title, post.teaser, post.text, post.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      })
       .sort((a, b) => {
         const dateA = new Date(getPostDate(a) || 0).getTime();
         const dateB = new Date(getPostDate(b) || 0).getTime();
-
         return dateB - dateA;
       });
+  }, [posts, search]);
 
-    if (selectedLeague) {
-      return visibleAnnouncements.filter(post =>
-        post.leagueId === selectedLeague ||
-        getPostTeamIds(post).includes(selectedLeague)
-      );
-    }
-
-    return visibleAnnouncements;
-  }, [posts, selectedLeague]);
-
-  if (postsLoading && announcements.length === 0) {
-    return (
-      <div className="flex justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const featured = visiblePosts[0] || null;
+  const rest = featured ? visiblePosts.slice(1) : visiblePosts;
 
   return (
-    <div className="min-h-screen pb-20">
-      <LeagueFilter leagues={leagues} selected={selectedLeague} onSelect={setSelectedLeague} />
-
-      <div className="px-4 py-4">
-        <h1 className="text-2xl font-bold mb-6">
-          Feed
-        </h1>
-
-        {announcements.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">
-            Keine Beiträge vorhanden.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {announcements.map(post => {
-              const author = post.authorId ? appUsersById?.get(post.authorId) : null;
-
-              const roleValue =
-                author?.roleSlug ||
-                author?.role ||
-                post.authorRoleSlug ||
-                post.authorRole ||
-                '';
-
-              const roleLabel = roleValue ? getRoleLabel(roleValue) : 'Offiziell';
-
-              const authorUsername =
-                author?.username ||
-                post.authorUsername ||
-                post.created_by ||
-                'theyardlinemedia';
-
-              const authorAvatar =
-                author?.avatar ||
-                post.authorAvatar ||
-                '';
-
-              const authorVerified =
-                author?.verified ??
-                post.authorVerified ??
-                false;
-
-              const postDate = getPostDate(post);
-              const timeAgo = postDate
-                ? formatDistanceToNow(new Date(postDate), { addSuffix: true, locale: de })
-                : '';
-
-              const image = getPostImages(post)[0];
-              const excerpt = post.teaser || post.text;
-              const clubNews = isClubNews(post);
-
-              return (
-                <Link
-                  key={post.id}
-                  to={`/post/${post.id}`}
-                  className="block rounded-2xl overflow-hidden border border-border/40 bg-card hover:border-primary/30 hover:shadow-xl hover:shadow-black/30 active:scale-[0.99] transition-all duration-200 group"
-                >
-                  {image ? (
-                    <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/9' }}>
-                      <img
-                        src={getImageUrl(image)}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                        onError={event => {
-                          event.currentTarget.style.display = 'none';
-                        }}
-                      />
-
-                      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/30 pointer-events-none" />
-
-                      <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full bg-primary/90 backdrop-blur-sm">
-                        <Megaphone className="w-2.5 h-2.5 text-white" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wide">
-                          {clubNews ? 'Vereinsnews' : post.category || roleLabel}
-                        </span>
-                      </div>
-
-                      <div className="absolute top-3 right-3 flex items-center gap-1.5 h-7 px-2 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
-                        {authorAvatar ? (
-                          <img
-                            src={getImageUrl(authorAvatar)}
-                            alt=""
-                            className="w-4 h-4 rounded-full object-cover flex-shrink-0"
-                            onError={event => {
-                              event.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-4 h-4 rounded-full bg-white/20 flex-shrink-0" />
-                        )}
-
-                        <span className="text-[10px] font-semibold text-white leading-none truncate max-w-[90px]">
-                          {authorUsername}
-                        </span>
-
-                        {authorVerified && (
-                          <BadgeCheck className="w-3 h-3 text-primary flex-shrink-0" />
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-10 bg-primary/10 flex items-center px-4 gap-2">
-                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/80">
-                        <Megaphone className="w-2.5 h-2.5 text-white" />
-                        <span className="text-[10px] font-bold text-white uppercase tracking-wide">
-                          {clubNews ? 'Vereinsnews' : post.category || roleLabel}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="px-4 pt-3.5 pb-4">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      {clubNews && (
-                        <span className="text-[9px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/10 rounded-full px-2 py-0.5">
-                          Vereinsnews
-                        </span>
-                      )}
-
-                      {post.category && (
-                        <span className="text-[9px] font-black uppercase tracking-wider text-primary bg-primary/10 rounded-full px-2 py-0.5">
-                          {post.category}
-                        </span>
-                      )}
-                    </div>
-
-                    {post.title && (
-                      <h3 className="font-bold text-sm sm:text-base leading-snug line-clamp-2 text-foreground mb-1.5">
-                        {post.title}
-                      </h3>
-                    )}
-
-                    {excerpt && excerpt.trim() !== (post.title || '').trim() && (
-                      <p className="text-xs text-foreground/60 line-clamp-2 leading-relaxed mb-2">
-                        {excerpt}
-                      </p>
-                    )}
-
-                    <p className="text-[11px] text-muted-foreground">
-                      {timeAgo}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+    <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
+      <div className="mb-5">
+        <h1 className="text-4xl font-black italic tracking-normal text-black">News</h1>
+        <div className="yardline-stripes mt-3 h-9 rounded-2xl bg-white" />
       </div>
+
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/45" />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="News suchen..."
+          className="h-12 w-full rounded-2xl border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-black outline-none placeholder:text-black/35 focus:border-blue-600"
+        />
+      </div>
+
+      {isLoading && visiblePosts.length === 0 ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-700" />
+        </div>
+      ) : visiblePosts.length === 0 ? (
+        <div className="rounded-[24px] bg-white px-4 py-10 text-center">
+          <p className="text-sm font-bold text-black/45">Keine News vorhanden.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {featured && <NewsCard post={featured} featured />}
+
+          {rest.length > 0 && (
+            <div className="grid grid-cols-2 gap-3">
+              {rest.map((post) => (
+                <NewsCard key={post.id} post={post} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

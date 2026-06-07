@@ -97,7 +97,7 @@ function HighlightCard({ highlight, leaguesById }) {
           openExternalUrl(externalUrl);
         }
       }}
-      className={`group relative aspect-video overflow-hidden rounded-2xl border border-primary/25 bg-black shadow-[0_0_0_1px_rgba(0,91,255,0.18),0_18px_44px_rgba(0,0,0,0.55)] ${
+      className={`group relative aspect-video overflow-hidden rounded-[24px] bg-white ${
         clickable ? "cursor-pointer active:scale-[0.99]" : ""
       }`}
     >
@@ -122,11 +122,11 @@ function HighlightCard({ highlight, leaguesById }) {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,91,255,0.35),transparent_35%),linear-gradient(135deg,#000,#07111f)]" />
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/25 to-black/20" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/84 via-black/12 to-black/10" />
       <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black via-black/78 to-transparent" />
 
       <div className="absolute left-3 top-3 right-16 flex items-center gap-2">
-        <span className="max-w-full truncate rounded-full bg-primary px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_0_18px_rgba(0,91,255,0.55)]">
+        <span className="max-w-full truncate rounded-full bg-red-700 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
           {leagueLabel}
         </span>
 
@@ -167,8 +167,8 @@ function HighlightCard({ highlight, leaguesById }) {
             )}
 
             {externalUrl && (
-              <span className="w-7 h-7 rounded-lg bg-black/55 border border-primary/35 flex items-center justify-center backdrop-blur">
-                <ExternalLink className="w-3.5 h-3.5 text-primary" />
+              <span className="w-7 h-7 rounded-lg bg-white flex items-center justify-center">
+                <ExternalLink className="w-3.5 h-3.5 text-red-700" />
               </span>
             )}
           </div>
@@ -185,8 +185,8 @@ function FilterPill({ active, children, onClick }) {
       onClick={onClick}
       className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${
         active
-          ? "bg-primary text-white shadow-[0_0_22px_rgba(0,91,255,0.45)]"
-          : "bg-card border border-border/50 text-muted-foreground hover:text-foreground"
+          ? "bg-red-700 text-white"
+          : "bg-white border border-black/10 text-black/55 hover:text-black"
       }`}
     >
       {children}
@@ -198,15 +198,15 @@ function EmptyState() {
   return (
     <div className="w-full min-h-[calc(100dvh-140px)] px-4 py-8 pb-24 flex items-center justify-center">
       <div className="w-full max-w-sm text-center">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5">
-          <PlaySquare className="w-8 h-8 text-primary" />
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-5">
+          <PlaySquare className="w-8 h-8 text-red-700" />
         </div>
 
-        <h1 className="text-2xl font-black leading-tight">
+          <h1 className="text-2xl font-black leading-tight text-black">
           Noch keine Highlights
         </h1>
 
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+        <p className="text-sm text-black/50 mt-2 leading-relaxed">
           Sobald Highlights verfügbar sind, findest du sie hier.
         </p>
       </div>
@@ -295,7 +295,7 @@ export default function Highlights() {
   if (isLoading) {
     return (
       <div className="w-full min-h-[calc(100dvh-140px)] flex items-center justify-center pb-24">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <Loader2 className="w-6 h-6 animate-spin text-red-700" />
       </div>
     );
   }
@@ -305,33 +305,20 @@ export default function Highlights() {
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 py-4 pb-24">
-      <section className="relative overflow-hidden rounded-3xl border border-primary/20 bg-black mb-5 shadow-[0_0_34px_rgba(0,91,255,0.10)]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(0,91,255,0.28),transparent_36%),linear-gradient(135deg,#000,#07111f_55%,#000)]" />
-
-        <div className="relative p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-primary">
-            The Yardline
-          </p>
-
-          <h1 className="text-3xl font-black mt-2 tracking-tight">
-            Game Highlights
-          </h1>
-
-          <p className="text-sm text-muted-foreground leading-relaxed mt-2 max-w-lg">
-            Highlights, Replays und Clips aus den wichtigsten Football-Spielen an einem Ort.
-          </p>
-        </div>
-      </section>
+    <div className="w-full max-w-3xl mx-auto px-4 py-5 pb-24">
+      <div className="mb-5">
+        <h1 className="text-4xl font-black italic tracking-normal text-black">Game Highlights</h1>
+        <div className="yardline-stripes mt-3 h-9 rounded-2xl bg-white" />
+      </div>
 
       <div className="relative mb-4">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-black/45" />
 
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Highlights suchen..."
-          className="w-full h-11 rounded-2xl bg-card border border-border/60 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+          className="w-full h-12 rounded-2xl bg-white border border-black/10 pl-10 pr-3 text-sm font-semibold text-black placeholder:text-black/35 outline-none focus:border-blue-600"
         />
       </div>
 
@@ -348,8 +335,8 @@ export default function Highlights() {
       </div>
 
       {visibleHighlights.length === 0 ? (
-        <div className="rounded-2xl border border-border/50 bg-card px-4 py-8 text-center">
-          <p className="text-sm font-semibold text-muted-foreground">
+        <div className="rounded-[24px] bg-white px-4 py-8 text-center">
+          <p className="text-sm font-semibold text-black/45">
             Keine passenden Highlights gefunden.
           </p>
         </div>

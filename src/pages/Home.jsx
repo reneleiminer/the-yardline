@@ -86,9 +86,23 @@ function getTeamColor(team, fallback) {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
+function withAlpha(hex, alpha = "20") {
+  const value = String(hex || "").trim();
+  if (/^#[0-9a-f]{6}$/i.test(value)) return `${value}${alpha}`;
+  return "#eef2ff";
+}
+
 function TeamLogo({ team, fallback }) {
+  const color = getTeamColor(team, "#005bff");
+
   return (
-    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 p-1.5">
+    <div
+      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl p-1.5"
+      style={{
+        background: `linear-gradient(135deg, ${withAlpha(color, "30")}, #ffffff 72%)`,
+        boxShadow: `inset 0 -3px 0 ${color}`,
+      }}
+    >
       {team?.logo ? (
         <img
           src={getImageUrl(team.logo)}
