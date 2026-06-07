@@ -86,6 +86,13 @@ function getTeamColor(team, fallback) {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
+function normalizePresentedByLabel(label) {
+  return String(label || "")
+    .trim()
+    .replace(/^(presented\s+by|by)\s+/i, "")
+    .trim();
+}
+
 function withAlpha(hex, alpha = "20") {
   const value = String(hex || "").trim();
   if (/^#[0-9a-f]{6}$/i.test(value)) return `${value}${alpha}`;
@@ -260,10 +267,13 @@ function WideGameCard({ game, teamsById, leaguesById }) {
 
 function SectionTitle({ title, to }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-lg font-black text-black">{title}</h2>
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="yardline-heading text-[22px] sm:text-2xl">{title}</h2>
+        <div className="yardline-title-bars" />
+      </div>
       {to && (
-        <Link to={to} className="flex items-center gap-1 text-xs font-black text-red-700">
+        <Link to={to} className="mt-1 flex items-center gap-1 text-xs font-black text-red-700">
           Alle
           <ChevronRight className="h-3.5 w-3.5" />
         </Link>
@@ -592,27 +602,27 @@ function StreakCard({ item }) {
 }
 
 function GameOfWeekTitle({ label }) {
+  const cleanLabel = normalizePresentedByLabel(label);
+
   return (
     <div className="mb-3">
       <div className="min-w-0">
         <div className="min-w-0">
-          <p className="text-2xl font-black leading-tight tracking-normal text-black sm:text-3xl">
+          <p className="yardline-heading">
             Game of the Week
-            {label && (
-              <span
-                className="ml-2 inline-block whitespace-nowrap text-lg font-normal normal-case text-red-700 align-baseline sm:text-2xl"
-                style={{ fontFamily: "var(--font-script)" }}
-              >
-                presented by {label}
-              </span>
+            {cleanLabel && (
+              <>
+                {" "}
+                <span
+                  className="yardline-script inline-block whitespace-nowrap text-lg font-normal normal-case text-red-700 align-baseline sm:text-2xl"
+                >
+                  presented by {cleanLabel}
+                </span>
+              </>
             )}
           </p>
 
-          <div className="mt-2 flex items-center gap-2">
-            <span className="h-1 w-10 rounded-full bg-red-700" />
-            <span className="h-1 w-8 rounded-full bg-blue-700" />
-            <span className="h-1 w-5 rounded-full bg-black" />
-          </div>
+          <div className="yardline-title-bars" />
         </div>
       </div>
     </div>
@@ -743,7 +753,8 @@ export default function Home() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="mb-5">
-        <h1 className="text-4xl font-black italic tracking-normal text-black">Home</h1>
+        <h1 className="yardline-page-heading">Home</h1>
+        <div className="yardline-title-bars" />
       </div>
 
       <div className="space-y-7">

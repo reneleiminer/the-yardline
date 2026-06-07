@@ -303,8 +303,11 @@ function TabSwitch({ value, onChange }) {
 
 function SectionHeader({ title, count }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="truncate text-lg font-black text-black">{title}</h2>
+    <div className="mb-3 flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="yardline-heading truncate text-[22px] sm:text-2xl">{title}</h2>
+        <div className="yardline-title-bars" />
+      </div>
       <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-black">{count}</span>
     </div>
   );
@@ -658,8 +661,8 @@ export default function MatchCenter() {
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="space-y-4">
         <div className="mb-1">
-          <h1 className="text-4xl font-black italic tracking-normal text-black">Match Center</h1>
-          <div className="yardline-stripes mt-3 h-9 rounded-2xl bg-white" />
+          <h1 className="yardline-page-heading">Match Center</h1>
+          <div className="yardline-title-bars" />
         </div>
 
         <div className="grid grid-cols-3 gap-2">

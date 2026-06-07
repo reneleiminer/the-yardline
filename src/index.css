@@ -193,6 +193,44 @@
 }
 
 @layer components {
+  .yardline-heading {
+    @apply text-2xl font-black leading-tight tracking-normal text-black sm:text-3xl;
+  }
+
+  .yardline-page-heading {
+    @apply text-4xl font-black leading-none tracking-normal text-black;
+  }
+
+  .yardline-script {
+    font-family: var(--font-script);
+  }
+
+  .yardline-title-bars {
+    @apply mt-2 flex items-center gap-2;
+  }
+
+  .yardline-title-bars::before,
+  .yardline-title-bars::after {
+    content: "";
+    display: block;
+    height: 4px;
+    border-radius: 999px;
+  }
+
+  .yardline-title-bars::before {
+    width: 40px;
+    background: #b51222;
+    box-shadow: 48px 0 0 #005bff;
+  }
+
+  .yardline-title-bars::after {
+    width: 20px;
+    margin-left: 48px;
+    background: #0b0f18;
+  }
+}
+
+@layer components {
   .bg-card {
     background: #ffffff;
   }

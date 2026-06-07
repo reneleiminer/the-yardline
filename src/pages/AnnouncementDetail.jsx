@@ -307,8 +307,8 @@ export default function Highlights() {
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-5 pb-24">
       <div className="mb-5">
-        <h1 className="text-4xl font-black italic tracking-normal text-black">Game Highlights</h1>
-        <div className="yardline-stripes mt-3 h-9 rounded-2xl bg-white" />
+        <h1 className="yardline-page-heading">Game Highlights</h1>
+        <div className="yardline-title-bars" />
       </div>
 
       <div className="relative mb-4">

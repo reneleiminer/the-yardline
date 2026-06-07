@@ -96,8 +96,8 @@ export default function Announcements() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="mb-5">
-        <h1 className="text-4xl font-black italic tracking-normal text-black">News</h1>
-        <div className="yardline-stripes mt-3 h-9 rounded-2xl bg-white" />
+        <h1 className="yardline-page-heading">News</h1>
+        <div className="yardline-title-bars" />
       </div>
 
       <div className="relative mb-4">
