@@ -132,7 +132,7 @@ function BrandLogo({ centered = false }) {
         />
       ) : (
         <span className="text-lg font-black uppercase tracking-wide text-white">
-          <span className="text-primary">Y</span>ardline
+          Yardline
         </span>
       )}
     </Link>
@@ -187,7 +187,7 @@ function BackContent({ title, onBack, backTo }) {
       <BackButton onBack={onBack} backTo={backTo} />
 
       {title && (
-        <span className="text-sm font-bold text-foreground truncate">
+        <span className="text-sm font-bold text-white truncate">
           {title}
         </span>
       )}
@@ -215,12 +215,12 @@ function LeagueContent({ league, onBack, backTo }) {
       )}
 
       <div className="min-w-0">
-        <p className="text-sm font-bold truncate leading-tight">
+        <p className="text-sm font-bold text-white truncate leading-tight">
           {league?.name || "..."}
         </p>
 
         {(league?.season || league?.country) && (
-          <p className="text-[10px] text-muted-foreground truncate leading-tight">
+          <p className="text-[10px] text-white/70 truncate leading-tight">
             {[league?.country, league?.season].filter(Boolean).join(" - ")}
           </p>
         )}
@@ -249,12 +249,12 @@ function ClubContent({ club, onBack, backTo }) {
       )}
 
       <div className="min-w-0">
-        <p className="text-sm font-bold truncate leading-tight">
+        <p className="text-sm font-bold text-white truncate leading-tight">
           {club?.name || "..."}
         </p>
 
         {club?.city && (
-          <p className="text-[10px] text-muted-foreground truncate leading-tight">
+          <p className="text-[10px] text-white/70 truncate leading-tight">
             {club.city}
           </p>
         )}
@@ -294,9 +294,9 @@ function HeaderMenu({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-[#050608] overflow-hidden">
+    <div className="fixed inset-0 z-[80] bg-[#b51222] overflow-hidden">
       <div
-        className="relative flex items-center h-[68px] px-2 sm:px-3 w-full border-b border-white/10"
+        className="relative flex items-center h-[68px] px-2 sm:px-3 w-full border-b border-white/20"
         style={{
           paddingTop: "env(safe-area-inset-top)",
         }}
@@ -314,7 +314,7 @@ function HeaderMenu({ open, onClose }) {
       </div>
 
       <div className="px-4 pt-5 pb-8 overflow-y-auto max-h-[calc(100dvh-68px-env(safe-area-inset-top))]">
-        <div className="rounded-2xl overflow-hidden bg-[#1f1e22] border border-white/8">
+        <div className="rounded-2xl overflow-hidden bg-white border border-white/20">
           {items.map((item) => {
             const Icon = item.icon;
 
@@ -326,46 +326,46 @@ function HeaderMenu({ open, onClose }) {
                   onClose();
                   navigate(item.route);
                 }}
-                className="w-full min-h-[58px] flex items-center gap-3 px-4 text-left border-b border-white/8 last:border-0 active:bg-white/8 transition-colors"
+                className="w-full min-h-[58px] flex items-center gap-3 px-4 text-left border-b border-black/10 last:border-0 active:bg-black/5 transition-colors"
               >
-                <Icon className="w-5 h-5 text-white/72 flex-shrink-0" />
+                <Icon className="w-5 h-5 text-black/72 flex-shrink-0" />
 
-                <span className="text-sm font-bold text-white flex-1">
+                <span className="text-sm font-bold text-black flex-1">
                   {item.label}
                 </span>
 
-                <ChevronRight className="w-4 h-4 text-white/45 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-black/45 flex-shrink-0" />
               </button>
             );
           })}
         </div>
 
-               <div className="mt-4 rounded-2xl bg-[#1f1e22] border border-white/8 overflow-hidden">
+               <div className="mt-4 rounded-2xl bg-white border border-white/20 overflow-hidden">
           <button
             type="button"
             onClick={() => {
               onClose();
               navigate(internalLoginItem.route);
             }}
-            className="w-full min-h-[64px] flex items-center gap-3 px-4 text-left active:bg-white/8 transition-colors"
+            className="w-full min-h-[64px] flex items-center gap-3 px-4 text-left active:bg-black/5 transition-colors"
             aria-label={internalLoginItem.label}
             title={internalLoginItem.label}
           >
-            <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-red-700" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-bold text-white block">
+              <span className="text-sm font-bold text-black block">
                 {internalLoginItem.label}
               </span>
 
-              <span className="text-[11px] text-white/45 block truncate mt-0.5">
+              <span className="text-[11px] text-black/45 block truncate mt-0.5">
                 {internalLoginItem.description}
               </span>
             </div>
 
-            <ChevronRight className="w-4 h-4 text-white/45 flex-shrink-0" />
+            <ChevronRight className="w-4 h-4 text-black/45 flex-shrink-0" />
           </button>
         </div>
       </div>
@@ -410,12 +410,10 @@ export default function Header() {
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
-          background: contextPrimary
-            ? `${contextPrimary}`
-            : "#000",
+          background: "#b51222",
           boxShadow: scrolled
-            ? "0 1px 0 rgba(255,255,255,0.12)"
-            : "0 1px 0 rgba(255,255,255,0.10)",
+            ? "0 1px 0 rgba(0,0,0,0.12)"
+            : "0 1px 0 rgba(0,0,0,0.08)",
         }}
       >
         <div className="relative flex items-center h-[68px] px-2 sm:px-3 w-full">
@@ -477,7 +475,7 @@ export default function Header() {
           style={{
             background: contextPrimary
               ? contextPrimary
-              : "rgba(0,91,255,0.80)",
+              : "rgba(255,255,255,0.32)",
           }}
         />
       </header>

@@ -47,18 +47,18 @@ function PartnerLogoRail({ partners }) {
     : [...partners, ...partners, ...partners, ...partners];
 
   return (
-    <section className="mb-8 pb-8 border-b border-border/30 overflow-hidden">
+    <section className="mb-8 pb-8 border-b border-white/20 overflow-hidden">
       <div className="flex items-center gap-3 mb-5">
-        <h3 className="text-[11px] font-black text-foreground uppercase tracking-[0.2em] whitespace-nowrap">
+        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap">
           Unsere Partner
         </h3>
 
-        <div className="h-px flex-1 bg-border/30" />
+        <div className="h-px flex-1 bg-white/20" />
       </div>
 
       <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-background to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-background to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-[#b51222] to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-[#b51222] to-transparent" />
 
         <div className="flex w-max animate-[partner-marquee_28s_linear_infinite]">
           {loopPartners.map((partner, index) => (
@@ -109,7 +109,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-background border-t border-border/30 pt-7 pb-[calc(110px+env(safe-area-inset-bottom))]">
+    <footer className="bg-[#b51222] text-white border-t border-red-950/20 pt-7 pb-[calc(110px+env(safe-area-inset-bottom))]">
       <div className="max-w-7xl mx-auto px-4">
         <PartnerLogoRail partners={visiblePartners} />
 
@@ -118,7 +118,7 @@ export default function Footer() {
             <Link
               key={link.href}
               to={link.href}
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-white/80 hover:text-white transition-colors"
             >
               {link.label}
             </Link>
@@ -126,11 +126,11 @@ export default function Footer() {
         </div>
 
         <div className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+          <p className="text-[10px] font-black uppercase tracking-wider text-white/80">
             The Yardline
           </p>
 
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-white/75 mt-1">
             © 2026 Alle Rechte vorbehalten.
           </p>
         </div>

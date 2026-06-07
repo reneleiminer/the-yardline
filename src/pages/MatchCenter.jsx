@@ -9,16 +9,7 @@ import {
   subDays,
 } from "date-fns";
 import { de } from "date-fns/locale";
-import {
-  BarChart3,
-  CalendarDays,
-  ChevronRight,
-  Loader2,
-  Search,
-  Shield,
-  Trophy,
-  Zap,
-} from "lucide-react";
+import { BarChart3, CalendarDays, ChevronRight, Loader2, Search, Trophy } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
@@ -244,52 +235,10 @@ function TabSwitch({ value, onChange }) {
   );
 }
 
-function HeroStats({ liveCount, upcomingCount, tournamentCount, leagueCount }) {
-  const items = [
-    { label: "Live", value: liveCount, icon: Zap, color: "bg-red-600" },
-    { label: "Kommend", value: upcomingCount, icon: CalendarDays, color: "bg-blue-700" },
-    { label: "Ligen", value: leagueCount, icon: Shield, color: "bg-white text-black" },
-    { label: "Tournaments", value: tournamentCount, icon: Trophy, color: "bg-red-700" },
-  ];
-
-  return (
-    <section className="overflow-hidden rounded-[30px] bg-blue-700 text-white">
-      <div className="p-5">
-      <div className="mb-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/65">The Yardline</p>
-        <h1 className="mt-1 text-4xl font-black tracking-normal text-white">Match Center</h1>
-        <p className="mt-2 text-sm font-semibold text-white/72">
-          Spiele, Tabellen, Ligen und Tournaments an einem Ort.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {items.map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <div key={item.label} className="rounded-2xl bg-black p-3">
-              <div className={`mb-3 flex h-8 w-8 items-center justify-center rounded-xl ${item.color}`}>
-                <Icon className="h-4 w-4" />
-              </div>
-              <p className="text-2xl font-black leading-none">{item.value}</p>
-              <p className="mt-1 text-[10px] font-black uppercase tracking-wide text-white/45">{item.label}</p>
-            </div>
-          );
-        })}
-      </div>
-      </div>
-    </section>
-  );
-}
-
-function SectionHeader({ icon: Icon, title, count }) {
+function SectionHeader({ title, count }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="flex min-w-0 items-center gap-2">
-        <Icon className="h-4 w-4 flex-shrink-0 text-blue-500" />
-        <h2 className="truncate text-base font-black">{title}</h2>
-      </div>
+      <h2 className="truncate text-lg font-black text-black">{title}</h2>
       <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-black">{count}</span>
     </div>
   );
@@ -348,7 +297,7 @@ function GamesPanel({ games, teamsById, leaguesById }) {
         ))}
       </div>
 
-      <SectionHeader icon={CalendarDays} title="Games" count={visibleGames.length} />
+      <SectionHeader title="Games" count={visibleGames.length} />
 
       {visibleGames.length === 0 ? (
         <EmptyState label="Keine Spiele in dieser Ansicht." />
@@ -401,7 +350,7 @@ function LeaguesPanel({ leagues }) {
 
   return (
     <section>
-      <SectionHeader icon={BarChart3} title="Ligen & Tabellen" count={sortedLeagues.length} />
+      <SectionHeader title="Ligen & Tabellen" count={sortedLeagues.length} />
       {sortedLeagues.length === 0 ? (
         <EmptyState label="Keine Ligen gefunden." />
       ) : (
@@ -463,7 +412,7 @@ function TournamentsPanel({ tournaments }) {
 
   return (
     <section>
-      <SectionHeader icon={Trophy} title="Tournaments" count={visibleTournaments.length} />
+      <SectionHeader title="Tournaments" count={visibleTournaments.length} />
       {visibleTournaments.length === 0 ? (
         <EmptyState label="Keine Tournaments gefunden." />
       ) : (
@@ -479,8 +428,8 @@ function TournamentsPanel({ tournaments }) {
 
 function EmptyState({ label }) {
   return (
-    <div className="rounded-2xl border border-dashed border-white/10 bg-[#050505] px-4 py-8 text-center">
-      <p className="text-sm font-bold text-white/45">{label}</p>
+    <div className="rounded-[22px] bg-white px-4 py-8 text-center">
+      <p className="text-sm font-bold text-black/45">{label}</p>
     </div>
   );
 }
@@ -565,28 +514,14 @@ export default function MatchCenter() {
       .includes(query));
   }, [query, tournaments]);
 
-  const liveCount = useMemo(() => games.filter((game) => getEffectiveGameStatus(game) === "live").length, [games]);
-  const upcomingCount = useMemo(() => {
-    const today = startOfDay(new Date());
-    return games.filter((game) => {
-      const date = getGameDate(game);
-      if (!date) return false;
-      const status = getEffectiveGameStatus(game);
-      return status !== "final" && status !== "cancelled" && !isBefore(date, today);
-    }).length;
-  }, [games]);
-
   const isLoading = gamesLoading || leaguesLoading || tournamentsLoading;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-24">
+    <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="space-y-4">
-        <HeroStats
-          liveCount={liveCount}
-          upcomingCount={upcomingCount}
-          tournamentCount={tournaments.length}
-          leagueCount={leagues.length}
-        />
+        <div className="mb-1">
+          <h1 className="text-4xl font-black italic tracking-normal text-black">Match Center</h1>
+        </div>
 
         <SearchBox value={search} onChange={setSearch} />
         <TabSwitch value={activeTab} onChange={setActiveTab} />
