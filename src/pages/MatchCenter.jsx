@@ -107,10 +107,10 @@ function TeamLogo({ team, fallback, color }) {
 
   return (
     <div
-      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 p-2"
+      className="flex h-16 w-16 items-center justify-center rounded-2xl border border-black/10 p-1.5"
       style={{
-        background: `linear-gradient(135deg, ${withAlpha(logoColor, "28")}, #ffffff 68%)`,
-        boxShadow: `inset 0 -4px 0 ${logoColor}`,
+        background: `linear-gradient(135deg, ${withAlpha(logoColor, "50")}, #ffffff 58%)`,
+        boxShadow: `inset 0 -4px 0 ${logoColor}, 0 1px 2px rgba(15,23,42,0.12)`,
       }}
     >
       {team?.logo ? (

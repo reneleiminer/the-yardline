@@ -127,11 +127,11 @@ function BrandLogo({ centered = false }) {
         <img
           src={getImageUrl(logoUrl)}
           alt="The Yardline"
-          className="h-[52px] max-w-[76vw] w-auto object-contain"
+          className="h-[58px] max-w-[28vw] sm:max-w-[180px] w-auto object-contain"
           loading="eager"
         />
       ) : (
-        <span className="text-lg font-black uppercase tracking-wide text-white">
+        <span className="text-xl font-black uppercase tracking-wide text-white">
           Yardline
         </span>
       )}
@@ -139,8 +139,29 @@ function BrandLogo({ centered = false }) {
   );
 }
 
+function HeaderSlogan() {
+  return (
+    <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center px-2">
+      <span
+        className="whitespace-nowrap text-[15px] leading-none text-white min-[390px]:text-[17px] sm:text-[24px]"
+        style={{
+          fontFamily: "var(--font-script)",
+          textShadow: "0 2px 0 rgba(0,0,0,0.22)",
+        }}
+      >
+        Where Football Lives
+      </span>
+    </div>
+  );
+}
+
 function DefaultContent() {
-  return <BrandLogo centered />;
+  return (
+    <>
+      <BrandLogo />
+      <HeaderSlogan />
+    </>
+  );
 }
 
 function BackButton({ onBack, backTo }) {
@@ -301,15 +322,16 @@ function HeaderMenu({ open, onClose }) {
           paddingTop: "env(safe-area-inset-top)",
         }}
       >
-        <BrandLogo centered />
+        <BrandLogo />
+        <HeaderSlogan />
 
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto w-11 h-11 rounded-full bg-white/8 border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+          className="ml-auto w-11 h-11 rounded-full bg-white/80 border border-black/10 flex items-center justify-center active:scale-95 transition-transform"
           aria-label="Menue schliessen"
         >
-          <X className="w-6 h-6 text-white/80" />
+          <X className="w-6 h-6 text-black" />
         </button>
       </div>
 
@@ -429,7 +451,7 @@ export default function Header() {
                   aria-label="Menue"
                   aria-expanded={menuOpen}
                 >
-                  <Menu className="w-6 h-6 text-white" strokeWidth={2.2} />
+                  <Menu className="w-7 h-7 text-black" strokeWidth={2.5} />
                 </button>
               )}
             </>

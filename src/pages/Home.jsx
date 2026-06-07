@@ -97,10 +97,10 @@ function TeamLogo({ team, fallback }) {
 
   return (
     <div
-      className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl p-1.5"
+      className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-black/10 p-1"
       style={{
-        background: `linear-gradient(135deg, ${withAlpha(color, "30")}, #ffffff 72%)`,
-        boxShadow: `inset 0 -3px 0 ${color}`,
+        background: `linear-gradient(135deg, ${withAlpha(color, "52")}, #ffffff 58%)`,
+        boxShadow: `inset 0 -4px 0 ${color}, 0 1px 2px rgba(15,23,42,0.12)`,
       }}
     >
       {team?.logo ? (
@@ -169,15 +169,15 @@ function SmallGameCard({ game, teamsById, leaguesById }) {
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <TeamLogo team={home} fallback={homeName} />
-              <p className="min-w-0 flex-1 truncate text-[12px] font-black">{homeName}</p>
+              <p className="min-w-0 flex-1 truncate text-[11px] font-black leading-tight">{homeName}</p>
               {showScore && <span className="text-lg font-black tabular-nums">{game.scoreHome ?? 0}</span>}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <TeamLogo team={away} fallback={awayName} />
-              <p className="min-w-0 flex-1 truncate text-[12px] font-black">{awayName}</p>
+              <p className="min-w-0 flex-1 truncate text-[11px] font-black leading-tight">{awayName}</p>
               {showScore ? (
                 <span className="text-lg font-black tabular-nums">{game.scoreAway ?? 0}</span>
               ) : (

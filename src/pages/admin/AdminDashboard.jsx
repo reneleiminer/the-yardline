@@ -836,28 +836,40 @@ function AppBrandingPlanner({
           onChange={value => setFormData(current => ({ ...current, header_icon_url: value }))}
         />
 
-        <div className="rounded-2xl border border-white/10 bg-[#07111f] px-3 py-3">
+        <div className="rounded-2xl border border-border/50 bg-white px-3 py-3">
           <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
             Vorschau
           </p>
 
-          <div className="relative h-14 rounded-xl bg-[#050914] border border-white/8 overflow-hidden">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center">
-              <Menu className="w-5 h-5 text-white/85" />
-            </div>
-
-            <div className="absolute inset-0 flex items-center justify-center px-14">
+          <div className="relative h-16 rounded-xl bg-[#b51222] border border-red-900/20 overflow-hidden">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex h-12 w-24 items-center justify-start">
               {formData.header_icon_url ? (
                 <img
                   src={getImageUrl(formData.header_icon_url)}
                   alt="The Yardline"
-                  className="h-9 max-w-[210px] w-auto object-contain"
+                  className="h-12 max-w-[96px] w-auto object-contain"
                 />
               ) : (
                 <span className="text-base font-black tracking-wide uppercase text-white">
                   Yardline
                 </span>
               )}
+            </div>
+
+            <div className="absolute inset-0 flex items-center justify-center px-28">
+              <span
+                className="whitespace-nowrap text-lg leading-none text-white"
+                style={{
+                  fontFamily: "var(--font-script)",
+                  textShadow: "0 2px 0 rgba(0,0,0,0.22)",
+                }}
+              >
+                Where Football Lives
+              </span>
+            </div>
+
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center">
+              <Menu className="w-6 h-6 text-black" strokeWidth={2.5} />
             </div>
           </div>
 
