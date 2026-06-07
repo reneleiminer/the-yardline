@@ -95,6 +95,8 @@ function withAlpha(hex, alpha = "20") {
 function TeamLogo({ team, fallback }) {
   const color = getTeamColor(team, "#005bff");
 
+  if (!team?.logo) return null;
+
   return (
     <div
       className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-black/10 p-1"
@@ -110,11 +112,7 @@ function TeamLogo({ team, fallback }) {
           className="h-full w-full object-contain"
           loading="lazy"
         />
-      ) : (
-        <span className="text-[10px] font-black text-black">
-          {team?.shortName?.[0] || team?.name?.[0] || fallback?.[0] || "?"}
-        </span>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -596,27 +594,26 @@ function StreakCard({ item }) {
 function GameOfWeekTitle({ label }) {
   return (
     <div className="mb-3">
-      <div className="flex items-end justify-between gap-3">
+      <div className="min-w-0">
         <div className="min-w-0">
-          <p className="font-serif text-3xl font-black italic leading-none tracking-tight text-black">
+          <p className="text-2xl font-black leading-tight tracking-normal text-black sm:text-3xl">
             Game of the Week
+            {label && (
+              <span
+                className="ml-2 inline-block whitespace-nowrap text-lg font-normal normal-case text-red-700 align-baseline sm:text-2xl"
+                style={{ fontFamily: "var(--font-script)" }}
+              >
+                presented by {label}
+              </span>
+            )}
           </p>
+
           <div className="mt-2 flex items-center gap-2">
             <span className="h-1 w-10 rounded-full bg-red-700" />
             <span className="h-1 w-8 rounded-full bg-blue-700" />
             <span className="h-1 w-5 rounded-full bg-black" />
           </div>
         </div>
-        {label && (
-          <div className="max-w-[42%] rounded-2xl bg-slate-950 px-3 py-2 text-right text-white">
-            <p className="text-[8px] font-black uppercase tracking-wide text-white/45">
-              Presented by
-            </p>
-            <p className="truncate text-[11px] font-black uppercase">
-              {label}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );

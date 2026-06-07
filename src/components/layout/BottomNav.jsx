@@ -6,14 +6,14 @@ function FootballIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path
-        d="M4.5 15.8C2.9 12 4 8.1 7.3 6.2c3.3-1.9 8-1.5 12.2 1.9.2 5.4-2.3 9.3-6.3 10.5-3.5 1.1-6.7 0-8.7-2.8Z"
+        d="M3.8 15.9C3.1 12.5 4.4 8.8 7.4 6.7c3.6-2.5 8.4-2 12.9 1.6.1 4.8-2 8.3-5.9 9.8-3.9 1.5-7.9.7-10.6-2.2Z"
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M8.2 8.1 16 15.9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="m10.6 10.5 2.1-2.1M12.7 12.6l2.1-2.1M14.8 14.7l2.1-2.1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M7.8 8.6 16 16.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="m10.4 10.9 2.2-2.2M12.6 13.1l2.2-2.2M14.8 15.3l2.2-2.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -57,7 +57,7 @@ export default function BottomNav() {
     >
       <div className="absolute inset-0 pointer-events-none border-t border-black/10 bg-white" />
 
-      <div className="relative grid h-[76px] w-full grid-cols-4 px-4 pt-2 pointer-events-auto">
+      <div className="relative grid h-[68px] w-full grid-cols-4 px-4 pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -77,12 +77,9 @@ export default function BottomNav() {
                 event.preventDefault();
                 scrollMainToTop();
               }}
-              className="flex min-w-0 flex-col items-center justify-start gap-1 text-black"
+              className="flex min-w-0 items-center justify-center text-black"
             >
-              <Icon className={`h-6 w-6 ${isActive ? "text-red-700" : "text-black/65"}`} />
-              <span className={`max-w-full truncate text-[9px] font-black ${isActive ? "text-red-700" : "text-black/55"}`}>
-                {item.label}
-              </span>
+              <Icon className={`h-7 w-7 ${isActive ? "text-red-700" : "text-black/65"}`} />
             </Link>
           );
         })}
