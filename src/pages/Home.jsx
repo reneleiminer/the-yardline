@@ -1,27 +1,18 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-  addDays,
-  format,
-  isAfter,
-  isBefore,
-  parseISO,
-  startOfDay,
-  subDays,
-} from "date-fns";
+import { addDays, format, isBefore, startOfDay, subDays } from "date-fns";
 import { de } from "date-fns/locale";
 import {
   CalendarDays,
   Camera,
   ChevronRight,
-  Image as ImageIcon,
-  Instagram,
+  Newspaper,
   Play,
   Radio,
-  Search,
   ShieldCheck,
   Star,
+  Trophy,
   Zap,
 } from "lucide-react";
 
@@ -30,74 +21,8 @@ import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
 
 const HIGHLIGHT_VERSION = "game_highlight";
-const AD_BANNER_VERSION = "ad_banner";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
 const PODCAST_VERSION = "podcast_feature";
-
-function normalizeUrl(value) {
-  return String(value || "").trim();
-}
-
-function normalizeInstagramUrl(value) {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return "";
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-
-  const handle = trimmed
-    .replace(/^@/, "")
-    .replace(/^instagram\.com\//i, "")
-    .replace(/^www\.instagram\.com\//i, "")
-    .replace(/\?.*$/, "")
-    .replace(/\/$/, "");
-
-  if (!handle) return "";
-
-  return `https://instagram.com/${handle}`;
-}
-
-function getInstagramLabel(value) {
-  const trimmed = String(value || "").trim();
-  if (!trimmed) return "";
-
-  if (/^https?:\/\//i.test(trimmed) || /^www\.instagram\.com\//i.test(trimmed) || /^instagram\.com\//i.test(trimmed)) {
-    const cleaned = trimmed
-      .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
-      .replace(/^www\.instagram\.com\//i, "")
-      .replace(/^instagram\.com\//i, "")
-      .replace(/\?.*$/, "")
-      .replace(/\/$/, "");
-
-    return cleaned ? `@${cleaned}` : "Instagram";
-  }
-
-  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
-}
-
-function InstagramCreditButton({ instagram, compact = false }) {
-  const url = normalizeInstagramUrl(instagram);
-  const label = getInstagramLabel(instagram);
-
-  if (!url || !label) return null;
-
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={event => event.stopPropagation()}
-      className={`inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/15 text-pink-100 hover:bg-pink-500/25 transition-colors ${
-        compact ? "px-2 py-1 text-[9px]" : "px-2.5 py-1.5 text-[11px] font-bold"
-      }`}
-      aria-label={`Instagram ${label} öffnen`}
-    >
-      <Instagram className={compact ? "w-3 h-3" : "w-3.5 h-3.5"} />
-      <span className="truncate max-w-[92px]">{label}</span>
-    </a>
-  );
-}
 
 function parseJsonMessage(message) {
   if (!message) return {};
@@ -106,101 +31,8 @@ function parseJsonMessage(message) {
     const parsed = JSON.parse(message);
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
-    return {
-      description: message,
-    };
+    return {};
   }
-}
-
-function normalizeHighlight(item) {
-  const meta = parseJsonMessage(item.message);
-
-  return {
-    ...item,
-    title: item.title || "",
-    description: meta.description || "",
-    thumbnail_url: meta.thumbnail_url || item.imageUrl || "",
-    external_video_url: meta.external_video_url || "",
-    source_name: meta.source_name || "",
-    league_id: meta.league_id || "",
-    game_id: meta.game_id || "",
-    team_id: meta.team_id || "",
-    date: meta.date || "",
-    active: item.isActive !== false && meta.active !== false,
-    preview_video_url: meta.preview_video_url || "",
-  };
-}
-
-
-function isNewContent(item, maxAgeHours = 24) {
-  const rawDate =
-    item?.date ||
-    item?.createdAtUtc ||
-    item?.created_date ||
-    item?.updatedAtUtc ||
-    item?.updated_date ||
-    '';
-
-  if (!rawDate) return false;
-
-  const date = new Date(rawDate);
-  if (Number.isNaN(date.getTime())) return false;
-
-  const ageMs = Date.now() - date.getTime();
-  if (ageMs < 0) return true;
-
-  return ageMs <= maxAgeHours * 60 * 60 * 1000;
-}
-
-
-
-function normalizeAdBanner(item) {
-  const meta = parseJsonMessage(item.message);
-
-  return {
-    ...item,
-    title: item.title || meta.title || "",
-    image_url: meta.image_url || item.imageUrl || "",
-    link_url: meta.link_url || "",
-    position: meta.position || "after_highlights",
-    active: item.isActive !== false && meta.active !== false,
-    start_date: meta.start_date || "",
-    end_date: meta.end_date || "",
-    sort_order: Number(meta.sort_order || 0),
-  };
-}
-
-function normalizeGameDayShot(item) {
-  const meta = parseJsonMessage(item.message);
-
-  return {
-    ...item,
-    game_id: meta.game_id || "",
-    image_url: meta.image_url || item.imageUrl || "",
-    credit: meta.credit || "",
-    credit_link: meta.credit_link || meta.creditLink || "",
-    instagram: meta.instagram || "",
-    caption: meta.caption || item.title || "",
-    sort_order: Number(meta.sort_order || 0),
-    active: item.isActive !== false && meta.active !== false,
-    created_at: meta.created_at || item.createdAtUtc || item.created_date || "",
-  };
-}
-
-function normalizePodcast(item) {
-  const meta = parseJsonMessage(item.message);
-
-  return {
-    ...item,
-    spotify_url: meta.spotify_url || meta.url || "",
-    podcast_title: meta.podcast_title || meta.show_title || "Football Germany Podcast",
-    episode_title: meta.episode_title || item.title || "",
-    description: meta.description || "",
-    thumbnail_url: meta.thumbnail_url || item.imageUrl || "",
-    partner_name: meta.partner_name || meta.author_name || "Football Germany",
-    active: item.isActive !== false && meta.active !== false,
-    updated_at: meta.updated_at || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
-  };
 }
 
 function getGameDate(game) {
@@ -230,91 +62,20 @@ function getGameDate(game) {
   return null;
 }
 
-
 function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
   if (game.status === "cancelled") return "cancelled";
   if (game.status === "final") return "final";
   if (game.status === "live") return "live";
 
-  const date = getGameDate(game);
-  if (!date) return game.status || "scheduled";
+  const kickoff = getGameDate(game);
+  if (!kickoff) return game.status || "scheduled";
 
-  if ((game.status || "scheduled") === "scheduled" && new Date().getTime() >= date.getTime()) {
+  if ((game.status || "scheduled") === "scheduled" && Date.now() >= kickoff.getTime()) {
     return "live";
   }
 
   return game.status || "scheduled";
-}
-
-function getTeam(teamId, teamsById) {
-  return teamId ? teamsById.get(teamId) : null;
-}
-
-function getLeague(leagueId, leaguesById) {
-  return leagueId ? leaguesById.get(leagueId) : null;
-}
-function isPartnerClubGame(game, partnerTeamIds) {
-  if (!game || !partnerTeamIds) return false;
-
-  return (
-    partnerTeamIds.has(game.homeTeamId) ||
-    partnerTeamIds.has(game.awayTeamId)
-  );
-}
-
-function getTeamName(team, fallback) {
-  return team?.shortName || team?.name || fallback || "Offen";
-}
-
-function getTeamColor(team, fallback = "#2563eb") {
-  return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
-}
-
-function getGameStatusLabel(game) {
-  const status = getEffectiveGameStatus(game);
-
-  if (status === "live") return "Live";
-  if (status === "final") return "Final";
-  if (status === "cancelled") return "Abgesagt";
-
-  return "Geplant";
-}
-
-function getGameStatusClass(game) {
-  const status = getEffectiveGameStatus(game);
-
-  if (status === "live") {
-    return "bg-red-500/15 text-red-300 border-red-500/30";
-  }
-
-  if (status === "final") {
-    return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
-  }
-
-  if (status === "cancelled") {
-    return "bg-muted text-muted-foreground border-border";
-  }
-
-  return "bg-primary/15 text-primary border-primary/30";
-}
-
-function getLeaguePriority(league) {
-  const raw = league?.level ?? league?.tier ?? league?.priority ?? league?.sortOrder ?? 50;
-  const value = Number(raw);
-
-  return Number.isFinite(value) ? value : 50;
-}
-
-function hasStream(game) {
-  const status = getEffectiveGameStatus(game);
-  if (status === "final" || status === "cancelled") return false;
-  if (game.streamEnabled === false) return false;
-  if (game.streamUrl) return true;
-
-  return Array.isArray(game.streamLinks)
-    ? game.streamLinks.some((link) => link?.url && link?.enabled !== false && link?.status !== "rejected")
-    : false;
 }
 
 function hasFinalScore(game) {
@@ -327,1095 +88,250 @@ function hasFinalScore(game) {
   );
 }
 
-
-
-function buildTeamRecords(games) {
-  const records = new Map();
-
-  const ensure = (teamId, leagueId) => {
-    if (!teamId) return null;
-
-    if (!records.has(teamId)) {
-      records.set(teamId, {
-        teamId,
-        leagueId,
-        wins: 0,
-        losses: 0,
-        pointsFor: 0,
-        pointsAgainst: 0,
-        played: 0,
-      });
-    }
-
-    const record = records.get(teamId);
-
-    if (!record.leagueId && leagueId) {
-      record.leagueId = leagueId;
-    }
-
-    return record;
-  };
-
-  games.filter(hasFinalScore).forEach(game => {
-    const home = ensure(game.homeTeamId, game.leagueId);
-    const away = ensure(game.awayTeamId, game.leagueId);
-
-    if (!home || !away) return;
-
-    const homeScore = Number(game.scoreHome || 0);
-    const awayScore = Number(game.scoreAway || 0);
-
-    home.played += 1;
-    away.played += 1;
-    home.pointsFor += homeScore;
-    home.pointsAgainst += awayScore;
-    away.pointsFor += awayScore;
-    away.pointsAgainst += homeScore;
-
-    if (homeScore > awayScore) {
-      home.wins += 1;
-      away.losses += 1;
-    } else if (awayScore > homeScore) {
-      away.wins += 1;
-      home.losses += 1;
-    } else {
-      home.losses += 1;
-      away.losses += 1;
-    }
-  });
-
-  return records;
+function getTeamName(team, fallback) {
+  return team?.shortName || team?.name || fallback || "Offen";
 }
 
-
-
-function isActiveInDateRange(item, today) {
-  if (!item.active) return false;
-
-  const start = item.start_date ? startOfDay(parseISO(item.start_date)) : null;
-  const end = item.end_date ? startOfDay(parseISO(item.end_date)) : null;
-
-  if (start && isBefore(today, start)) return false;
-  if (end && isAfter(today, addDays(end, 1))) return false;
-
-  return true;
+function getTeamFullName(team, fallback) {
+  return team?.name || team?.shortName || fallback || "Offen";
 }
 
-function highlightMatchesCurrentFilter(highlight, selectedLeagueId, query, teamsById, leaguesById, gamesById) {
-  if (selectedLeagueId && highlight.league_id && highlight.league_id !== selectedLeagueId) return false;
-
-  if (selectedLeagueId && !highlight.league_id) {
-    const game = gamesById.get(highlight.game_id);
-    const team = teamsById.get(highlight.team_id);
-
-    if (game?.leagueId !== selectedLeagueId && team?.leagueId !== selectedLeagueId) return false;
-  }
-
-  if (!query) return true;
-
-  const league = leaguesById.get(highlight.league_id);
-  const team = teamsById.get(highlight.team_id);
-  const game = gamesById.get(highlight.game_id);
-  const home = game ? teamsById.get(game.homeTeamId) : null;
-  const away = game ? teamsById.get(game.awayTeamId) : null;
-
-  const haystack = [
-    highlight.title,
-    highlight.description,
-    highlight.source_name,
-    league?.name,
-    league?.shortName,
-    team?.name,
-    team?.shortName,
-    home?.name,
-    home?.shortName,
-    away?.name,
-    away?.shortName,
-    game?.homeTeamPlaceholder,
-    game?.awayTeamPlaceholder,
-    game?.roundName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return haystack.includes(query);
+function getTeamColor(team, fallback) {
+  return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
-function TeamMark({ team, fallback, size = "md" }) {
-  const sizeClass = size === "lg" ? "w-14 h-14 rounded-2xl" : "w-8 h-8 rounded-xl";
-
-  if (team?.logo) {
-    return (
-      <img
-        src={getImageUrl(team.logo)}
-        alt={team.name || ""}
-        className={`${sizeClass} object-contain bg-black/25 border border-white/10 p-1`}
-        loading="lazy"
-      />
-    );
-  }
-
-  return (
-    <div className={`${sizeClass} bg-secondary border border-white/10 flex items-center justify-center text-[10px] font-black`}>
-      {team?.shortName?.[0] || team?.name?.[0] || fallback?.[0] || "?"}
-    </div>
-  );
-}
-
-function LeagueLogo({ league, active }) {
+function TeamMark({ team, fallback, color }) {
   return (
     <div
-      className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden transition-all ${
-        active
-          ? "bg-primary/20 ring-2 ring-primary"
-          : "bg-transparent ring-1 ring-white/10"
-      }`}
+      className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-black/10 bg-white p-2"
+      style={{ boxShadow: `inset 0 -4px 0 ${color || "#005bff"}` }}
     >
-      {league.logo ? (
+      {team?.logo ? (
         <img
-          src={getImageUrl(league.logo)}
-          alt={league.name || ""}
-          className="w-9 h-9 object-contain"
+          src={getImageUrl(team.logo)}
+          alt={team.name || ""}
+          className="h-full w-full object-contain"
           loading="lazy"
         />
       ) : (
-        <span className="text-xs font-black">
-          {league.shortName?.[0] || league.name?.[0] || "L"}
+        <span className="text-sm font-black text-black">
+          {team?.shortName?.[0] || team?.name?.[0] || fallback?.[0] || "?"}
         </span>
       )}
     </div>
   );
 }
 
+function StatusPill({ game }) {
+  const status = getEffectiveGameStatus(game);
+
+  const className = {
+    live: "bg-red-600 text-white",
+    final: "bg-black text-white",
+    cancelled: "bg-zinc-500 text-white",
+    scheduled: "bg-blue-700 text-white",
+  }[status] || "bg-blue-700 text-white";
+
+  const label = {
+    live: "LIVE",
+    final: "FINAL",
+    cancelled: "ABGESAGT",
+    scheduled: "GEPLANT",
+  }[status] || "GEPLANT";
+
+  return (
+    <span className={`rounded-full px-2.5 py-1 text-[10px] font-black tracking-wide ${className}`}>
+      {label}
+    </span>
+  );
+}
+
+function ScoreCard({ game, teamsById, leaguesById, featured = false }) {
+  const home = teamsById.get(game.homeTeamId);
+  const away = teamsById.get(game.awayTeamId);
+  const league = leaguesById.get(game.leagueId);
+  const homeName = getTeamName(home, game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamPlaceholder);
+  const homeColor = getTeamColor(home, league?.primaryColor || "#005bff");
+  const awayColor = getTeamColor(away, "#e11d48");
+  const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
+  const showScore = status === "live" || status === "final";
+
+  return (
+    <Link
+      to={`/game/${game.id}`}
+      className={`block overflow-hidden rounded-[26px] border border-black/10 bg-white text-black active:scale-[0.99] transition-transform ${
+        featured ? "shadow-none" : ""
+      }`}
+    >
+      <div className="grid grid-cols-[7px_1fr_7px]">
+        <div style={{ background: homeColor }} />
+
+        <div className="p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-black uppercase tracking-wide text-zinc-500">
+                {league?.shortName || league?.name || "Match"}
+              </p>
+              <p className="truncate text-[11px] font-bold text-zinc-500">
+                {kickoff ? format(kickoff, "EEE dd.MM. HH:mm", { locale: de }) : "Termin offen"}
+              </p>
+            </div>
+
+            <StatusPill game={game} />
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+            <div className="min-w-0">
+              <TeamMark team={home} fallback={homeName} color={homeColor} />
+              <p className="mt-2 text-sm font-black leading-tight whitespace-normal break-words">
+                {getTeamFullName(home, game.homeTeamPlaceholder)}
+              </p>
+            </div>
+
+            <div className="flex min-w-[82px] flex-col items-center justify-center rounded-2xl bg-black px-3 py-2 text-white">
+              {showScore ? (
+                <div className="flex items-center gap-2 text-2xl font-black tabular-nums">
+                  <span>{game.scoreHome ?? 0}</span>
+                  <span className="text-white/40">:</span>
+                  <span>{game.scoreAway ?? 0}</span>
+                </div>
+              ) : (
+                <>
+                  <span className="text-xl font-black">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</span>
+                  <span className="text-[9px] font-black uppercase text-white/50">
+                    {kickoff ? "Kickoff" : "Offen"}
+                  </span>
+                </>
+              )}
+            </div>
+
+            <div className="min-w-0 text-right">
+              <div className="flex justify-end">
+                <TeamMark team={away} fallback={awayName} color={awayColor} />
+              </div>
+              <p className="mt-2 text-sm font-black leading-tight whitespace-normal break-words">
+                {getTeamFullName(away, game.awayTeamPlaceholder)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ background: awayColor }} />
+      </div>
+    </Link>
+  );
+}
+
 function SectionTitle({ icon: Icon, title, to }) {
   return (
-    <div className="flex items-center justify-between gap-3 mb-3">
-      <div className="flex items-center gap-2 min-w-0">
-        {Icon && <Icon className="w-4 h-4 text-primary flex-shrink-0" />}
-        <h2 className="text-base font-black leading-tight truncate">{title}</h2>
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <Icon className="h-4 w-4 flex-shrink-0 text-blue-500" />
+        <h2 className="truncate text-base font-black text-white">{title}</h2>
       </div>
 
       {to && (
-        <Link to={to} className="text-xs text-primary font-bold flex items-center gap-1 flex-shrink-0">
+        <Link to={to} className="flex flex-shrink-0 items-center gap-1 text-xs font-black text-blue-400">
           Alle
-          <ChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       )}
     </div>
   );
 }
 
-function PlaceholderCard({ label }) {
+function EmptyStrip({ label }) {
   return (
-    <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 p-5 text-center">
-      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+    <div className="rounded-2xl border border-white/10 bg-[#050505] px-4 py-6 text-center">
+      <p className="text-xs font-bold text-white/45">{label}</p>
     </div>
   );
 }
 
-function LeagueCarousel({ leagues, selectedLeagueId, onToggle }) {
+function Hero({ liveCount, upcomingCount, leaguesCount }) {
   return (
-    <section className="pt-2 overflow-hidden">
-      <div className="overflow-x-auto hide-scrollbar">
-        <div className="flex gap-4 px-4 pt-1 pb-2 snap-x w-max">
-          {leagues.length > 0 ? (
-            leagues.map((league) => {
-              const active = selectedLeagueId === league.id;
+    <section className="overflow-hidden rounded-[30px] bg-blue-700 text-white">
+      <div className="p-5">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/65">
+          The Yardline
+        </p>
+        <h1 className="mt-1 text-4xl font-black tracking-normal">
+          Football Center
+        </h1>
+        <p className="mt-2 max-w-sm text-sm font-semibold text-white/72">
+          Live Games, Highlights, News und kommende Spiele in einer klaren Uebersicht.
+        </p>
+      </div>
 
-              return (
-                <button
-                  key={league.id}
-                  type="button"
-                  onClick={() => onToggle(league.id)}
-                  className="snap-start shrink-0 flex flex-col items-center gap-1.5 min-w-[54px]"
-                >
-                  <LeagueLogo league={league} active={active} />
-
-                  <span className={`text-[10px] font-black max-w-[58px] truncate ${active ? "text-primary" : "text-muted-foreground"}`}>
-                    {league.shortName || league.name || "Liga"}
-                  </span>
-                </button>
-              );
-            })
-          ) : (
-            <PlaceholderCard label="Keine Ligen" />
-          )}
+      <div className="grid grid-cols-3 border-t border-white/15 bg-black text-white">
+        <div className="p-4">
+          <p className="text-2xl font-black">{liveCount}</p>
+          <p className="text-[10px] font-black uppercase text-white/50">Live</p>
+        </div>
+        <div className="border-x border-white/10 p-4">
+          <p className="text-2xl font-black">{upcomingCount}</p>
+          <p className="text-[10px] font-black uppercase text-white/50">Kommend</p>
+        </div>
+        <div className="p-4">
+          <p className="text-2xl font-black">{leaguesCount}</p>
+          <p className="text-[10px] font-black uppercase text-white/50">Ligen</p>
         </div>
       </div>
     </section>
   );
 }
 
-function SearchBox({ value, onChange }) {
-  return (
-    <section className="px-4 pt-3">
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-        <input
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder="Suchen nach Liga, Team, Spiel oder Wettbewerb"
-          className="w-full h-11 rounded-2xl bg-card border border-border/60 pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-        />
-      </div>
-    </section>
-  );
-}
-
-function AdBanner({ banner }) {
-  const linkUrl = normalizeUrl(banner.link_url);
-  const imageUrl = normalizeUrl(banner.image_url);
-
-  if (!imageUrl && !banner.title) return null;
-
-  const content = (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#070B12] shadow-[0_18px_42px_rgba(0,0,0,0.35)]">
-      {imageUrl ? (
-        <div className="relative">
-          <div className="absolute left-3 top-3 z-10">
-            <span className="rounded-full bg-black/70 border border-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
-              Werbung
-            </span>
-          </div>
-
-          <div className="aspect-[16/7] w-full bg-black">
-            <img
-              src={getImageUrl(imageUrl)}
-              alt={banner.title || "Werbung"}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="min-h-[90px] flex items-center px-4 py-4">
-          <span className="rounded-full bg-black/70 border border-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-            Werbung
-          </span>
-        </div>
-      )}
-    </div>
-  );
-
-  if (linkUrl.startsWith("http")) {
-    return (
-      <a href={linkUrl} target="_blank" rel="noopener noreferrer" className="block">
-        {content}
-      </a>
-    );
-  }
-
-  if (linkUrl) {
-    return (
-      <Link to={linkUrl} className="block">
-        {content}
-      </Link>
-    );
-  }
-
-  return content;
-}
-
-function AdBannerSlot({ banners, position }) {
-  const items = banners.filter(banner => banner.position === position);
-
-  if (items.length === 0) return null;
+function HighlightCard({ item }) {
+  const meta = parseJsonMessage(item.message);
+  const imageUrl = meta.thumbnail_url || item.imageUrl || "";
+  const title = item.title || meta.title || "Game Highlight";
 
   return (
-    <section className="px-4 pt-5">
-      <div className="space-y-2">
-        {items.map(banner => (
-          <AdBanner key={banner.id} banner={banner} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function PodcastHomeCard({ podcast }) {
-  if (!podcast?.active || !podcast.spotify_url) return null;
-
-  const coverUrl = normalizeUrl(podcast.thumbnail_url);
-  const partnerName = podcast.partner_name || "Football Germany";
-  const episodeTitle = podcast.episode_title || "Neue Folge";
-  const podcastTitle = podcast.podcast_title || "Podcast";
-
-  return (
-    <section className="px-4 pt-6">
-      <SectionTitle icon={Radio} title="Podcast" />
-
-      <a
-        href={podcast.spotify_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group block rounded-3xl border border-primary/20 bg-card overflow-hidden active:scale-[0.99] transition-transform"
-      >
-        <div className="p-4 flex items-center gap-4">
-          <div className="w-20 h-20 rounded-2xl bg-secondary border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
-            {coverUrl ? (
-              <img
-                src={getImageUrl(coverUrl)}
-                alt=""
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <Radio className="w-8 h-8 text-primary" />
-            )}
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-              Neue Folge
-            </p>
-
-            <h3 className="text-base font-black leading-tight mt-1 whitespace-normal break-words line-clamp-2">
-              {episodeTitle}
-            </h3>
-
-            <p className="text-xs text-muted-foreground leading-tight mt-2 whitespace-normal break-words">
-              <span className="text-foreground font-black">
-                {partnerName}
-              </span>
-              {" · "}
-              {podcastTitle}
-            </p>
-
-            {podcast.description && (
-              <p className="text-[11px] text-muted-foreground leading-relaxed mt-2 line-clamp-2">
-                {podcast.description}
-              </p>
-            )}
-          </div>
-
-          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-        </div>
-      </a>
-    </section>
-  );
-}
-
-function LiveGameCard({ game, teamsById, leaguesById }) {
-  const home = getTeam(game.homeTeamId, teamsById);
-  const away = getTeam(game.awayTeamId, teamsById);
-  const league = getLeague(game.leagueId, leaguesById);
-  const date = getGameDate(game);
-  const status = getEffectiveGameStatus(game);
-
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
-
-  const homeColor = getTeamColor(home, "#2563eb");
-  const awayColor = getTeamColor(away, "#ef4444");
-  const hasScore = status === "live" || status === "final";
-
-  return (
-    <Link
-      to={`/game/${game.id}`}
-      className="snap-start shrink-0 w-[315px] rounded-2xl border border-primary/20 overflow-hidden active:scale-[0.99] transition-transform"
-      style={{
-        background: `linear-gradient(135deg, ${homeColor}18 0%, #101722 48%, ${awayColor}18 100%)`,
-        boxShadow: `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}`,
-      }}
+    <a
+      href={meta.external_video_url || meta.preview_video_url || "#"}
+      target={meta.external_video_url || meta.preview_video_url ? "_blank" : undefined}
+      rel="noopener noreferrer"
+      className="block w-[235px] flex-shrink-0 overflow-hidden rounded-[24px] bg-white text-black"
     >
+      <div className="aspect-video bg-zinc-200">
+        {imageUrl ? (
+          <img src={getImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" loading="lazy" />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Play className="h-8 w-8 text-blue-700" />
+          </div>
+        )}
+      </div>
       <div className="p-3">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <p className="text-[10px] text-muted-foreground truncate">
-            {league?.shortName || league?.name || "Spiel"}
-          </p>
-
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span className={`text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-0.5 ${getGameStatusClass(game)}`}>
-              {getGameStatusLabel(game)}
-            </span>
-
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 items-center">
-          <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
-            <TeamMark team={home} fallback={homeName} size="lg" />
-            <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
-              {homeName}
-            </span>
-          </div>
-
-          <div className="text-center px-2">
-            {hasScore ? (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-xl font-black tabular-nums leading-none">
-                  {game.scoreHome ?? 0}
-                </span>
-
-                <span className="text-lg font-black text-muted-foreground">
-                  :
-                </span>
-
-                <span className="text-xl font-black tabular-nums leading-none">
-                  {game.scoreAway ?? 0}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center">
-                <span className="text-sm font-black text-muted-foreground rounded-xl border border-white/10 px-3 py-1">
-                  VS
-                </span>
-              </div>
-            )}
-
-            <p className="text-[9px] text-muted-foreground mt-0.5">
-              {date ? format(date, "dd.MM.", { locale: de }) : getGameStatusLabel(game)}
-            </p>
-          </div>
-
-          <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
-            <TeamMark team={away} fallback={awayName} size="lg" />
-            <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
-              {awayName}
-            </span>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-function GameOfWeekCard({ game, teamsById, leaguesById, label }) {
-  if (!game) return null;
-
-  const home = getTeam(game.homeTeamId, teamsById);
-  const away = getTeam(game.awayTeamId, teamsById);
-  const league = getLeague(game.leagueId, leaguesById);
-  const date = getGameDate(game);
-
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
-  const homeColor = getTeamColor(home, "#2563eb");
-  const awayColor = getTeamColor(away, "#ef4444");
-  const status = getEffectiveGameStatus(game);
-  const hasScore = status === "live" || status === "final";
-
-  return (
-    <section className="px-4 pt-6">
-      <SectionTitle icon={Star} title="Game of the Week" />
-
-      <Link
-        to={`/game/${game.id}`}
-        className="block rounded-2xl border border-primary/20 overflow-hidden active:scale-[0.99] transition-transform"
-        style={{
-          background: `linear-gradient(135deg, ${homeColor}18 0%, #101722 48%, ${awayColor}18 100%)`,
-          boxShadow: `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}`,
-        }}
-      >
-        <div className="p-3">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <p className="text-[10px] text-muted-foreground truncate">
-              {league?.shortName || league?.name || "Spiel"}
-            </p>
-
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              {label && (
-                <span className="text-[9px] font-black uppercase tracking-wider bg-white/10 text-white rounded-full px-2 py-0.5">
-                  {label}
-                </span>
-              )}
-
-              <span className={`text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-0.5 ${getGameStatusClass(game)}`}>
-                {getGameStatusLabel(game)}
-              </span>
-
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 items-center">
-  <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
-    <TeamMark team={home} fallback={homeName} size="lg" />
-    <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
-      {homeName}
-    </span>
-  </div>
-
-            <div className="text-center px-2">
-              {hasScore ? (
-  <div className="flex items-center justify-center gap-2">
-    <span className="text-xl font-black tabular-nums leading-none">
-      {game.scoreHome ?? 0}
-    </span>
-
-    <span className="text-lg font-black text-muted-foreground">
-      :
-    </span>
-
-    <span className="text-xl font-black tabular-nums leading-none">
-      {game.scoreAway ?? 0}
-    </span>
-  </div>
-) : (
-  <div className="flex items-center justify-center">
-    <span className="text-sm font-black text-muted-foreground rounded-xl border border-white/10 px-3 py-1">
-      VS
-    </span>
-  </div>
-)}
-              <p className="text-[9px] text-muted-foreground mt-0.5">
-                {date ? format(date, "dd.MM.", { locale: de }) : "Final"}
-              </p>
-            </div>
-
-            <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
-  <TeamMark team={away} fallback={awayName} size="lg" />
-  <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
-    {awayName}
-  </span>
-</div>
-          </div>
-        </div>
-      </Link>
-    </section>
-  );
-}
-
-function HighlightReelCard({ highlight, teamsById, leaguesById, gamesById, wide = false }) {
-  const previewVideoUrl = normalizeUrl(highlight.preview_video_url);
-  const thumbnailUrl = normalizeUrl(highlight.thumbnail_url);
-  const targetUrl = normalizeUrl(highlight.external_video_url) || "/highlights";
-  const league = getLeague(highlight.league_id, leaguesById);
-  const team = getTeam(highlight.team_id, teamsById);
-  const game = gamesById.get(highlight.game_id);
-  const gameLeague = game ? getLeague(game.leagueId, leaguesById) : null;
-
-  const leagueLabel =
-    league?.shortName ||
-    league?.name ||
-    gameLeague?.shortName ||
-    gameLeague?.name ||
-    highlight.source_name ||
-    "Highlight";
-
-  const sourceLine = [
-    highlight.source_name || "Game Highlight",
-    team?.shortName || team?.name,
-  ].filter(Boolean).join(" · ");
-
-  const isNew = isNewContent(highlight, 24);
-
-  const content = wide ? (
-    <div className="relative snap-start shrink-0 w-[286px] sm:w-[340px] rounded-2xl border border-primary/25 bg-black overflow-hidden active:scale-[0.99] transition-transform shadow-[0_0_0_1px_rgba(0,91,255,0.16),0_18px_44px_rgba(0,0,0,0.55)]">
-      <div className="aspect-video w-full">
-        {previewVideoUrl ? (
-          <video
-            src={previewVideoUrl}
-            poster={thumbnailUrl || undefined}
-            className="absolute inset-0 w-full h-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          />
-        ) : thumbnailUrl ? (
-          <img
-            src={getImageUrl(thumbnailUrl)}
-            alt={highlight.title || ""}
-            className="absolute inset-0 w-full h-full object-cover opacity-90"
-            loading="lazy"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,91,255,0.35),transparent_35%),linear-gradient(135deg,#000,#07111f)]" />
-        )}
-      </div>
-
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/20" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black via-black/80 to-transparent" />
-
-      <div className="absolute left-3 top-3 right-16 flex items-center gap-1.5">
-        <span className="max-w-full truncate rounded-full bg-primary px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-[0_0_18px_rgba(0,91,255,0.55)]">
-          {leagueLabel}
-        </span>
-
-        {isNew && (
-          <span className="rounded-full bg-red-500/95 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white shadow-lg">
-            Neu
-          </span>
-        )}
-      </div>
-
-      <div className="absolute right-3 top-3 w-11 h-11 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center shadow-[0_0_24px_rgba(0,91,255,0.28)]">
-        <Play className="w-5 h-5 text-white ml-0.5" fill="currentColor" />
-      </div>
-
-      <div className="absolute left-3 right-3 bottom-3">
-        <p className="text-sm sm:text-base font-black leading-tight line-clamp-2 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
-          {highlight.title || "Highlight"}
-        </p>
-
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="text-[10px] font-black uppercase tracking-wider text-primary">
-            Zum Highlight
-          </span>
-
-          {sourceLine && (
-            <span className="text-[10px] text-white/62 truncate text-right min-w-0">
-              {sourceLine}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div className="relative snap-start shrink-0 w-[132px] rounded-2xl border border-white/10 bg-black overflow-hidden active:scale-[0.98] transition-transform">
-      <div style={{ aspectRatio: "9 / 16" }}>
-        {previewVideoUrl ? (
-          <video
-            src={previewVideoUrl}
-            poster={thumbnailUrl || undefined}
-            className="absolute inset-0 w-full h-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          />
-        ) : thumbnailUrl ? (
-          <img
-            src={getImageUrl(thumbnailUrl)}
-            alt={highlight.title || ""}
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-slate-950 to-black" />
-        )}
-      </div>
-
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-
-      {isNew && (
-        <div className="absolute left-2 top-2">
-          <span className="rounded-full bg-red-500/95 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-lg">
-            Neu
-          </span>
-        </div>
-      )}
-
-      {!previewVideoUrl && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-lg">
-            <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
-          </div>
-        </div>
-      )}
-
-      <div className="absolute left-2 right-2 bottom-2">
-        <p className="text-[11px] font-black leading-tight line-clamp-2">
-          {highlight.title || "Highlight"}
-        </p>
-        <p className="text-[9px] text-white/65 mt-1 truncate">
-          {sourceLine || leagueLabel}
+        <p className="line-clamp-2 text-sm font-black leading-tight">{title}</p>
+        <p className="mt-1 text-[10px] font-black uppercase text-blue-700">
+          Game Highlight
         </p>
       </div>
-    </div>
-  );
-
-  if (targetUrl.startsWith("http")) {
-    return (
-      <a href={targetUrl} target="_blank" rel="noopener noreferrer">
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <Link to={targetUrl}>
-      {content}
-    </Link>
+    </a>
   );
 }
 
-function GameDayShotStoryModal({ item, teamsById, leaguesById, onClose }) {
-  const [index, setIndex] = useState(0);
-
-  if (!item) return null;
-
-  const shots = item.shots || [];
-  const shot = shots[index];
-  const game = item.game;
-
-  const home = getTeam(game.homeTeamId, teamsById);
-  const away = getTeam(game.awayTeamId, teamsById);
-  const league = getLeague(game.leagueId, leaguesById);
-  const date = getGameDate(game);
-
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
-
-  const goPrev = () => {
-    setIndex(current => (current <= 0 ? shots.length - 1 : current - 1));
-  };
-
-  const goNext = () => {
-    setIndex(current => (current >= shots.length - 1 ? 0 : current + 1));
-  };
-
-  return (
-    <div className="fixed inset-0 z-[9999] bg-black flex flex-col overflow-hidden">
-      <div className="shrink-0 px-4 pt-[calc(72px+env(safe-area-inset-top))] pb-3 bg-black border-b border-white/10">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-black uppercase tracking-wider text-primary">
-              GameDay Shots
-            </p>
-
-            <p className="text-sm font-black leading-tight whitespace-normal break-words mt-1">
-              {homeName} vs {awayName}
-            </p>
-
-            <p className="text-[10px] text-white/55 leading-tight whitespace-normal break-words mt-1">
-              {[league?.shortName || league?.name, date ? format(date, "dd.MM.yyyy", { locale: de }) : ""]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-11 h-11 rounded-full bg-white/20 border border-white/25 flex items-center justify-center text-white text-2xl font-black flex-shrink-0"
-            aria-label="Schließen"
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="mt-3 flex gap-1">
-          {shots.map((entry, dotIndex) => (
-            <div
-              key={entry.id || dotIndex}
-              className={`h-1 rounded-full flex-1 ${
-                dotIndex <= index ? "bg-white" : "bg-white/25"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="relative flex-1 min-h-0 px-3 py-2 bg-black flex items-center justify-center">
-        <div className="relative w-full h-full max-h-[48vh] rounded-2xl overflow-hidden bg-[#050914] border border-white/10 flex items-center justify-center">
-          {shot?.image_url ? (
-            <img
-              src={getImageUrl(shot.image_url)}
-              alt={shot.caption || "GameDay Shot"}
-              className="w-full h-full object-contain"
-            />
-          ) : (
-            <ImageIcon className="w-10 h-10 text-white/40" />
-          )}
-
-          {shots.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={goPrev}
-                className="absolute left-0 top-0 bottom-0 w-1/3"
-                aria-label="Vorheriges Bild"
-              />
-
-              <button
-                type="button"
-                onClick={goNext}
-                className="absolute right-0 top-0 bottom-0 w-1/3"
-                aria-label="Nächstes Bild"
-              />
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="shrink-0 max-h-[30vh] overflow-y-auto px-4 pt-2 pb-[calc(96px+env(safe-area-inset-bottom))] bg-black border-t border-white/10">
-        {shot?.caption && (
-          <p className="text-sm font-bold leading-relaxed whitespace-normal break-words">
-            {shot.caption}
-          </p>
-        )}
-
-        {(shot?.credit || shot?.instagram) && (
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
-            {shot.credit && (
-              shot.credit_link ? (
-                <a
-                  href={normalizeUrl(shot.credit_link)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-white/65 hover:text-white transition-colors"
-                >
-                  Foto: {shot.credit}
-                </a>
-              ) : (
-                <p className="text-xs text-white/60">
-                  Foto: {shot.credit}
-                </p>
-              )
-            )}
-
-            <InstagramCreditButton instagram={shot.instagram} />
-          </div>
-        )}
-
-        <p className="text-[10px] text-white/45 mt-2">
-          {index + 1} / {shots.length}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function GameDayShotsReelCard({ item, teamsById, leaguesById, onOpen }) {
-  const { game, shots } = item;
-
-  const home = getTeam(game.homeTeamId, teamsById);
-  const away = getTeam(game.awayTeamId, teamsById);
-  const league = getLeague(game.leagueId, leaguesById);
-  const date = getGameDate(game);
-
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
-
-  const cover = shots[0];
-  const coverUrl = normalizeUrl(cover?.image_url);
-
-  return (
-    <div className="relative snap-start shrink-0 w-[132px]">
-      <button
-        type="button"
-        onClick={() => onOpen(item)}
-        className="relative w-full rounded-2xl border border-white/10 bg-black overflow-hidden active:scale-[0.98] transition-transform text-left"
-      >
-        <div style={{ aspectRatio: "9 / 16" }}>
-          {coverUrl ? (
-            <img
-              src={getImageUrl(coverUrl)}
-              alt={cover?.caption || "GameDay Shot"}
-              className="absolute inset-0 w-full h-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-slate-950 to-black" />
-          )}
-        </div>
-
-        <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/10 to-transparent" />
-
-      {cover?.instagram && (
-        <div className="absolute top-2 right-2 z-10">
-          <InstagramCreditButton instagram={cover.instagram} compact />
-        </div>
-      )}
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-10 h-10 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-lg">
-            <Camera className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="absolute left-2 right-2 bottom-2">
-          <p className="text-[11px] font-black leading-tight line-clamp-2">
-            {homeName} vs {awayName}
-          </p>
-
-          <p className="text-[9px] text-white/65 mt-1 truncate">
-            {[league?.shortName || league?.name, date ? format(date, "dd.MM.", { locale: de }) : ""]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-        </div>
-      </button>
-
-      {cover?.instagram && (
-        <div className="absolute top-2 right-2 z-10">
-          <InstagramCreditButton instagram={cover.instagram} compact />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function UndefeatedTeamCard({ item, leaguesById }) {
-  const { team, record } = item;
-  const league = getLeague(record.leagueId || team.leagueId, leaguesById);
-  const color = getTeamColor(team, "#2563eb");
-
-  return (
-    <Link
-      to={`/team/${team.id}`}
-      className="snap-start shrink-0 w-[168px] rounded-2xl border border-white/10 bg-card p-3 active:scale-[0.98] transition-transform overflow-hidden"
-      style={{
-        boxShadow: `inset 4px 0 0 ${color}`,
-      }}
-    >
-      <div className="flex items-center gap-2">
-        <TeamMark team={team} fallback={team.name} />
-        <div className="min-w-0">
-                   <p className="text-xs font-black leading-tight whitespace-normal break-words line-clamp-2 min-h-[30px]">
-            {team.name || team.shortName}
-          </p>
-          <p className="text-[10px] text-muted-foreground leading-tight whitespace-normal break-words line-clamp-2">
-            {league?.shortName || league?.name || "Liga"}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <span className="text-lg font-black tabular-nums">
-          W{record.wins}
-        </span>
-
-        <span className="text-[9px] font-black rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 px-2 py-0.5">
-          HOT
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function UpcomingGameCard({ game, teamsById, leaguesById, partnerTeamIds }) {
-  const home = getTeam(game.homeTeamId, teamsById);
-  const away = getTeam(game.awayTeamId, teamsById);
-  const league = getLeague(game.leagueId, leaguesById);
-  const date = getGameDate(game);
-
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
-  const homeColor = getTeamColor(home, "#2563eb");
-  const awayColor = getTeamColor(away, "#ef4444");
-  const recommended = isPartnerClubGame(game, partnerTeamIds);
-
-  return (
-    <Link
-      to={`/game/${game.id}`}
-      className={`snap-start shrink-0 w-[315px] rounded-2xl border p-3 overflow-hidden active:scale-[0.99] transition-transform ${
-        recommended ? "border-primary/45" : "border-white/10"
-      }`}
-      style={{
-        background: `linear-gradient(135deg, ${homeColor}18 0%, #101722 48%, ${awayColor}18 100%)`,
-        boxShadow: recommended
-          ? `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}, 0 0 0 1px rgba(0,91,255,0.18), 0 16px 32px rgba(0,91,255,0.14)`
-          : `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}`,
-      }}
-    >
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
-            <p className="text-[10px] text-muted-foreground truncate">
-              {league?.shortName || league?.name || "Spiel"}
-            </p>
-
-            {recommended && (
-              <span className="text-[8px] font-black uppercase tracking-wider rounded-full bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 flex-shrink-0">
-                Empfohlen
-              </span>
-            )}
-          </div>
-
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            {date ? format(date, "dd.MM. · HH:mm", { locale: de }) : "Termin offen"}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {hasStream(game) && (
-            <span className="inline-flex items-center justify-center rounded-full border border-primary/25 bg-primary/10 text-primary w-5 h-5">
-              <Radio className="w-3 h-3" />
-            </span>
-          )}
-
-          <span className={`text-[9px] font-black uppercase tracking-wider border rounded-full px-2 py-0.5 ${getGameStatusClass(game)}`}>
-            {getGameStatusLabel(game)}
-          </span>
-
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-2 items-center">
-        <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
-          <TeamMark team={home} fallback={homeName} size="lg" />
-
-          <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
-            {homeName}
-          </span>
-        </div>
-
-        <div className="text-center px-2">
-          <div className="flex items-center justify-center">
-            <span className="text-sm font-black text-muted-foreground rounded-xl border border-white/10 px-3 py-1">
-              VS
-            </span>
-          </div>
-
-          <p className="text-[9px] text-muted-foreground mt-0.5">
-            {date ? format(date, "dd.MM.", { locale: de }) : getGameStatusLabel(game)}
-          </p>
-        </div>
-
-        <div className="min-w-0 flex flex-col items-center text-center gap-1.5">
-          <TeamMark team={away} fallback={awayName} size="lg" />
-
-          <span className="text-[11px] font-black leading-tight whitespace-normal break-words max-w-full">
-            {awayName}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-function NewsRailCard({ post }) {
-  const imageUrl =
-    Array.isArray(post.images) && post.images.length > 0
-      ? post.images[0]
-      : post.imageUrl || post.image || "";
-
-  const isClubNews = post.sourceType === "club_news";
+function NewsCard({ post }) {
+  const imageUrl = post.imageUrl || post.coverImageUrl || post.thumbnailUrl || "";
 
   return (
     <Link
       to={`/post/${post.id}`}
-      className="snap-start shrink-0 w-[220px] rounded-2xl border border-white/10 bg-card overflow-hidden active:scale-[0.98] transition-transform"
+      className="block overflow-hidden rounded-[24px] bg-white text-black"
     >
-      {imageUrl ? (
-        <img
-          src={getImageUrl(imageUrl)}
-          alt={post.title || "News"}
-          className="w-full aspect-video object-cover"
-          loading="lazy"
-        />
-      ) : (
-        <div className="w-full aspect-video bg-gradient-to-br from-blue-950 via-slate-950 to-black flex items-center justify-center">
-          <ImageIcon className="w-7 h-7 text-primary" />
+      {imageUrl && (
+        <div className="aspect-[16/8] bg-zinc-200">
+          <img src={getImageUrl(imageUrl)} alt="" className="h-full w-full object-cover" loading="lazy" />
         </div>
       )}
-
-      <div className="p-3">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {isClubNews && (
-            <span className="text-[9px] font-black uppercase tracking-wider text-emerald-300 bg-emerald-500/10 rounded-full px-2 py-0.5">
-              Vereinsnews
-            </span>
-          )}
-
-          <span className="text-[10px] text-primary font-black uppercase tracking-wider">
-            {post.category || "News"}
-          </span>
-        </div>
-
-        <h3 className="text-sm font-black leading-tight mt-1 line-clamp-2">
-          {post.title}
-        </h3>
-
+      <div className="p-4">
+        <p className="text-[10px] font-black uppercase tracking-wide text-red-600">News</p>
+        <h3 className="mt-1 text-base font-black leading-tight">{post.title || "News"}</h3>
         {(post.teaser || post.text) && (
-          <p className="text-[11px] text-muted-foreground leading-tight mt-1 line-clamp-2">
+          <p className="mt-2 line-clamp-2 text-xs font-semibold text-zinc-600">
             {post.teaser || post.text}
           </p>
         )}
@@ -1424,685 +340,373 @@ function NewsRailCard({ post }) {
   );
 }
 
-function RailSection({ icon, title, to, children, emptyLabel, hideWhenEmpty = false }) {
-  if (!children && hideWhenEmpty) return null;
+function PodcastCard({ podcast }) {
+  if (!podcast?.spotify_url) return null;
 
   return (
-    <section className="px-4 pt-6">
-      <SectionTitle icon={icon} title={title} to={to} />
-
-      {children ? (
-        <div className="flex gap-3 overflow-x-auto pb-1 snap-x">
-          {children}
+    <section>
+      <SectionTitle icon={Radio} title="Podcast" />
+      <a
+        href={podcast.spotify_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="grid grid-cols-[92px_1fr] gap-4 rounded-[26px] bg-white p-3 text-black"
+      >
+        <div className="h-[92px] w-[92px] overflow-hidden rounded-2xl bg-zinc-200">
+          {podcast.thumbnail_url ? (
+            <img src={getImageUrl(podcast.thumbnail_url)} alt="" className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <Radio className="h-8 w-8 text-blue-700" />
+            </div>
+          )}
         </div>
-      ) : (
-        <PlaceholderCard label={emptyLabel} />
-      )}
+        <div className="min-w-0 self-center">
+          <p className="text-[10px] font-black uppercase tracking-wide text-blue-700">
+            {podcast.partner_name || "Football Germany"}
+          </p>
+          <h3 className="mt-1 line-clamp-2 text-base font-black leading-tight">
+            {podcast.episode_title || podcast.podcast_title || "Neue Folge"}
+          </h3>
+          <p className="mt-2 text-xs font-bold text-zinc-500">
+            Auf Spotify ansehen
+          </p>
+        </div>
+      </a>
     </section>
   );
 }
 
+function ShotCard({ shot, game, teamsById }) {
+  const home = teamsById.get(game?.homeTeamId);
+  const away = teamsById.get(game?.awayTeamId);
+  const title = [getTeamName(home, game?.homeTeamPlaceholder), getTeamName(away, game?.awayTeamPlaceholder)]
+    .filter(Boolean)
+    .join(" vs ");
+
+  return (
+    <div className="w-[150px] flex-shrink-0 overflow-hidden rounded-[24px] bg-white text-black">
+      <div className="aspect-[3/4] bg-zinc-200">
+        <img src={getImageUrl(shot.image_url)} alt="" className="h-full w-full object-cover" loading="lazy" />
+      </div>
+      <div className="p-3">
+        <p className="line-clamp-2 text-xs font-black leading-tight">{title || shot.caption || "GameDay Shot"}</p>
+      </div>
+    </div>
+  );
+}
+
+function normalizePodcast(item) {
+  const meta = parseJsonMessage(item.message);
+
+  return {
+    spotify_url: meta.spotify_url || meta.url || "",
+    podcast_title: meta.podcast_title || "Football Germany Podcast",
+    episode_title: meta.episode_title || item.title || "",
+    thumbnail_url: meta.thumbnail_url || item.imageUrl || "",
+    partner_name: meta.partner_name || "Football Germany",
+    updated_at: meta.updated_at || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
+    active: item.isActive !== false && meta.active !== false,
+  };
+}
+
+function normalizeShot(item) {
+  const meta = parseJsonMessage(item.message);
+
+  return {
+    id: item.id,
+    game_id: meta.game_id || "",
+    image_url: meta.image_url || item.imageUrl || "",
+    caption: meta.caption || item.title || "",
+    active: item.isActive !== false && meta.active !== false,
+    created_at: meta.created_at || item.createdAtUtc || item.created_date || "",
+  };
+}
+
+function buildTeamRecords(games) {
+  const records = new Map();
+
+  const ensure = (teamId, leagueId) => {
+    if (!teamId) return null;
+    if (!records.has(teamId)) {
+      records.set(teamId, { teamId, leagueId, wins: 0, losses: 0, played: 0 });
+    }
+    return records.get(teamId);
+  };
+
+  games.filter(hasFinalScore).forEach((game) => {
+    const home = ensure(game.homeTeamId, game.leagueId);
+    const away = ensure(game.awayTeamId, game.leagueId);
+    if (!home || !away) return;
+
+    home.played += 1;
+    away.played += 1;
+
+    if (Number(game.scoreHome) > Number(game.scoreAway)) {
+      home.wins += 1;
+      away.losses += 1;
+    } else if (Number(game.scoreAway) > Number(game.scoreHome)) {
+      away.wins += 1;
+      home.losses += 1;
+    }
+  });
+
+  return records;
+}
+
+function StreakCard({ item }) {
+  const color = getTeamColor(item.team, "#005bff");
+
+  return (
+    <Link
+      to={`/team/${item.team.id}`}
+      className="flex min-w-[190px] flex-shrink-0 items-center gap-3 rounded-[24px] bg-white p-3 text-black"
+    >
+      <TeamMark team={item.team} fallback={item.team.name} color={color} />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-black">{item.team.name}</p>
+        <p className="text-xl font-black text-blue-700">W{item.record.wins}</p>
+      </div>
+    </Link>
+  );
+}
+
 export default function Home() {
-  const { leagues, teams, games, tournaments } = useGlobalData();
+  const { games, teams, leagues, gamesById } = useGlobalData();
 
-  const [selectedLeagueId, setSelectedLeagueId] = useState(null);
-  const [search, setSearch] = useState("");
-  const [activeShotStory, setActiveShotStory] = useState(null);
-
-  const { data: homeAppUpdates = [] } = useQuery({
-    queryKey: ["home-app-updates"],
-    queryFn: async () => {
-      return await base44.entities.AppUpdate.list("-created_date");
-    },
+  const { data: appUpdates = [] } = useQuery({
+    queryKey: ["home-overview-updates"],
+    queryFn: () => base44.entities.AppUpdate.list("-created_date", 80),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
-    retry: 2,
+    retry: 1,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
 
-  const { data: homePosts = [] } = useQuery({
-    queryKey: ["home-news-posts"],
-    queryFn: async () => {
-      return await base44.entities.Post.list("-publishedAtUtc", 20);
-    },
+  const { data: posts = [] } = useQuery({
+    queryKey: ["home-overview-news"],
+    queryFn: () => base44.entities.Post.list("-publishedAtUtc", 20),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
-    retry: 2,
+    retry: 1,
     placeholderData: (previousData) => previousData,
     refetchOnWindowFocus: false,
   });
-    const { data: homePartners = [] } = useQuery({
-    queryKey: ["home-partners"],
-    queryFn: async () => {
-      return await base44.entities.Partner.list();
-    },
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-    retry: 2,
-    placeholderData: (previousData) => previousData,
-    refetchOnWindowFocus: false,
-  });
-
-  const partnerTeamIds = useMemo(() => {
-    return new Set(
-      homePartners
-        .filter(partner =>
-          partner.isPartnerClub === true ||
-          partner.partnerStatus === "active"
-        )
-        .map(partner => partner.connectedTeamId || partner.teamId)
-        .filter(Boolean)
-    );
-  }, [homePartners]);
-  const highlights = useMemo(() => {
-    return homeAppUpdates
-      .filter(item =>
-        item.version === HIGHLIGHT_VERSION &&
-        item.isActive !== false
-      )
-      .map(normalizeHighlight);
-  }, [homeAppUpdates]);
-
-  
-
-  const adBanners = useMemo(() => {
-    return homeAppUpdates
-      .filter(item =>
-        item.version === AD_BANNER_VERSION &&
-        item.isActive !== false
-      )
-      .map(normalizeAdBanner);
-  }, [homeAppUpdates]);
-
-  const gameDayShots = useMemo(() => {
-    return homeAppUpdates
-      .filter(item =>
-        item.version === GAMEDAY_SHOT_VERSION &&
-        item.isActive !== false
-      )
-      .map(normalizeGameDayShot);
-  }, [homeAppUpdates]);
-
-  const homePodcast = useMemo(() => {
-    return homeAppUpdates
-      .filter(item =>
-        item.version === PODCAST_VERSION &&
-        item.isActive !== false
-      )
-      .map(normalizePodcast)
-      .filter(item => item.active && item.spotify_url)
-      .sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")))[0] || null;
-  }, [homeAppUpdates]);
 
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
-  const gamesById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
-
-  const query = search.trim().toLowerCase();
-
-  const filteredGames = useMemo(() => {
-    return games.filter((game) => {
-      if (selectedLeagueId && game.leagueId !== selectedLeagueId) return false;
-
-      if (!query) return true;
-
-      const home = teamsById.get(game.homeTeamId);
-      const away = teamsById.get(game.awayTeamId);
-      const league = leaguesById.get(game.leagueId);
-
-      const competition = tournaments.find(item =>
-        item.id === game.competitionId ||
-        item.id === game.tournamentId
-      );
-
-      const haystack = [
-        home?.name,
-        home?.shortName,
-        away?.name,
-        away?.shortName,
-        league?.name,
-        league?.shortName,
-        competition?.name,
-        game.homeTeamPlaceholder,
-        game.awayTeamPlaceholder,
-        game.venue,
-        game.city,
-        game.roundName,
-        game.status === "cancelled" ? "abgesagt cancelled" : "",
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(query);
-    });
-  }, [games, leaguesById, query, selectedLeagueId, teamsById, tournaments]);
-
   const today = useMemo(() => startOfDay(new Date()), []);
-const tomorrow = useMemo(() => addDays(today, 1), [today]);
-const lastSevenDays = useMemo(() => subDays(today, 7), [today]);
-const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
-
-    const teamRecords = useMemo(() => buildTeamRecords(games), [games]);
+  const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
+  const lastSevenDays = useMemo(() => subDays(today, 7), [today]);
 
   const liveGames = useMemo(() => {
-    return filteredGames
+    return games
       .filter((game) => getEffectiveGameStatus(game) === "live")
-      .slice(0, 7);
-  }, [filteredGames]);
+      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
+      .slice(0, 5);
+  }, [games]);
+
+  const upcomingGames = useMemo(() => {
+    return games
+      .filter((game) => {
+        const date = getGameDate(game);
+        if (!date) return false;
+        const status = getEffectiveGameStatus(game);
+        return status !== "live" && status !== "final" && status !== "cancelled" && !isBefore(date, new Date()) && isBefore(date, addDays(nextSevenDays, 1));
+      })
+      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
+      .slice(0, 6);
+  }, [games, nextSevenDays]);
 
   const gameOfTheWeek = useMemo(() => {
-    const candidates = filteredGames
-      .filter(game => game.isGameOfTheWeek === true)
-      .filter(game => getEffectiveGameStatus(game) !== "cancelled")
+    return [...games]
+      .filter((game) => game.isGameOfTheWeek === true)
+      .filter((game) => getEffectiveGameStatus(game) !== "cancelled")
       .sort((a, b) => {
         const selectedA = new Date(a.gameOfTheWeekSelectedAtUtc || 0).getTime();
         const selectedB = new Date(b.gameOfTheWeekSelectedAtUtc || 0).getTime();
-
         if (selectedA !== selectedB) return selectedB - selectedA;
+        return (getGameDate(b)?.getTime() || 0) - (getGameDate(a)?.getTime() || 0);
+      })[0] || null;
+  }, [games]);
 
-        const dateA = getGameDate(a)?.getTime() || 0;
-        const dateB = getGameDate(b)?.getTime() || 0;
-
-        return dateB - dateA;
-      });
-
-    const selectedGame = candidates[0] || null;
-
-    if (!selectedGame) return null;
-
-    return {
-      game: selectedGame,
-      label: selectedGame.gameOfTheWeekLabel || "by Media",
-    };
-  }, [filteredGames]);
-  const homeHighlights = useMemo(() => {
-  const maxAgeDate = subDays(today, 7);
-
-  return [...highlights]
-    .filter(highlight => highlight.active !== false)
-    .filter(highlight => {
-      const linkedGame = highlight.game_id
-        ? gamesById.get(highlight.game_id)
-        : null;
-
-      const gameDate = linkedGame ? getGameDate(linkedGame) : null;
-
-      // Wenn ein Highlight einem Spiel zugeordnet ist,
-      // zählt das Spiel-Datum.
-      if (gameDate) {
-        return !isBefore(gameDate, maxAgeDate) && !isAfter(gameDate, addDays(today, 1));
-      }
-
-      // Wenn kein Spiel zugeordnet ist, nutzen wir als Fallback das Highlight-Datum.
-      const rawDate =
-        highlight.date ||
-        highlight.createdAtUtc ||
-        highlight.created_date ||
-        '';
-
-      if (!rawDate) return true;
-
-      const highlightDate = startOfDay(new Date(rawDate));
-
-      if (Number.isNaN(highlightDate.getTime())) return true;
-
-      return !isBefore(highlightDate, maxAgeDate);
-    })
-    .filter(highlight => highlightMatchesCurrentFilter(
-      highlight,
-      selectedLeagueId,
-      query,
-      teamsById,
-      leaguesById,
-      gamesById
-    ))
-    .sort((a, b) => {
-      const gameA = a.game_id ? gamesById.get(a.game_id) : null;
-      const gameB = b.game_id ? gamesById.get(b.game_id) : null;
-
-      const dateA = (
-        getGameDate(gameA) ||
-        new Date(a.date || a.createdAtUtc || a.created_date || 0)
-      ).getTime();
-
-      const dateB = (
-        getGameDate(gameB) ||
-        new Date(b.date || b.createdAtUtc || b.created_date || 0)
-      ).getTime();
-
-      return dateB - dateA;
-    })
-    .slice(0, 8);
-}, [gamesById, highlights, leaguesById, query, selectedLeagueId, teamsById, today]);
-
-  const homeNews = useMemo(() => {
-    return [...homePosts]
-      .filter(post => post.type === "news")
-      .filter(post => post.isActive !== false)
-      .filter(post => {
-        if (!query) return true;
-
-        const haystack = [
-          post.title,
-          post.teaser,
-          post.text,
-          post.category,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        return haystack.includes(query);
+  const highlights = useMemo(() => {
+    return appUpdates
+      .filter((item) => item.version === HIGHLIGHT_VERSION && item.isActive !== false)
+      .filter((item) => {
+        const meta = parseJsonMessage(item.message);
+        const linkedGame = meta.game_id ? gamesById.get(meta.game_id) : null;
+        const gameDate = linkedGame ? getGameDate(linkedGame) : null;
+        if (gameDate) return !isBefore(gameDate, lastSevenDays);
+        return true;
       })
+      .slice(0, 8);
+  }, [appUpdates, gamesById, lastSevenDays]);
+
+  const podcast = useMemo(() => {
+    return appUpdates
+      .filter((item) => item.version === PODCAST_VERSION && item.isActive !== false)
+      .map(normalizePodcast)
+      .filter((item) => item.active && item.spotify_url)
+      .sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")))[0] || null;
+  }, [appUpdates]);
+
+  const shots = useMemo(() => {
+    return appUpdates
+      .filter((item) => item.version === GAMEDAY_SHOT_VERSION && item.isActive !== false)
+      .map(normalizeShot)
+      .filter((shot) => shot.active && shot.image_url && shot.game_id)
+      .filter((shot) => {
+        const game = gamesById.get(shot.game_id);
+        const date = getGameDate(game);
+        return date && !isBefore(date, lastSevenDays);
+      })
+      .slice(0, 8);
+  }, [appUpdates, gamesById, lastSevenDays]);
+
+  const news = useMemo(() => {
+    return posts
+      .filter((post) => post.type === "news" && post.isActive !== false)
       .sort((a, b) => {
         const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || a.created_date || 0).getTime();
         const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || b.created_date || 0).getTime();
-
         return dateB - dateA;
       })
-      .slice(0, 8);
-  }, [homePosts, query]);
-  
-  const activeAdBanners = useMemo(() => {
-    return [...adBanners]
-      .filter(banner => isActiveInDateRange(banner, today))
-      .filter(banner => banner.image_url || banner.title)
-      .sort((a, b) => {
-        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-
-        const dateA = new Date(a.createdAtUtc || a.created_date || 0).getTime();
-        const dateB = new Date(b.createdAtUtc || b.created_date || 0).getTime();
-
-        return dateB - dateA;
-      })
-      .slice(0, 2);
-  }, [adBanners, today]);
+      .slice(0, 3);
+  }, [posts]);
 
   const undefeatedTeams = useMemo(() => {
-    const bestByLeague = new Map();
+    const records = buildTeamRecords(games);
 
-    Array.from(teamRecords.values())
-      .filter(record => record.played > 0 && record.losses === 0)
-      .map(record => ({
+    return Array.from(records.values())
+      .filter((record) => record.played > 0 && record.losses === 0)
+      .map((record) => ({
         record,
-        team: getTeam(record.teamId, teamsById),
-        league: getLeague(record.leagueId, leaguesById),
+        team: teamsById.get(record.teamId),
       }))
-      .filter(item => item.team)
-      .forEach(item => {
-        const leagueKey = item.record.leagueId || item.team.leagueId || "unknown";
-        const current = bestByLeague.get(leagueKey);
+      .filter((item) => item.team)
+      .sort((a, b) => b.record.wins - a.record.wins)
+      .slice(0, 8);
+  }, [games, teamsById]);
 
-        if (!current) {
-          bestByLeague.set(leagueKey, item);
-          return;
-        }
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-4 pb-24">
+      <div className="space-y-6">
+        <Hero
+          liveCount={liveGames.length}
+          upcomingCount={upcomingGames.length}
+          leaguesCount={leagues.length}
+        />
 
-        if (item.record.wins > current.record.wins) {
-          bestByLeague.set(leagueKey, item);
-          return;
-        }
+        {liveGames.length > 0 && (
+          <section>
+            <SectionTitle icon={Zap} title="Live Games" to="/match-center" />
+            <div className="space-y-3">
+              {liveGames.map((game) => (
+                <ScoreCard key={game.id} game={game} teamsById={teamsById} leaguesById={leaguesById} />
+              ))}
+            </div>
+          </section>
+        )}
 
-        if (
-          item.record.wins === current.record.wins &&
-          (item.team.name || "").localeCompare(current.team.name || "") < 0
-        ) {
-          bestByLeague.set(leagueKey, item);
-        }
-      });
+        <section>
+          <SectionTitle icon={Play} title="Game Highlights" to="/highlights" />
+          {highlights.length > 0 ? (
+            <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
+              <div className="flex gap-3 pb-1">
+                {highlights.map((item) => (
+                  <HighlightCard key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <EmptyStrip label="Keine Highlights" />
+          )}
+        </section>
 
-    return Array.from(bestByLeague.values())
-      .sort((a, b) => {
-        if (b.record.wins !== a.record.wins) return b.record.wins - a.record.wins;
-
-        const leaguePriorityA = getLeaguePriority(a.league);
-        const leaguePriorityB = getLeaguePriority(b.league);
-
-        if (leaguePriorityA !== leaguePriorityB) return leaguePriorityA - leaguePriorityB;
-
-        return (a.team.name || "").localeCompare(b.team.name || "");
-      })
-      .slice(0, 10);
-  }, [leaguesById, teamRecords, teamsById]);
-
-  const upcomingGames = useMemo(() => {
-  const now = new Date();
-
-  return filteredGames
-    .filter((game) => {
-      const date = getGameDate(game);
-      if (!date) return false;
-
-      const effectiveStatus = getEffectiveGameStatus(game);
-      if (effectiveStatus === "live" || effectiveStatus === "final" || effectiveStatus === "cancelled") return false;
-
-      return (
-        !isBefore(date, now) &&
-        isBefore(date, addDays(nextSevenDays, 1))
-      );
-    })
-          .sort((a, b) => {
-      const partnerA = isPartnerClubGame(a, partnerTeamIds) ? 0 : 1;
-      const partnerB = isPartnerClubGame(b, partnerTeamIds) ? 0 : 1;
-
-      if (partnerA !== partnerB) return partnerA - partnerB;
-
-      return (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0);
-    })
-    .slice(0, 7);
-}, [filteredGames, nextSevenDays, partnerTeamIds]);
-
-  const gameDayShotGames = useMemo(() => {
-  const grouped = new Map();
-  const maxAgeDate = subDays(today, 7);
-
-  gameDayShots
-    .filter(shot => shot.active !== false && shot.game_id && shot.image_url)
-    .forEach(shot => {
-      const game = gamesById.get(shot.game_id);
-      if (!game) return;
-      if (getEffectiveGameStatus(game) === "cancelled") return;
-
-      const gameDate = getGameDate(game);
-      if (!gameDate) return;
-
-      // Nur Spiele anzeigen, die maximal 7 Tage zurückliegen.
-      // Ab dem 8. Tag verschwinden sie automatisch.
-      if (isBefore(gameDate, maxAgeDate)) return;
-
-      // Nur vergangene oder heutige Spiele anzeigen, keine zukünftigen.
-      if (isAfter(gameDate, addDays(today, 1))) return;
-
-      if (selectedLeagueId && game.leagueId !== selectedLeagueId) return;
-
-      if (query) {
-        const home = teamsById.get(game.homeTeamId);
-        const away = teamsById.get(game.awayTeamId);
-        const league = leaguesById.get(game.leagueId);
-
-        const haystack = [
-          home?.name,
-          home?.shortName,
-          away?.name,
-          away?.shortName,
-          league?.name,
-          league?.shortName,
-          game.homeTeamPlaceholder,
-          game.awayTeamPlaceholder,
-          game.roundName,
-          shot.caption,
-          shot.credit,
-          shot.instagram,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-        if (!haystack.includes(query)) return;
-      }
-
-      if (!grouped.has(shot.game_id)) {
-        grouped.set(shot.game_id, {
-          game,
-          shots: [],
-        });
-      }
-
-      grouped.get(shot.game_id).shots.push(shot);
-    });
-
-  return Array.from(grouped.values())
-    .map(item => ({
-      ...item,
-      shots: item.shots.sort((a, b) => {
-        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
-
-        const dateA = new Date(a.created_at || a.createdAtUtc || a.created_date || 0).getTime();
-        const dateB = new Date(b.created_at || b.createdAtUtc || b.created_date || 0).getTime();
-
-        return dateA - dateB;
-      }),
-    }))
-    .sort((a, b) => {
-      const dateA = getGameDate(a.game)?.getTime() || 0;
-      const dateB = getGameDate(b.game)?.getTime() || 0;
-
-      return dateB - dateA;
-    })
-    .slice(0, 10);
-}, [gameDayShots, gamesById, leaguesById, query, selectedLeagueId, teamsById, today]);
-
-
-
-  const toggleLeague = leagueId => {
-    setSelectedLeagueId(current => (current === leagueId ? null : leagueId));
-  };
-
-const sortedHomeLeagues = useMemo(() => {
-  const getLeagueScopePriority = (league) => {
-    const scope = String(
-      league.scope ||
-      league.type ||
-      league.category ||
-      league.regionType ||
-      ''
-    ).toLowerCase();
-
-    const country = String(league.country || '').toLowerCase();
-    const region = String(league.region || league.state || league.federalState || '').toLowerCase();
-    const name = String(league.name || league.shortName || '').toLowerCase();
-
-    // Europa / International zuerst
-    if (
-      scope.includes('international') ||
-      scope.includes('europe') ||
-      scope.includes('europa') ||
-      country.includes('international') ||
-      country.includes('europe') ||
-      country.includes('europa') ||
-      name.includes('europe') ||
-      name.includes('european') ||
-      name.includes('efl') ||
-      name.includes('cefl') ||
-      name.includes('elf')
-    ) {
-      return 0;
-    }
-
-    // Länder danach, z.B. Deutschland
-    if (
-      country &&
-      !region &&
-      (
-        country.includes('deutschland') ||
-        country.includes('germany') ||
-        country.includes('de')
-      )
-    ) {
-      return 1;
-    }
-
-    // Bundesländer / Regionen danach
-    if (region) {
-      return 2;
-    }
-
-    return 3;
-  };
-
-  return [...leagues].sort((a, b) => {
-    const scopeA = getLeagueScopePriority(a);
-    const scopeB = getLeagueScopePriority(b);
-
-    if (scopeA !== scopeB) return scopeA - scopeB;
-
-    const sortA = Number(a.sortOrder ?? a.order ?? a.displayOrder ?? 999);
-    const sortB = Number(b.sortOrder ?? b.order ?? b.displayOrder ?? 999);
-
-    if (sortA !== sortB) return sortA - sortB;
-
-    const levelA = Number(a.level ?? a.tier ?? 999);
-    const levelB = Number(b.level ?? b.tier ?? 999);
-
-    if (levelA !== levelB) return levelA - levelB;
-
-    const regionA = String(a.region || a.state || a.federalState || '');
-    const regionB = String(b.region || b.state || b.federalState || '');
-
-    if (regionA !== regionB) {
-      return regionA.localeCompare(regionB, 'de');
-    }
-
-    return String(a.name || '').localeCompare(String(b.name || ''), 'de');
-  });
-}, [leagues]);
-
-    return (
-    <div className="w-full max-w-full overflow-x-hidden pb-6">
-      <LeagueCarousel
-        leagues={sortedHomeLeagues}
-        selectedLeagueId={selectedLeagueId}
-        onToggle={toggleLeague}
-      />
-
-      <SearchBox value={search} onChange={setSearch} />
-
-      {liveGames.length > 0 && (
-        <RailSection
-          icon={Zap}
-          title="Live Games"
-          to="/match-center"
-          emptyLabel="Keine Live Games"
-        >
-          {liveGames.map((game) => (
-            <LiveGameCard
-              key={game.id}
-              game={game}
+        {gameOfTheWeek && (
+          <section>
+            <SectionTitle icon={Star} title="Game of the Week" />
+            <ScoreCard
+              game={gameOfTheWeek}
               teamsById={teamsById}
               leaguesById={leaguesById}
+              featured
             />
-          ))}
-        </RailSection>
-      )}
+          </section>
+        )}
 
-      <RailSection
-        icon={Play}
-        title="Game Highlights"
-        to="/highlights"
-        emptyLabel="Keine Highlights"
-      >
-        {homeHighlights.length > 0
-          ? homeHighlights.map((highlight) => (
-              <HighlightReelCard
-                key={highlight.id}
-                highlight={highlight}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-                gamesById={gamesById}
-                wide
-              />
-            ))
-          : null}
-      </RailSection>
+        {news.length > 0 && (
+          <section>
+            <SectionTitle icon={Newspaper} title="News" to="/feed" />
+            <div className="space-y-3">
+              {news.map((post) => (
+                <NewsCard key={post.id} post={post} />
+              ))}
+            </div>
+          </section>
+        )}
 
-      {gameOfTheWeek && (
-        <GameOfWeekCard
-          game={gameOfTheWeek.game}
-          label={gameOfTheWeek.label}
-          teamsById={teamsById}
-          leaguesById={leaguesById}
-        />
-      )}
+        <PodcastCard podcast={podcast} />
 
-      <RailSection
-        icon={ImageIcon}
-        title="News"
-        to="/feed"
-        emptyLabel="Keine News"
-        hideWhenEmpty
-      >
-        {homeNews.length > 0
-          ? homeNews.map((post) => (
-              <NewsRailCard
-                key={post.id}
-                post={post}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-              />
-            ))
-          : null}
-      </RailSection>
+        {undefeatedTeams.length > 0 && (
+          <section>
+            <SectionTitle icon={ShieldCheck} title="Siegesserien" />
+            <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
+              <div className="flex gap-3 pb-1">
+                {undefeatedTeams.map((item) => (
+                  <StreakCard key={item.team.id} item={item} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
-      <PodcastHomeCard podcast={homePodcast} />
+        <section>
+          <SectionTitle icon={Camera} title="GameDay Shots" />
+          {shots.length > 0 ? (
+            <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
+              <div className="flex gap-3 pb-1">
+                {shots.map((shot) => (
+                  <ShotCard
+                    key={shot.id}
+                    shot={shot}
+                    game={gamesById.get(shot.game_id)}
+                    teamsById={teamsById}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <EmptyStrip label="Noch keine GameDay Shots" />
+          )}
+        </section>
 
-      <RailSection
-        icon={ShieldCheck}
-        title="Siegesserien"
-        emptyLabel="Keine aktiven Siegesserien"
-        hideWhenEmpty
-      >
-        {undefeatedTeams.length > 0
-          ? undefeatedTeams.map((item) => (
-              <UndefeatedTeamCard
-                key={`${item.record.leagueId || item.team.leagueId || "unknown"}-${item.team.id}`}
-                item={item}
-                leaguesById={leaguesById}
-              />
-            ))
-          : null}
-      </RailSection>
+        <section>
+          <SectionTitle icon={CalendarDays} title="Kommende Spiele" to="/match-center" />
+          {upcomingGames.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingGames.map((game) => (
+                <ScoreCard key={game.id} game={game} teamsById={teamsById} leaguesById={leaguesById} />
+              ))}
+            </div>
+          ) : (
+            <EmptyStrip label="Keine kommenden Spiele" />
+          )}
+        </section>
 
-      <AdBannerSlot banners={activeAdBanners} position="after_highlights" />
-
-      <RailSection
-        icon={Camera}
-        title="GameDay Shots"
-        emptyLabel="Noch keine GameDay Shots"
-      >
-        {gameDayShotGames.length > 0
-          ? gameDayShotGames.map((item) => (
-              <GameDayShotsReelCard
-                key={item.game.id}
-                item={item}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-                onOpen={setActiveShotStory}
-              />
-            ))
-          : null}
-      </RailSection>
-
-      <RailSection
-        icon={CalendarDays}
-        title="Kommende Spiele"
-        to="/match-center"
-        emptyLabel="Keine kommenden Spiele"
-      >
-        {upcomingGames.length > 0
-          ? upcomingGames.map((game) => (
-                 <UpcomingGameCard
-                key={game.id}
-                game={game}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-                partnerTeamIds={partnerTeamIds}
-              />
-            ))
-          : null}
-      </RailSection>
-
-      <AdBannerSlot banners={activeAdBanners} position="after_upcoming" />
-
-      {activeShotStory && (
-        <GameDayShotStoryModal
-          item={activeShotStory}
-          teamsById={teamsById}
-          leaguesById={leaguesById}
-          onClose={() => setActiveShotStory(null)}
-        />
-      )}
+        <Link
+          to="/match-center"
+          className="flex items-center justify-between rounded-[26px] bg-red-600 px-4 py-4 text-white"
+        >
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wide text-white/70">Alles an einem Ort</p>
+            <p className="text-lg font-black">Match Center oeffnen</p>
+          </div>
+          <Trophy className="h-6 w-6" />
+        </Link>
       </div>
+    </div>
   );
 }

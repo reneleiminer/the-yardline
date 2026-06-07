@@ -86,7 +86,7 @@ function StatusBadge({ game }) {
 
   const config = {
     live: "bg-red-600 text-white border-red-500",
-    final: "bg-white text-black border-white",
+    final: "bg-black text-white border-black",
     cancelled: "bg-zinc-700 text-white border-zinc-600",
     scheduled: "bg-blue-700 text-white border-blue-500",
   }[status] || "bg-blue-700 text-white border-blue-500";
@@ -108,7 +108,7 @@ function StatusBadge({ game }) {
 function TeamLogo({ team, fallback, color }) {
   return (
     <div
-      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-black p-2"
+      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-white p-2"
       style={{ boxShadow: `inset 0 -4px 0 ${color || "#005bff"}` }}
     >
       {team?.logo ? (
@@ -119,7 +119,7 @@ function TeamLogo({ team, fallback, color }) {
           loading="lazy"
         />
       ) : (
-        <span className="text-sm font-black">{team?.shortName?.[0] || team?.name?.[0] || fallback?.[0] || "?"}</span>
+        <span className="text-sm font-black text-black">{team?.shortName?.[0] || team?.name?.[0] || fallback?.[0] || "?"}</span>
       )}
     </div>
   );
@@ -140,7 +140,7 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
   return (
     <Link
       to={`/game/${game.id}`}
-      className="block overflow-hidden rounded-2xl border border-white/10 bg-[#050505] active:scale-[0.99] transition-transform"
+      className="block overflow-hidden rounded-[26px] border border-black/10 bg-white text-black active:scale-[0.99] transition-transform"
     >
       <div className="grid grid-cols-[6px_1fr_6px]">
         <div style={{ background: homeColor }} />
@@ -148,10 +148,10 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
         <div className="px-3 py-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="truncate text-[10px] font-black uppercase tracking-wide text-white/55">
+              <p className="truncate text-[10px] font-black uppercase tracking-wide text-zinc-500">
                 {league?.shortName || league?.name || "Match"}
               </p>
-              <p className="truncate text-[11px] font-bold text-white/42">
+              <p className="truncate text-[11px] font-bold text-zinc-500">
                 {kickoff ? format(kickoff, "EEE dd.MM. HH:mm", { locale: de }) : "Termin offen"}
               </p>
             </div>
@@ -162,22 +162,22 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
             <div className="min-w-0">
               <TeamLogo team={home} fallback={homeName} color={homeColor} />
-              <p className="mt-2 text-sm font-black leading-tight text-white whitespace-normal break-words">
+              <p className="mt-2 text-sm font-black leading-tight text-black whitespace-normal break-words">
                 {homeName}
               </p>
             </div>
 
-            <div className="flex min-w-[78px] flex-col items-center justify-center rounded-2xl bg-white px-3 py-2 text-black">
+            <div className="flex min-w-[78px] flex-col items-center justify-center rounded-2xl bg-black px-3 py-2 text-white">
               {showScore ? (
                 <div className="flex items-center gap-2 text-2xl font-black tabular-nums">
                   <span>{game.scoreHome ?? 0}</span>
-                  <span className="text-zinc-400">:</span>
+                  <span className="text-white/35">:</span>
                   <span>{game.scoreAway ?? 0}</span>
                 </div>
               ) : (
                 <>
                   <span className="text-xl font-black">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</span>
-                  <span className="text-[9px] font-black uppercase text-zinc-500">
+                  <span className="text-[9px] font-black uppercase text-white/50">
                     {kickoff ? "Kickoff" : "Offen"}
                   </span>
                 </>
@@ -188,14 +188,14 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
               <div className="flex justify-end">
                 <TeamLogo team={away} fallback={awayName} color={awayColor} />
               </div>
-              <p className="mt-2 text-sm font-black leading-tight text-white whitespace-normal break-words">
+              <p className="mt-2 text-sm font-black leading-tight text-black whitespace-normal break-words">
                 {awayName}
               </p>
             </div>
           </div>
 
           {!compact && (game.roundName || game.venue || game.city) && (
-            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wide text-white/50">
+            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
               {game.roundName && <span>{game.roundName}</span>}
               {game.venue && <span>{game.venue}</span>}
               {game.city && <span>{game.city}</span>}
@@ -212,12 +212,12 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
 function SearchBox({ value, onChange }) {
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Team, Liga, Spiel oder Tournament suchen"
-        className="h-12 w-full rounded-2xl border border-white/10 bg-[#050505] pl-10 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-blue-500"
+        className="h-12 w-full rounded-2xl border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-black outline-none placeholder:text-zinc-400 focus:border-blue-600"
       />
     </div>
   );
@@ -225,7 +225,7 @@ function SearchBox({ value, onChange }) {
 
 function TabSwitch({ value, onChange }) {
   return (
-    <div className="grid grid-cols-3 rounded-2xl border border-white/10 bg-[#050505] p-1">
+    <div className="grid grid-cols-3 rounded-2xl border border-black/10 bg-white p-1">
       {MATCH_TABS.map((tab) => (
         <button
           key={tab.key}
@@ -234,7 +234,7 @@ function TabSwitch({ value, onChange }) {
           className={`h-10 rounded-xl text-xs font-black transition-colors ${
             value === tab.key
               ? "bg-blue-700 text-white"
-              : "text-white/45 hover:text-white"
+              : "text-zinc-500 hover:text-black"
           }`}
         >
           {tab.label}
@@ -253,11 +253,12 @@ function HeroStats({ liveCount, upcomingCount, tournamentCount, leagueCount }) {
   ];
 
   return (
-    <section className="rounded-3xl border border-white/10 bg-[#050505] p-4">
+    <section className="overflow-hidden rounded-[30px] bg-blue-700 text-white">
+      <div className="p-5">
       <div className="mb-4">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-500">The Yardline</p>
-        <h1 className="mt-1 text-3xl font-black tracking-normal text-white">Match Center</h1>
-        <p className="mt-1 text-sm font-semibold text-white/45">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/65">The Yardline</p>
+        <h1 className="mt-1 text-4xl font-black tracking-normal text-white">Match Center</h1>
+        <p className="mt-2 text-sm font-semibold text-white/72">
           Spiele, Tabellen, Ligen und Tournaments an einem Ort.
         </p>
       </div>
@@ -267,7 +268,7 @@ function HeroStats({ liveCount, upcomingCount, tournamentCount, leagueCount }) {
           const Icon = item.icon;
 
           return (
-            <div key={item.label} className="rounded-2xl border border-white/10 bg-black p-3">
+            <div key={item.label} className="rounded-2xl bg-black p-3">
               <div className={`mb-3 flex h-8 w-8 items-center justify-center rounded-xl ${item.color}`}>
                 <Icon className="h-4 w-4" />
               </div>
@@ -276,6 +277,7 @@ function HeroStats({ liveCount, upcomingCount, tournamentCount, leagueCount }) {
             </div>
           );
         })}
+      </div>
       </div>
     </section>
   );
@@ -331,14 +333,14 @@ function GamesPanel({ games, teamsById, leaguesById }) {
 
   return (
     <section>
-      <div className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-[#050505] p-1">
+    <div className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-black/10 bg-white p-1">
         {modes.map((item) => (
           <button
             key={item.key}
             type="button"
             onClick={() => setMode(item.key)}
             className={`h-10 rounded-xl text-[11px] font-black ${
-              mode === item.key ? "bg-red-600 text-white" : "text-white/45"
+              mode === item.key ? "bg-red-600 text-white" : "text-zinc-500"
             }`}
           >
             {item.label}
@@ -376,7 +378,7 @@ function LeagueRow({ league }) {
   return (
     <Link
       to={`/tabellen/${league.id}`}
-      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#050505] p-3 active:scale-[0.99] transition-transform"
+      className="flex items-center gap-3 rounded-[24px] border border-black/10 bg-white p-3 text-black active:scale-[0.99] transition-transform"
     >
       <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-black p-2">
         {league.logo ? (
@@ -387,9 +389,9 @@ function LeagueRow({ league }) {
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-sm font-black">{league.name}</h3>
-        <p className="truncate text-[11px] font-bold text-white/45">{meta.join(" · ")}</p>
+        <p className="truncate text-[11px] font-bold text-zinc-500">{meta.join(" · ")}</p>
       </div>
-      <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/35" />
+      <ChevronRight className="h-4 w-4 flex-shrink-0 text-zinc-400" />
     </Link>
   );
 }
@@ -424,7 +426,7 @@ function TournamentRow({ tournament }) {
   return (
     <Link
       to={`/wettbewerbe/${tournament.id}`}
-      className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#050505] p-3 active:scale-[0.99] transition-transform"
+      className="flex items-center gap-3 rounded-[24px] border border-black/10 bg-white p-3 text-black active:scale-[0.99] transition-transform"
     >
       <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-black p-2">
         {tournament.logo ? (
@@ -435,14 +437,14 @@ function TournamentRow({ tournament }) {
       </div>
       <div className="min-w-0 flex-1">
         <h3 className="truncate text-sm font-black">{tournament.name || "Tournament"}</h3>
-        <p className="truncate text-[11px] font-bold text-white/45">
+        <p className="truncate text-[11px] font-bold text-zinc-500">
           {[tournament.type || "Cup", tournament.season].filter(Boolean).join(" · ")}
         </p>
       </div>
       <span className="rounded-full bg-blue-700 px-2.5 py-1 text-[10px] font-black text-white">
         {getTournamentStatusLabel(tournament.status)}
       </span>
-      <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/35" />
+      <ChevronRight className="h-4 w-4 flex-shrink-0 text-zinc-400" />
     </Link>
   );
 }

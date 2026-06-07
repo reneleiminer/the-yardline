@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
@@ -65,21 +64,7 @@ export default function AppLayout() {
           overflowAnchor: "none",
         }}
       >
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0.96 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0.98 }}
-            transition={{
-              duration: 0.08,
-              ease: "easeOut",
-            }}
-            className="min-h-full"
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        <Outlet />
       </main>
 
       {showPageFooter && <Footer />}
