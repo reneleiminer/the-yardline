@@ -194,6 +194,72 @@ function SmallGameCard({ game, teamsById, leaguesById }) {
   );
 }
 
+function WideGameCard({ game, teamsById, leaguesById }) {
+  const home = teamsById.get(game.homeTeamId);
+  const away = teamsById.get(game.awayTeamId);
+  const league = leaguesById.get(game.leagueId);
+  const homeName = getTeamName(home, game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamPlaceholder);
+  const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
+  const showScore = status === "live" || status === "final";
+  const homeColor = getTeamColor(home, league?.primaryColor || "#005bff");
+  const awayColor = getTeamColor(away, "#b51222");
+
+  return (
+    <Link to={`/game/${game.id}`} className="block overflow-hidden rounded-[22px] bg-white text-black">
+      <div className="grid grid-cols-[6px_1fr_6px]">
+        <div style={{ background: homeColor }} />
+        <div className="p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-black uppercase text-black/45">
+                {league?.shortName || league?.name || "Game"}
+              </p>
+              <p className="truncate text-[11px] font-bold text-black/40">
+                {kickoff ? format(kickoff, "EEE dd.MM.", { locale: de }) : "Termin offen"}
+              </p>
+            </div>
+            <StatusPill game={game} />
+          </div>
+
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="min-w-0">
+              <TeamLogo team={home} fallback={homeName} />
+              <p className="mt-2 whitespace-normal break-words text-sm font-black leading-tight">
+                {homeName}
+              </p>
+            </div>
+
+            <div className="min-w-[70px] rounded-2xl bg-slate-950 px-3 py-2 text-center text-white">
+              {showScore ? (
+                <p className="text-xl font-black tabular-nums">
+                  {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
+                </p>
+              ) : (
+                <>
+                  <p className="text-lg font-black">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</p>
+                  <p className="text-[8px] font-black uppercase text-white/55">Kickoff</p>
+                </>
+              )}
+            </div>
+
+            <div className="min-w-0 text-right">
+              <div className="flex justify-end">
+                <TeamLogo team={away} fallback={awayName} />
+              </div>
+              <p className="mt-2 whitespace-normal break-words text-sm font-black leading-tight">
+                {awayName}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div style={{ background: awayColor }} />
+      </div>
+    </Link>
+  );
+}
+
 function SectionTitle({ title, to }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
@@ -267,6 +333,43 @@ function LeagueGameGrid({ groups, teamsById, leaguesById, emptyLabel }) {
           <div className="grid grid-cols-2 gap-3">
             {group.games.map((game) => (
               <SmallGameCard
+                key={game.id}
+                game={game}
+                teamsById={teamsById}
+                leaguesById={leaguesById}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LeagueGameList({ groups, teamsById, leaguesById, emptyLabel }) {
+  if (groups.length === 0) return <EmptyCard label={emptyLabel} />;
+
+  return (
+    <div className="space-y-5">
+      {groups.map((group) => (
+        <div key={group.key}>
+          <div className="mb-2 flex items-center gap-2">
+            {group.league?.logo && (
+              <img
+                src={getImageUrl(group.league.logo)}
+                alt=""
+                className="h-5 w-5 object-contain"
+                loading="lazy"
+              />
+            )}
+            <h3 className="text-xs font-black uppercase tracking-wide text-black/55">
+              {group.title}
+            </h3>
+          </div>
+
+          <div className="space-y-3">
+            {group.games.map((game) => (
+              <WideGameCard
                 key={game.id}
                 game={game}
                 teamsById={teamsById}
@@ -466,14 +569,56 @@ function buildTeamRecords(games) {
 }
 
 function StreakCard({ item }) {
+  const color = getTeamColor(item.team, "#005bff");
+
   return (
-    <Link to={`/team/${item.team.id}`} className="flex items-center gap-3 rounded-[22px] bg-white p-3 text-black">
-      <TeamLogo team={item.team} fallback={item.team.name} />
-      <div className="min-w-0">
-        <p className="truncate text-xs font-black">{item.team.name}</p>
-        <p className="text-lg font-black text-red-700">W{item.record.wins}</p>
+    <Link to={`/team/${item.team.id}`} className="yardline-stripes block overflow-hidden rounded-[22px] bg-white text-black">
+      <div className="relative flex items-center gap-3 p-3">
+        <TeamLogo team={item.team} fallback={item.team.name} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-black">{item.team.name}</p>
+          <p className="text-[10px] font-black uppercase tracking-wide text-black/45">
+            Unbeaten Run
+          </p>
+        </div>
+        <div
+          className="rounded-2xl px-3 py-2 text-center text-white"
+          style={{ background: color }}
+        >
+          <p className="text-2xl font-black leading-none">W{item.record.wins}</p>
+          <p className="text-[8px] font-black uppercase text-white/70">Serie</p>
+        </div>
       </div>
     </Link>
+  );
+}
+
+function GameOfWeekTitle({ label }) {
+  return (
+    <div className="mb-3">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-serif text-3xl font-black italic leading-none tracking-tight text-black">
+            Game of the Week
+          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="h-1 w-10 rounded-full bg-red-700" />
+            <span className="h-1 w-8 rounded-full bg-blue-700" />
+            <span className="h-1 w-5 rounded-full bg-black" />
+          </div>
+        </div>
+        {label && (
+          <div className="max-w-[42%] rounded-2xl bg-slate-950 px-3 py-2 text-right text-white">
+            <p className="text-[8px] font-black uppercase tracking-wide text-white/45">
+              Presented by
+            </p>
+            <p className="truncate text-[11px] font-black uppercase">
+              {label}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -504,7 +649,7 @@ export default function Home() {
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
   const today = useMemo(() => startOfDay(new Date()), []);
   const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
-  const lastSevenDays = useMemo(() => subDays(today, 7), [today]);
+  const lastTwentyOneDays = useMemo(() => subDays(today, 21), [today]);
 
   const liveGroups = useMemo(() => {
     const liveGames = games
@@ -539,6 +684,8 @@ export default function Home() {
         return (getGameDate(b)?.getTime() || 0) - (getGameDate(a)?.getTime() || 0);
       })[0] || null;
   }, [games]);
+
+  const gameOfTheWeekLabel = gameOfTheWeek?.gameOfTheWeekLabel || gameOfTheWeek?.gameOfTheWeekPresentedBy || "EuroFBShow";
 
   const highlights = useMemo(() => {
     return appUpdates
@@ -580,10 +727,10 @@ export default function Home() {
       .filter((shot) => {
         const game = gamesById.get(shot.gameId);
         const date = getGameDate(game);
-        return shot.active && shot.imageUrl && date && !isBefore(date, lastSevenDays);
+        return shot.active && shot.imageUrl && date && !isBefore(date, lastTwentyOneDays);
       })
       .slice(0, 4);
-  }, [appUpdates, gamesById, lastSevenDays]);
+  }, [appUpdates, gamesById, lastTwentyOneDays]);
 
   const undefeatedTeams = useMemo(() => {
     const records = buildTeamRecords(games);
@@ -630,7 +777,7 @@ export default function Home() {
 
         {gameOfTheWeek && (
           <section>
-            <SectionTitle title="Game of the Week" />
+            <GameOfWeekTitle label={gameOfTheWeekLabel} />
             <SmallGameCard game={gameOfTheWeek} teamsById={teamsById} leaguesById={leaguesById} />
           </section>
         )}
@@ -677,7 +824,7 @@ export default function Home() {
 
         <section>
           <SectionTitle title="Kommende Spiele" to="/match-center" />
-          <LeagueGameGrid
+          <LeagueGameList
             groups={upcomingGroups}
             teamsById={teamsById}
             leaguesById={leaguesById}
