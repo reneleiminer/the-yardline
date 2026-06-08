@@ -51,13 +51,11 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3"
+      style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}
       aria-label="Hauptnavigation"
     >
-      <div className="absolute inset-0 pointer-events-none border-t border-black/10 bg-white" />
-
-      <div className="relative grid h-[68px] w-full grid-cols-4 px-4 pointer-events-auto">
+      <div className="relative mx-auto grid h-[68px] max-w-xl grid-cols-4 rounded-[26px] border border-red-500/25 bg-black/78 px-3 shadow-[0_0_38px_rgba(239,0,31,0.16)] backdrop-blur-xl pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -77,9 +75,17 @@ export default function BottomNav() {
                 event.preventDefault();
                 scrollMainToTop();
               }}
-              className="flex min-w-0 items-center justify-center text-black"
+              className="flex min-w-0 items-center justify-center"
             >
-              <Icon className={`h-7 w-7 ${isActive ? "text-red-700" : "text-black/65"}`} />
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
+                  isActive
+                    ? "bg-red-500 text-white shadow-[0_0_22px_rgba(239,0,31,0.35)]"
+                    : "text-white/52 active:bg-white/5"
+                }`}
+              >
+                <Icon className="h-6 w-6" />
+              </span>
             </Link>
           );
         })}
