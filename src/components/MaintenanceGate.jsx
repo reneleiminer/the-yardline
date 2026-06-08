@@ -2,16 +2,16 @@ import React from "react";
 import { useLocation } from "react-router-dom";
 import MaintenancePage from "./MaintenancePage";
 
-const ADMIN_ALLOWED_PATHS = [
-  "/admin",
+const ALLOWED_DURING_MAINTENANCE = [
+  "/settings",
   "/admin-login",
+  "/admin",
   "/data-editor",
-  "/data-editor-login",
-  "/login",
+  "/podcast",
 ];
 
-function isAdminAllowedPath(pathname) {
-  return ADMIN_ALLOWED_PATHS.some((path) => {
+function isAllowedDuringMaintenance(pathname) {
+  return ALLOWED_DURING_MAINTENANCE.some((path) => {
     return pathname === path || pathname.startsWith(`${path}/`);
   });
 }
@@ -26,7 +26,7 @@ export default function MaintenanceGate({ children }) {
     return children;
   }
 
-  if (isAdminAllowedPath(location.pathname)) {
+  if (isAllowedDuringMaintenance(location.pathname)) {
     return children;
   }
 
