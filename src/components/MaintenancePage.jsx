@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { CalendarDays, LockKeyhole } from "lucide-react";
 import { Link } from "react-router-dom";
 
 function getTimeLeft(targetDate) {
@@ -50,75 +51,81 @@ export default function MaintenancePage() {
   }, [maintenanceUntil]);
 
   return (
-    <main className="min-h-screen bg-[#05070d] text-white flex items-center justify-center px-5">
-      <div className="w-full max-w-xl text-center">
-        <div className="mb-8 flex justify-center">
-          <div className="h-16 w-16 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center">
-            <span className="text-3xl">🏈</span>
+    <main className="relative min-h-screen overflow-hidden bg-[#030305] text-white flex items-center justify-center px-5">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 top-1/3 h-[420px] w-[420px] rounded-full bg-red-700/25 blur-[120px]" />
+        <div className="absolute -right-40 top-1/4 h-[520px] w-[520px] rounded-full bg-red-600/25 blur-[140px]" />
+        <div className="absolute left-1/2 top-0 h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-red-500/10 blur-[130px]" />
+      </div>
+
+      <section className="relative z-10 w-full max-w-3xl text-center py-12">
+        <div className="mb-7 flex justify-center">
+          <div className="h-24 w-24 rounded-[28px] border border-red-500/45 bg-black/55 shadow-[0_0_45px_rgba(239,0,31,0.22)] flex items-center justify-center p-3">
+            <img
+              src="/yardline-logo.png"
+              alt="The Yardline Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
         </div>
 
-        <p className="text-blue-400 text-sm font-semibold tracking-[0.3em] uppercase mb-4">
+        <p className="text-red-500 text-sm sm:text-base font-black tracking-[0.42em] uppercase mb-5">
           The Yardline
         </p>
 
-        <h1 className="text-3xl sm:text-5xl font-black leading-tight mb-5">
-          Wir bauen gerade um.
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-black leading-[0.95] mb-7 tracking-tight">
+          Wir bauen gerade um<span className="text-red-500">.</span>
         </h1>
 
-        <p className="text-white/70 text-base sm:text-lg leading-relaxed mb-8">
+        <p className="mx-auto max-w-2xl text-white/72 text-base sm:text-lg md:text-xl leading-relaxed mb-8">
           Unsere App ist momentan im Wartungsmodus. Wir arbeiten im Hintergrund
           daran, The Yardline stabiler, schneller und übersichtlicher zu machen.
         </p>
 
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 sm:p-6 mb-8">
-          <p className="text-white/50 text-sm mb-4">
-            Voraussichtlich wieder verfügbar ab dem
+        <div className="mx-auto mb-8 flex max-w-2xl items-center justify-center gap-3 rounded-2xl border border-red-500/20 bg-black/45 px-5 py-4 shadow-[0_0_35px_rgba(239,0,31,0.08)]">
+          <CalendarDays className="h-5 w-5 shrink-0 text-red-500" />
+          <p className="text-sm sm:text-base text-white/80">
+            Die App ist voraussichtlich zurück am{" "}
+            <span className="font-black text-red-500">{targetLabel}</span>.
           </p>
+        </div>
 
-          <p className="text-2xl sm:text-3xl font-black mb-5">
-            {targetLabel}
-          </p>
-
-          {!timeLeft.expired ? (
-            <div className="grid grid-cols-4 gap-2 sm:gap-3">
-              <CountdownBox value={timeLeft.days} label="Tage" />
-              <CountdownBox value={timeLeft.hours} label="Std." />
-              <CountdownBox value={timeLeft.minutes} label="Min." />
-              <CountdownBox value={timeLeft.seconds} label="Sek." />
-            </div>
-          ) : (
-            <p className="text-blue-300 font-semibold">
+        {!timeLeft.expired ? (
+          <div className="mx-auto grid max-w-2xl grid-cols-4 gap-2 sm:gap-5 mb-9">
+            <CountdownBox value={timeLeft.days} label="Tage" />
+            <CountdownBox value={timeLeft.hours} label="Stunden" />
+            <CountdownBox value={timeLeft.minutes} label="Minuten" />
+            <CountdownBox value={timeLeft.seconds} label="Sekunden" />
+          </div>
+        ) : (
+          <div className="mx-auto mb-9 max-w-2xl rounded-2xl border border-red-500/25 bg-red-500/10 px-5 py-4">
+            <p className="font-semibold text-red-200">
               Wir sind bald wieder online.
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        <p className="text-white/45 text-sm mb-10">
-          Danke für eure Geduld. Wir wollen euch keinen halbfertigen Zugang
-          geben, sondern eine App, die sich wirklich gut anfühlt.
-        </p>
+        <div className="mx-auto mb-8 h-px max-w-md bg-gradient-to-r from-transparent via-red-500/55 to-transparent" />
 
-        <div className="pt-6 border-t border-white/10">
-          <Link
-            to="/admin-login"
-            className="text-xs text-white/35 hover:text-white/70 transition"
-          >
-            Admin Login
-          </Link>
-        </div>
-      </div>
+        <Link
+          to="/settings?login=internal"
+          className="inline-flex items-center justify-center gap-2 text-sm text-white/35 hover:text-red-400 transition"
+        >
+          <LockKeyhole className="h-4 w-4" />
+          Admin Login
+        </Link>
+      </section>
     </main>
   );
 }
 
 function CountdownBox({ value, label }) {
   return (
-    <div className="rounded-2xl bg-black/30 border border-white/10 px-2 py-4">
-      <div className="text-2xl sm:text-3xl font-black">
+    <div className="rounded-2xl border border-red-500/30 bg-black/55 px-2 py-5 sm:py-6 shadow-[0_0_28px_rgba(239,0,31,0.12)]">
+      <div className="text-3xl sm:text-5xl font-black text-red-500 leading-none">
         {String(value).padStart(2, "0")}
       </div>
-      <div className="text-[11px] sm:text-xs text-white/45 mt-1">
+      <div className="mt-3 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.16em] text-white/45">
         {label}
       </div>
     </div>
