@@ -13,6 +13,7 @@ import { AppUserProvider } from "@/lib/useAppUser";
 import { I18nProvider } from "@/lib/i18n";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
+import MaintenanceGate from "@/components/MaintenanceGate";
 
 import AppLayout from "@/components/layout/AppLayout.jsx";
 
@@ -325,14 +326,16 @@ function App() {
     <I18nProvider>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <GlobalDataProvider>
-              <HeaderProvider>
-                <ScrollToTop />
-                <AppRoutes />
-              </HeaderProvider>
-            </GlobalDataProvider>
-          </Router>
+<Router>
+  <MaintenanceGate>
+    <GlobalDataProvider>
+      <HeaderProvider>
+        <ScrollToTop />
+        <AppRoutes />
+      </HeaderProvider>
+    </GlobalDataProvider>
+  </MaintenanceGate>
+</Router>
 
           <Toaster />
         </QueryClientProvider>
