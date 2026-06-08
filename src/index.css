@@ -335,3 +335,192 @@ body::-webkit-scrollbar,
   height: 0;
   display: none;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* The Yardline Red/Black UI Pass                                             */
+/* -------------------------------------------------------------------------- */
+@layer base {
+  :root,
+  .dark {
+    color-scheme: dark;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 96%;
+    --card: 240 10% 7%;
+    --card-foreground: 0 0% 96%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 96%;
+    --primary: 354 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 8% 10%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 240 6% 13%;
+    --muted-foreground: 0 0% 66%;
+    --accent: 354 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    --border: 354 100% 50% / 0.22;
+    --input: 354 100% 50% / 0.24;
+    --ring: 354 100% 50%;
+  }
+
+  html,
+  body,
+  #root {
+    background: #030305;
+    color: #f7f7f8;
+    color-scheme: dark;
+  }
+
+  body {
+    background: #030305;
+  }
+
+  body::before {
+    display: none;
+  }
+}
+
+@layer components {
+  .yardline-app-shell {
+    position: relative;
+    isolation: isolate;
+    background:
+      radial-gradient(circle at 0% 35%, rgba(239, 0, 31, 0.18), transparent 34%),
+      radial-gradient(circle at 100% 24%, rgba(239, 0, 31, 0.20), transparent 36%),
+      radial-gradient(circle at 50% -20%, rgba(239, 0, 31, 0.10), transparent 35%),
+      #030305;
+    color: #f7f7f8;
+  }
+
+  .yardline-red-glow {
+    pointer-events: none;
+    position: fixed;
+    z-index: 0;
+    border-radius: 9999px;
+    filter: blur(120px);
+  }
+
+  .yardline-red-glow-left {
+    left: -190px;
+    top: 26%;
+    height: 470px;
+    width: 470px;
+    background: rgba(239, 0, 31, 0.20);
+  }
+
+  .yardline-red-glow-right {
+    right: -220px;
+    top: 18%;
+    height: 560px;
+    width: 560px;
+    background: rgba(239, 0, 31, 0.22);
+  }
+
+  .yardline-red-glow-top {
+    left: 50%;
+    top: -170px;
+    height: 380px;
+    width: 380px;
+    transform: translateX(-50%);
+    background: rgba(239, 0, 31, 0.12);
+  }
+
+  .yardline-main-scroll {
+    background: transparent;
+  }
+
+  .yardline-heading,
+  .yardline-page-heading {
+    color: #f7f7f8;
+  }
+
+  .yardline-panel,
+  .bg-card {
+    background: rgba(8, 8, 12, 0.72) !important;
+    border-color: rgba(239, 0, 31, 0.22) !important;
+    box-shadow: 0 0 34px rgba(239, 0, 31, 0.08) !important;
+    backdrop-filter: blur(18px);
+  }
+
+  .yardline-app-shell .bg-background {
+    background: transparent !important;
+  }
+
+  .yardline-app-shell .bg-white {
+    background-color: rgba(8, 8, 12, 0.72) !important;
+  }
+
+  .yardline-app-shell .bg-slate-50,
+  .yardline-app-shell .bg-slate-100,
+  .yardline-app-shell .bg-gray-50,
+  .yardline-app-shell .bg-gray-100,
+  .yardline-app-shell .bg-zinc-50,
+  .yardline-app-shell .bg-zinc-100 {
+    background-color: rgba(14, 14, 20, 0.76) !important;
+  }
+
+  .yardline-app-shell .text-black,
+  .yardline-app-shell .text-slate-950,
+  .yardline-app-shell .text-slate-900,
+  .yardline-app-shell .text-gray-950,
+  .yardline-app-shell .text-gray-900,
+  .yardline-app-shell .text-zinc-950,
+  .yardline-app-shell .text-zinc-900 {
+    color: rgba(255, 255, 255, 0.94) !important;
+  }
+
+  .yardline-app-shell .text-black\/80,
+  .yardline-app-shell .text-black\/75,
+  .yardline-app-shell .text-black\/72,
+  .yardline-app-shell .text-slate-700,
+  .yardline-app-shell .text-gray-700,
+  .yardline-app-shell .text-zinc-700 {
+    color: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  .yardline-app-shell .text-black\/65,
+  .yardline-app-shell .text-black\/60,
+  .yardline-app-shell .text-black\/50,
+  .yardline-app-shell .text-black\/45,
+  .yardline-app-shell .text-slate-500,
+  .yardline-app-shell .text-gray-500,
+  .yardline-app-shell .text-zinc-500 {
+    color: rgba(255, 255, 255, 0.50) !important;
+  }
+
+  .yardline-app-shell .border-black\/10,
+  .yardline-app-shell .border-slate-200,
+  .yardline-app-shell .border-gray-200,
+  .yardline-app-shell .border-zinc-200,
+  .yardline-app-shell .border-border,
+  .yardline-app-shell .border-border\/50,
+  .yardline-app-shell .border-border\/60 {
+    border-color: rgba(239, 0, 31, 0.22) !important;
+  }
+
+  .yardline-app-shell input,
+  .yardline-app-shell textarea,
+  .yardline-app-shell select,
+  .yardline-app-shell [role="combobox"] {
+    background: rgba(0, 0, 0, 0.32) !important;
+    border-color: rgba(239, 0, 31, 0.26) !important;
+    color: #f7f7f8 !important;
+  }
+
+  .yardline-app-shell input::placeholder,
+  .yardline-app-shell textarea::placeholder {
+    color: rgba(255, 255, 255, 0.38) !important;
+  }
+
+  .yardline-app-shell .text-blue-700,
+  .yardline-app-shell .text-blue-600,
+  .yardline-app-shell .text-primary {
+    color: #ef001f !important;
+  }
+
+  .yardline-app-shell .bg-blue-700,
+  .yardline-app-shell .bg-blue-600,
+  .yardline-app-shell .bg-primary {
+    background-color: #ef001f !important;
+  }
+}
