@@ -112,6 +112,11 @@ function AppRoutes() {
     <AppUserProvider>
       <Suspense fallback={<RouteLoader />}>
         <Routes>
+          <Route
+            path="/admin-login"
+            element={<Navigate to="/settings?login=internal" replace />}
+          />
+
           <Route element={<AppLayout />}>
             <Route path="/" element={<Home />} />
 
@@ -137,7 +142,6 @@ function AppRoutes() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/user/statistics" element={<GameStatistics />} />
-
 
             <Route path="/legal" element={<Legal />} />
             <Route path="/updates" element={<Updates />} />
@@ -194,7 +198,6 @@ function AppRoutes() {
                 </AdminRoute>
               }
             />
-
 
             <Route
               path="/admin/partners"
@@ -326,16 +329,16 @@ function App() {
     <I18nProvider>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
-<Router>
-  <MaintenanceGate>
-    <GlobalDataProvider>
-      <HeaderProvider>
-        <ScrollToTop />
-        <AppRoutes />
-      </HeaderProvider>
-    </GlobalDataProvider>
-  </MaintenanceGate>
-</Router>
+          <Router>
+            <MaintenanceGate>
+              <GlobalDataProvider>
+                <HeaderProvider>
+                  <ScrollToTop />
+                  <AppRoutes />
+                </HeaderProvider>
+              </GlobalDataProvider>
+            </MaintenanceGate>
+          </Router>
 
           <Toaster />
         </QueryClientProvider>
