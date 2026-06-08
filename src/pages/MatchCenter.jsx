@@ -9,7 +9,7 @@ import {
   subDays,
 } from "date-fns";
 import { de } from "date-fns/locale";
-import { BarChart3, CalendarDays, ChevronRight, Loader2, Search, Trophy } from "lucide-react";
+import { BarChart3, ChevronRight, Loader2, Search, Trophy } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
