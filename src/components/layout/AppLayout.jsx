@@ -49,11 +49,15 @@ export default function AppLayout() {
   }, [location.pathname, location.search]);
 
   return (
-    <div className="flex flex-col min-h-dvh w-screen max-w-full bg-background overflow-x-hidden">
+    <div className="yardline-app-shell flex min-h-dvh w-screen max-w-full flex-col overflow-x-hidden">
+      <div className="yardline-red-glow yardline-red-glow-left" />
+      <div className="yardline-red-glow yardline-red-glow-right" />
+      <div className="yardline-red-glow yardline-red-glow-top" />
+
       <Header />
 
       <main
-        className={`pt-[calc(68px+env(safe-area-inset-top))] w-full max-w-full flex-1 overflow-y-scroll ${
+        className={`yardline-main-scroll relative z-10 w-full max-w-full flex-1 overflow-y-auto pt-[calc(68px+env(safe-area-inset-top))] ${
           showBottomNav
             ? "pb-[calc(112px+env(safe-area-inset-bottom))]"
             : "pb-[env(safe-area-inset-bottom)]"
