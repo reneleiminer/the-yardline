@@ -111,7 +111,7 @@ function shouldUseFallback(location) {
 
 function BrandLogo({ centered = false }) {
   const branding = useAppBranding();
-  const logoUrl = branding.header_icon_url;
+  const logoUrl = branding.header_icon_url || "/yardline-logo.png";
 
   return (
     <Link
@@ -127,11 +127,11 @@ function BrandLogo({ centered = false }) {
         <img
           src={getImageUrl(logoUrl)}
           alt="The Yardline"
-          className="h-[58px] max-w-[28vw] sm:max-w-[180px] w-auto object-contain"
+          className="h-[46px] max-w-[24vw] sm:max-w-[150px] w-auto object-contain drop-shadow-[0_0_18px_rgba(239,0,31,0.35)]"
           loading="eager"
         />
       ) : (
-        <span className="text-xl font-black uppercase tracking-wide text-white">
+        <span className="text-xl font-black uppercase tracking-[0.18em] text-red-500">
           Yardline
         </span>
       )}
@@ -143,7 +143,7 @@ function HeaderSlogan() {
   return (
     <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center px-2">
       <span
-        className="whitespace-nowrap text-[15px] leading-none text-white min-[390px]:text-[17px] sm:text-[24px]"
+        className="whitespace-nowrap text-[15px] leading-none text-white/92 min-[390px]:text-[17px] sm:text-[24px]"
         style={{
           fontFamily: "var(--font-script)",
           textShadow: "0 2px 0 rgba(0,0,0,0.22)",
@@ -315,9 +315,9 @@ function HeaderMenu({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-[#b51222] overflow-hidden">
+    <div className="fixed inset-0 z-[80] overflow-hidden bg-[#030305] text-white">
       <div
-        className="relative flex items-center h-[68px] px-2 sm:px-3 w-full border-b border-white/20"
+        className="relative flex items-center h-[68px] px-2 sm:px-3 w-full border-b border-red-500/25 bg-black/50 backdrop-blur-xl"
         style={{
           paddingTop: "env(safe-area-inset-top)",
         }}
@@ -328,15 +328,15 @@ function HeaderMenu({ open, onClose }) {
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto w-11 h-11 rounded-full bg-white/80 border border-black/10 flex items-center justify-center active:scale-95 transition-transform"
+          className="ml-auto w-11 h-11 rounded-full border border-red-500/30 bg-black/55 flex items-center justify-center active:scale-95 transition-transform"
           aria-label="Menue schliessen"
         >
-          <X className="w-6 h-6 text-black" />
+          <X className="w-6 h-6 text-red-500" />
         </button>
       </div>
 
       <div className="px-4 pt-5 pb-8 overflow-y-auto max-h-[calc(100dvh-68px-env(safe-area-inset-top))]">
-        <div className="rounded-2xl overflow-hidden bg-white border border-white/20">
+        <div className="rounded-2xl overflow-hidden border border-red-500/25 bg-black/60 shadow-[0_0_34px_rgba(239,0,31,0.10)] backdrop-blur-xl">
           {items.map((item) => {
             const Icon = item.icon;
 
@@ -348,46 +348,46 @@ function HeaderMenu({ open, onClose }) {
                   onClose();
                   navigate(item.route);
                 }}
-                className="w-full min-h-[58px] flex items-center gap-3 px-4 text-left border-b border-black/10 last:border-0 active:bg-black/5 transition-colors"
+                className="w-full min-h-[58px] flex items-center gap-3 px-4 text-left border-b border-red-500/15 last:border-0 active:bg-red-500/10 transition-colors"
               >
-                <Icon className="w-5 h-5 text-black/72 flex-shrink-0" />
+                <Icon className="w-5 h-5 text-red-500 flex-shrink-0" />
 
-                <span className="text-sm font-bold text-black flex-1">
+                <span className="text-sm font-bold text-white flex-1">
                   {item.label}
                 </span>
 
-                <ChevronRight className="w-4 h-4 text-black/45 flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-white/35 flex-shrink-0" />
               </button>
             );
           })}
         </div>
 
-               <div className="mt-4 rounded-2xl bg-white border border-white/20 overflow-hidden">
+               <div className="mt-4 rounded-2xl border border-red-500/25 bg-black/60 overflow-hidden shadow-[0_0_34px_rgba(239,0,31,0.10)] backdrop-blur-xl">
           <button
             type="button"
             onClick={() => {
               onClose();
               navigate(internalLoginItem.route);
             }}
-            className="w-full min-h-[64px] flex items-center gap-3 px-4 text-left active:bg-black/5 transition-colors"
+            className="w-full min-h-[64px] flex items-center gap-3 px-4 text-left active:bg-red-500/10 transition-colors"
             aria-label={internalLoginItem.label}
             title={internalLoginItem.label}
           >
-            <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="w-5 h-5 text-red-700" />
+            <div className="w-10 h-10 rounded-xl border border-red-500/30 bg-red-500/10 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-5 h-5 text-red-500" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-bold text-black block">
+              <span className="text-sm font-bold text-white block">
                 {internalLoginItem.label}
               </span>
 
-              <span className="text-[11px] text-black/45 block truncate mt-0.5">
+              <span className="text-[11px] text-white/45 block truncate mt-0.5">
                 {internalLoginItem.description}
               </span>
             </div>
 
-            <ChevronRight className="w-4 h-4 text-black/45 flex-shrink-0" />
+            <ChevronRight className="w-4 h-4 text-white/35 flex-shrink-0" />
           </button>
         </div>
       </div>
@@ -432,10 +432,11 @@ export default function Header() {
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
-          background: "#b51222",
+          background: scrolled ? "rgba(3,3,5,0.92)" : "rgba(3,3,5,0.78)",
+          backdropFilter: "blur(18px)",
           boxShadow: scrolled
-            ? "0 1px 0 rgba(0,0,0,0.12)"
-            : "0 1px 0 rgba(0,0,0,0.08)",
+            ? "0 1px 0 rgba(239,0,31,0.24), 0 18px 55px rgba(0,0,0,0.42)"
+            : "0 1px 0 rgba(239,0,31,0.18)",
         }}
       >
         <div className="relative flex items-center h-[68px] px-2 sm:px-3 w-full">
@@ -447,11 +448,11 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => setMenuOpen(current => !current)}
-                  className="ml-auto w-11 h-11 flex items-center justify-center rounded-lg active:bg-white/10 transition-colors"
+                  className="ml-auto w-11 h-11 flex items-center justify-center rounded-xl border border-red-500/20 bg-black/35 active:bg-red-500/10 transition-colors"
                   aria-label="Menue"
                   aria-expanded={menuOpen}
                 >
-                  <Menu className="w-7 h-7 text-black" strokeWidth={2.5} />
+                  <Menu className="w-7 h-7 text-red-500" strokeWidth={2.5} />
                 </button>
               )}
             </>
@@ -497,7 +498,7 @@ export default function Header() {
           style={{
             background: contextPrimary
               ? contextPrimary
-              : "rgba(255,255,255,0.32)",
+              : "rgba(239,0,31,0.32)",
           }}
         />
       </header>
