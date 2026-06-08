@@ -18,10 +18,8 @@ import {
   Pencil,
   Plus,
   Search,
-  Star,
   Trash2,
   Trophy,
-  Video,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
