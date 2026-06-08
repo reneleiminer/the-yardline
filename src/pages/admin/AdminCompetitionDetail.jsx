@@ -18,7 +18,6 @@ import {
   Lock,
   MapPin,
   Pencil,
-  Plus,
   Save,
   Trash2,
   Trophy,
