@@ -2,14 +2,19 @@ import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { addDays, format, isBefore, isSameDay, startOfDay, subDays } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
+import StandingsTable from "@/components/standings/StandingsTable";
 const MATCH_TABS = [
   { key: "games", label: "Spiele" },
-  { key: "teams", label: "Teams" },
+  { key: "standings", label: "Tabellen" },
 ];
+
+function normalizeId(value) {
+  return String(value || "").trim();
+}
 
 function getGameDate(game) {
   if (game?.date) {
@@ -285,105 +290,301 @@ function GamesPanel({ games, teamsById, leaguesById }) {
   );
 }
 
-function getTeamGroupLabel(team) {
-  return (
-    team.groupName ||
-    team.group ||
-    team.division ||
-    team.conference ||
-    team.region ||
-    "Teams"
-  );
+function sameSeason(game, season) {
+  if (!season) return true;
+  return !game.season || game.season === season;
 }
 
-function TeamTable({ teams }) {
+function isWithdrawn(team) {
+  return team?.withdrawn === true;
+}
+
+function isWithdrawnBeforeSeason(team) {
+  return team?.withdrawn === true && team?.withdrawnBeforeSeason === true;
+}
+
+function createZeroWithdrawnRow(team) {
+  return {
+    teamId: team.id,
+    groupId: team.groupId || "",
+    w: 0,
+    l: 0,
+    t: 0,
+    pf: 0,
+    pa: 0,
+    played: 0,
+    withdrawn: true,
+    withdrawnBeforeSeason: true,
+  };
+}
+
+function computeStandings({ league, games = [], teams = [], groupId = "all" }) {
+  if (!league?.id) return [];
+
+  const resolvedGroupId = normalizeId(groupId);
+  const teamsById = Object.fromEntries(teams.map((team) => [team.id, team]));
+  const leagueTeams = teams.filter((team) => {
+    if (team.leagueId !== league.id) return false;
+    if (resolvedGroupId !== "all" && normalizeId(team.groupId) !== resolvedGroupId) return false;
+    return true;
+  });
+
+  const stats = {};
+
+  leagueTeams.forEach((team) => {
+    stats[team.id] = {
+      teamId: team.id,
+      groupId: team.groupId || "",
+      w: 0,
+      l: 0,
+      t: 0,
+      pf: 0,
+      pa: 0,
+      played: 0,
+      withdrawn: isWithdrawn(team),
+      withdrawnBeforeSeason: isWithdrawnBeforeSeason(team),
+    };
+  });
+
+  const relevantGames = games.filter((game) => {
+    if (game.status !== "final") return false;
+    if (game.leagueId !== league.id) return false;
+    if (!sameSeason(game, league.season)) return false;
+    if (game.isCompetitionGame || game.competitionId || game.tournamentId) return false;
+
+    const homeTeam = teamsById[game.homeTeamId];
+    const awayTeam = teamsById[game.awayTeamId];
+
+    if (isWithdrawnBeforeSeason(homeTeam) || isWithdrawnBeforeSeason(awayTeam)) return false;
+    return Boolean(stats[game.homeTeamId] || stats[game.awayTeamId]);
+  });
+
+  relevantGames.forEach((game) => {
+    const home = stats[game.homeTeamId];
+    const away = stats[game.awayTeamId];
+    const homeScore = Number(game.scoreHome || 0);
+    const awayScore = Number(game.scoreAway || 0);
+
+    if (home && home.withdrawnBeforeSeason !== true) {
+      home.played += 1;
+      home.pf += homeScore;
+      home.pa += awayScore;
+      if (homeScore > awayScore) home.w += 1;
+      else if (homeScore < awayScore) home.l += 1;
+      else home.t += 1;
+    }
+
+    if (away && away.withdrawnBeforeSeason !== true) {
+      away.played += 1;
+      away.pf += awayScore;
+      away.pa += homeScore;
+      if (awayScore > homeScore) away.w += 1;
+      else if (awayScore < homeScore) away.l += 1;
+      else away.t += 1;
+    }
+  });
+
+  leagueTeams.forEach((team) => {
+    if (isWithdrawnBeforeSeason(team)) stats[team.id] = createZeroWithdrawnRow(team);
+  });
+
+  const getWinPct = (row) => {
+    if (!row.played) return 0;
+    return (row.w + row.t * 0.5) / row.played;
+  };
+  const getPointDiff = (row) => row.pf - row.pa;
+
+  const activeRows = Object.values(stats).filter((row) => row.withdrawn !== true);
+  const withdrawnRows = Object.values(stats).filter((row) => row.withdrawn === true);
+
+  const sortedActiveRows = [...activeRows].sort((a, b) => {
+    const pct = getWinPct(b) - getWinPct(a);
+    if (pct !== 0) return pct;
+    const diff = getPointDiff(b) - getPointDiff(a);
+    if (diff !== 0) return diff;
+    if (b.pf !== a.pf) return b.pf - a.pf;
+    return (teamsById[a.teamId]?.name || "").localeCompare(teamsById[b.teamId]?.name || "", "de");
+  });
+
+  const sortedWithdrawnRows = [...withdrawnRows].sort((a, b) =>
+    (teamsById[a.teamId]?.name || "").localeCompare(teamsById[b.teamId]?.name || "", "de")
+  );
+
+  return [...sortedActiveRows, ...sortedWithdrawnRows];
+}
+
+function getGroupOptions(league, teams = []) {
+  const configuredGroups = Array.isArray(league?.groups) ? league.groups : [];
+  const groups = configuredGroups
+    .map((group) => ({
+      id: normalizeId(group.id || group.shortName || group.name),
+      name: group.name || group.shortName || group.id,
+      displayOrder: Number(group.displayOrder || 0),
+    }))
+    .filter((group) => group.id);
+
+  if (groups.length > 0) return groups.sort((a, b) => a.displayOrder - b.displayOrder);
+
+  const teamGroups = new Map();
+  teams
+    .filter((team) => team.leagueId === league?.id && normalizeId(team.groupId))
+    .forEach((team) => {
+      const id = normalizeId(team.groupId);
+      if (!teamGroups.has(id)) {
+        teamGroups.set(id, {
+          id,
+          name: team.groupName || team.group || team.division || team.conference || id,
+          displayOrder: 0,
+        });
+      }
+    });
+
+  return Array.from(teamGroups.values()).sort((a, b) => a.name.localeCompare(b.name, "de"));
+}
+
+function getZonesForGroup({ standingsConfigs = [], groupId }) {
+  const key = groupId || "all";
+  const config = standingsConfigs.find((item) => normalizeId(item.groupId || "all") === normalizeId(key));
+  return config?.zones || [];
+}
+
+function LeagueIconPicker({ leagues, selectedLeagueId, onSelect }) {
+  if (leagues.length === 0) return null;
+
   return (
-    <div className="overflow-hidden rounded-[22px] border border-black/10 bg-white">
-      {teams.map((team, index) => (
-        <Link
-          key={team.id}
-          to={`/team/${team.id}`}
-          className="grid min-h-[58px] grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3 border-b border-black/8 px-3 py-2 text-black last:border-0 active:bg-black/5"
-        >
-          <div
-            className="flex h-10 w-10 items-center justify-center rounded-xl p-1.5"
-            style={{ background: team.primaryColor || "#013369" }}
-          >
-            {team.logo ? (
-              <img src={getImageUrl(team.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
-            ) : (
-              <span className="text-sm font-black text-white">{team.shortName?.[0] || team.name?.[0] || "T"}</span>
-            )}
-          </div>
+    <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
+      <div className="flex gap-2 pb-1">
+        {leagues.map((league) => {
+          const active = league.id === selectedLeagueId;
 
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-black">{team.name}</h3>
-            <p className="truncate text-[11px] font-bold text-black/45">
-              {[team.city, team.shortName].filter(Boolean).join(" - ") || "Team"}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black tabular-nums text-black/30">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <ChevronRight className="h-4 w-4 text-black/35" />
-          </div>
-        </Link>
-      ))}
+          return (
+            <button
+              key={league.id}
+              type="button"
+              onClick={() => onSelect(league.id)}
+              title={league.name}
+              aria-label={league.name}
+              className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border p-2 transition-all ${
+                active
+                  ? "border-black bg-black shadow-[0_10px_26px_rgba(0,0,0,0.18)]"
+                  : "border-black/10 bg-white active:bg-black/5"
+              }`}
+            >
+              {league.logo ? (
+                <img src={getImageUrl(league.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
+              ) : (
+                <span className={`text-sm font-black ${active ? "text-white" : "text-black/55"}`}>
+                  {(league.shortName || league.name || "L").slice(0, 2)}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function TeamsPanel({ teams, leaguesById }) {
-  const groups = useMemo(() => {
-    return groupByLeague(
-      [...teams].sort((a, b) => (a.name || "").localeCompare(b.name || "", "de")),
-      (team) => team.leagueId,
-      leaguesById
-    ).map((leagueGroup) => {
-      const teamGroups = new Map();
+function StandingsPanel({ leagues, teams, games, standingsConfigs, clubsById, teamsByIdObject, query }) {
+  const visibleLeagues = useMemo(() => {
+    const filtered = leagues.filter((league) =>
+      teams.some((team) => team.leagueId === league.id)
+    );
 
-      leagueGroup.items.forEach((team) => {
-        const label = getTeamGroupLabel(team);
-        if (!teamGroups.has(label)) teamGroups.set(label, []);
-        teamGroups.get(label).push(team);
-      });
+    if (!query) return filtered;
 
-      return {
-        ...leagueGroup,
-        teamGroups: Array.from(teamGroups.entries()).map(([title, items]) => ({
-          title,
-          items,
-        })),
-      };
-    });
-  }, [leaguesById, teams]);
+    return filtered.filter((league) =>
+      [league.name, league.shortName, league.country, league.regionState, league.stateRegion, league.season, league.tierLabel]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [leagues, query, teams]);
+
+  const [selectedLeagueId, setSelectedLeagueId] = useState("");
+  const selectedLeague = useMemo(() => {
+    if (visibleLeagues.some((league) => league.id === selectedLeagueId)) {
+      return visibleLeagues.find((league) => league.id === selectedLeagueId);
+    }
+    return visibleLeagues[0] || null;
+  }, [selectedLeagueId, visibleLeagues]);
+
+  const groups = useMemo(() => getGroupOptions(selectedLeague, teams), [selectedLeague, teams]);
+  const tableGroups = groups.length > 0 ? groups : [{ id: "all", name: "Gesamttabelle" }];
+  const leagueConfigs = useMemo(
+    () => standingsConfigs.filter((config) => config.leagueId === selectedLeague?.id),
+    [selectedLeague?.id, standingsConfigs]
+  );
 
   return (
     <section>
-      <SectionHeader title="Teams" />
-      {groups.length === 0 ? (
-        <EmptyState label="Keine Teams gefunden." />
+      <SectionHeader title="Tabellen" />
+
+      {visibleLeagues.length === 0 ? (
+        <EmptyState label="Keine Ligen gefunden." />
       ) : (
-        <div className="space-y-5">
-          {groups.map((group) => (
-            <div key={group.key}>
-              <LeagueTitle group={group} />
-              <div className="space-y-3">
-                {group.teamGroups.map((teamGroup) => (
-                  <div key={teamGroup.title}>
-                    <div className="mb-1.5 flex h-8 items-center rounded-t-[18px] bg-[#dce3eb] px-3">
-                      <h4 className="truncate text-xs font-black uppercase tracking-wide text-black/58">
-                        {teamGroup.title}
-                      </h4>
+        <div className="space-y-4">
+          <LeagueIconPicker
+            leagues={visibleLeagues}
+            selectedLeagueId={selectedLeague?.id}
+            onSelect={setSelectedLeagueId}
+          />
+
+          {selectedLeague && (
+            <div className="rounded-[24px] bg-white p-3">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black p-2">
+                  {selectedLeague.logo ? (
+                    <img src={getImageUrl(selectedLeague.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
+                  ) : (
+                    <span className="text-sm font-black text-white">
+                      {(selectedLeague.shortName || selectedLeague.name || "L").slice(0, 2)}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-black text-black">{selectedLeague.name}</h3>
+                  <p className="truncate text-[11px] font-bold text-black/45">
+                    {[selectedLeague.country, selectedLeague.regionState || selectedLeague.stateRegion, selectedLeague.season].filter(Boolean).join(" - ") || "Tabelle"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {tableGroups.map((group) => {
+                  const rows = computeStandings({
+                    league: selectedLeague,
+                    games,
+                    teams,
+                    groupId: group.id,
+                  });
+                  const zones = getZonesForGroup({ standingsConfigs: leagueConfigs, groupId: group.id });
+
+                  return (
+                    <div key={group.id}>
+                      {tableGroups.length > 1 && (
+                        <h4 className="mb-2 rounded-t-[18px] bg-[#dce3eb] px-3 py-2 text-xs font-black uppercase tracking-wide text-black/58">
+                          {group.name}
+                        </h4>
+                      )}
+
+                      {rows.length === 0 ? (
+                        <EmptyState label="Keine Tabellen-Daten vorhanden." />
+                      ) : (
+                        <StandingsTable
+                          rows={rows}
+                          teamsById={teamsByIdObject}
+                          zones={zones}
+                          clubsById={clubsById}
+                        />
+                      )}
                     </div>
-                    <TeamTable teams={teamGroup.items} />
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
-          ))}
+          )}
         </div>
       )}
     </section>
@@ -432,11 +633,12 @@ function TabSwitch({ value, onChange }) {
 }
 
 export default function MatchCenter() {
-  const { games, teams, leagues, gamesLoading, leaguesLoading } = useGlobalData();
+  const { games, teams, leagues, gamesLoading, leaguesLoading, standingsConfigs, clubsById } = useGlobalData();
   const [activeTab, setActiveTab] = useState("games");
   const [search, setSearch] = useState("");
 
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
+  const teamsByIdObject = useMemo(() => Object.fromEntries(teams.map((team) => [team.id, team])), [teams]);
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
   const query = search.trim().toLowerCase();
 
@@ -454,18 +656,6 @@ export default function MatchCenter() {
     });
   }, [games, leaguesById, query, teamsById]);
 
-  const filteredTeams = useMemo(() => {
-    if (!query) return teams;
-    return teams.filter((team) => {
-      const league = leaguesById.get(team.leagueId);
-      return [team.name, team.shortName, team.city, league?.name, league?.shortName]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(query);
-    });
-  }, [leaguesById, query, teams]);
-
   const isLoading = gamesLoading || leaguesLoading;
 
   return (
@@ -477,7 +667,17 @@ export default function MatchCenter() {
         {isLoading ? null : (
           <>
             {activeTab === "games" && <GamesPanel games={filteredGames} teamsById={teamsById} leaguesById={leaguesById} />}
-            {activeTab === "teams" && <TeamsPanel teams={filteredTeams} leaguesById={leaguesById} />}
+            {activeTab === "standings" && (
+              <StandingsPanel
+                leagues={leagues}
+                teams={teams}
+                games={games}
+                standingsConfigs={standingsConfigs}
+                clubsById={clubsById}
+                teamsByIdObject={teamsByIdObject}
+                query={query}
+              />
+            )}
           </>
         )}
       </div>
