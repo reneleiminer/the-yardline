@@ -34,6 +34,7 @@ const EMPTY_USER = {
 };
 
 const ROLE_LABELS = {
+  fan: "Fan",
   admin: "Admin",
   data_editor: "DataEditor",
   media_partner: "Media",
@@ -42,6 +43,7 @@ const ROLE_LABELS = {
 };
 
 const ROLE_DISPLAY_LABELS = {
+  fan: "Nutzer",
   admin: "Admin",
   data_editor: "Dateneditor",
   media_partner: "Media",
@@ -50,6 +52,7 @@ const ROLE_DISPLAY_LABELS = {
 };
 
 const INTERNAL_ROLE_OPTIONS = [
+  { value: "fan", label: "Nutzer" },
   { value: "admin", label: "Admin" },
   { value: "data_editor", label: "Dateneditor" },
   { value: "media_partner", label: "Media" },
@@ -98,7 +101,7 @@ function getInternalPassword(user) {
 }
 
 function getRoleSlug(user) {
-  return normalizeRole(user?.roleSlug || user?.role);
+  return normalizeRole(user?.roleSlug || user?.role || "fan") || "fan";
 }
 
 function isInternalLogin(user) {
@@ -229,7 +232,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
     const username = normalizeUsername(form.username);
     const roleSlug = normalizeRole(form.roleSlug || "data_editor");
 
-    if (!["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug)) {
+    if (!["fan", "admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug)) {
       toast.error("Bitte eine gültige Account-Art auswählen.");
       return;
     }
@@ -249,7 +252,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
       return;
     }
 
-    if (!initial?.id && !form.internalPassword.trim()) {
+    if (!initial?.id && roleSlug !== "fan" && !form.internalPassword.trim()) {
       toast.error("Bitte Passwort vergeben");
       return;
     }
@@ -265,7 +268,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
       connectedClubId: roleSlug === "club" ? form.connectedTeamId : "",
       linkedClubId: roleSlug === "club" ? form.connectedTeamId : "",
       status: form.status || "active",
-      internalPassword: form.internalPassword.trim(),
+      internalPassword: roleSlug === "fan" ? "" : form.internalPassword.trim(),
     });
   };
 
@@ -408,7 +411,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
 export default function AdminUsers() {
   useSetHeader({
     mode: "back",
-    title: "Interne Logins",
+    title: "Nutzer & Logins",
   });
 
   const queryClient = useQueryClient();
@@ -434,12 +437,17 @@ export default function AdminUsers() {
     return users.filter(isInternalLogin);
   }, [users]);
 
+  const publicUsers = useMemo(() => {
+    return users.filter(user => !isInternalLogin(user));
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
 
-    return internalUsers.filter(user => {
+    return users.filter(user => {
       const matchesRole =
         selectedRole === "all" ||
+        (selectedRole === "fan" && !isInternalLogin(user)) ||
         getRoleSlug(user) === selectedRole;
 
       if (!matchesRole) return false;
@@ -448,10 +456,11 @@ export default function AdminUsers() {
       return (
         user.username?.toLowerCase().includes(query) ||
         user.internalUsername?.toLowerCase().includes(query) ||
-        user.displayName?.toLowerCase().includes(query)
+        user.displayName?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query)
       );
     });
-  }, [internalUsers, searchTerm, selectedRole]);
+  }, [users, searchTerm, selectedRole]);
 
   const invalidateUsers = () => {
     queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
@@ -481,7 +490,7 @@ export default function AdminUsers() {
         status: data.status || "active",
         internalPassword: data.internalPassword,
         verified: true,
-        isInternalUser: true,
+        isInternalUser: data.roleSlug !== "fan",
         isOwner: false,
         needsOnboarding: false,
         createdByAdminId: appUserSnapshot?.id || "",
@@ -511,12 +520,12 @@ export default function AdminUsers() {
         email: user.email || getInternalEmail(data.username, data.roleSlug),
         displayName: data.displayName,
         roleSlug: data.roleSlug,
-        role: ROLE_LABELS[data.roleSlug] || "DataEditor",
+        role: ROLE_LABELS[data.roleSlug] || "Fan",
         connectedTeamId: data.roleSlug === "club" ? data.connectedTeamId : "",
         connectedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
         linkedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
         status: data.status || "active",
-        isInternalUser: true,
+        isInternalUser: data.roleSlug !== "fan",
         needsOnboarding: false,
         updatedAtUtc: new Date().toISOString(),
       };
@@ -633,11 +642,11 @@ export default function AdminUsers() {
       <div className="flex items-start justify-between gap-3 mb-6">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-            Interner Zugriff
+            Kontenverwaltung
           </p>
 
           <h1 className="text-xl font-black mt-1">
-            Interne Logins
+            Nutzer & Logins
           </h1>
 
           <p className="text-xs text-muted-foreground mt-1">
@@ -658,7 +667,15 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 mb-5">
+        <div className="bg-card border border-border/50 rounded-xl p-3">
+          <UserCog className="w-4 h-4 text-white mb-2" />
+          <div className="text-xl font-black">
+            {publicUsers.length}
+          </div>
+          <div className="text-[10px] text-muted-foreground">Nutzer</div>
+        </div>
+
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <ShieldCheck className="w-4 h-4 text-blue-400 mb-2" />
           <div className="text-xl font-black">
@@ -724,7 +741,7 @@ export default function AdminUsers() {
       {editingUser && (
         <div className="mb-5">
           <UserForm
-            title="Internen Login bearbeiten"
+            title={isInternalLogin(editingUser) ? "Internen Login bearbeiten" : "Nutzerkonto bearbeiten"}
             initial={editingUser}
             teams={teams}
             onSave={data => updateMutation.mutate({ user: editingUser, data })}
@@ -740,7 +757,7 @@ export default function AdminUsers() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 
           <Input
-            placeholder="Login suchen..."
+            placeholder="Nutzer oder Login suchen..."
             value={searchTerm}
             onChange={event => setSearchTerm(event.target.value)}
             className="pl-10"
@@ -750,6 +767,7 @@ export default function AdminUsers() {
         <div className="flex gap-2 flex-wrap">
           {[
             { key: "all", label: "Alle" },
+            { key: "fan", label: "Nutzer" },
             { key: "admin", label: "Admin" },
             { key: "data_editor", label: "Dateneditoren" },
             { key: "media_partner", label: "Media" },

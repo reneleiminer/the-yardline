@@ -1174,7 +1174,7 @@ export default function AdminDashboard() {
     saveBrandingMutation.mutate(buildBrandingPayload());
   };
 
-  const dataEditors = users.filter(user => user.roleSlug === 'data_editor');
+  const managedUsers = users.filter(user => user.status !== 'deleted');
 
   const streamProviders = streamRequests.filter(item =>
     item.type === 'streaming_provider' &&
@@ -1209,10 +1209,10 @@ export default function AdminDashboard() {
   const sections = [
     {
       icon: UserCog,
-      title: 'Dateneditor-Logins',
+      title: 'Nutzer & Logins',
       description: 'Logins fÃ¼r Dateneditoren erstellen und verwalten',
       route: '/admin/users',
-      count: dataEditors.length,
+      count: managedUsers.length,
       color: 'text-blue-400',
       bg: 'bg-blue-400/10',
     },

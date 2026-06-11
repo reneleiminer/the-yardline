@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, KeyRound, LogIn, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import Header from "./Header";
@@ -361,6 +361,15 @@ function AuthScreen() {
               )}
             </form>
             </div>
+
+            <div className="mt-4 text-center">
+              <Link
+                to="/support"
+                className="inline-flex items-center justify-center text-xs font-black uppercase tracking-wide text-white/70 underline decoration-[#005bff] decoration-2 underline-offset-4 transition-colors hover:text-white"
+              >
+                Support Formular
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -372,17 +381,37 @@ const ONBOARDING_SLIDES = [
   {
     eyebrow: "The Yardline",
     title: "American Football",
-    text: "Die Zentrale fuer American Football in Europa. Alle Ligen, Teams und Stories in einer App.",
+    accent: "Football",
+    text: "Alle News, Ligen, Teams und Stories an einem Ort.",
+    image: "/yardline-launch.png",
   },
   {
     eyebrow: "Match Center",
-    title: "All leagues in one app",
-    text: "Scores, Termine, Tabellen, Wettbewerbe und Game Details sauber an einem Ort.",
+    title: "Live Games",
+    accent: "Games",
+    text: "Spiele, Ergebnisse, Game of the Week und Detailseiten direkt in der App.",
+    image: "/yardline-launch.png",
   },
   {
-    eyebrow: "Highlights",
-    title: "Watch. Read. Follow.",
-    text: "News, Game Highlights, Podcast und Gameday Shots halten dich nah am Football.",
+    eyebrow: "Tables",
+    title: "Teams & Ligen",
+    accent: "Ligen",
+    text: "Tabellen nach Gruppen, Teams nach Liga und Wettbewerbe klar sortiert.",
+    image: "/yardline-launch.png",
+  },
+  {
+    eyebrow: "Media",
+    title: "Highlights",
+    accent: "Highlights",
+    text: "Game Highlights, Podcast, GameDay Shots und News ohne Umwege.",
+    image: "/yardline-launch.png",
+  },
+  {
+    eyebrow: "Community",
+    title: "Stay Updated",
+    accent: "Updated",
+    text: "Pushs, Support und App-Updates halten dich nah am Football.",
+    image: "/yardline-launch.png",
   },
 ];
 
@@ -402,15 +431,16 @@ function OnboardingScreen() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#061126] text-white">
+    <div className="min-h-dvh bg-black text-white">
       <div className="relative min-h-dvh overflow-hidden">
         <img
-          src="/yardline-launch.png"
+          src={slide.image}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#061126]/20 to-[#061126]" />
-        <div className="absolute inset-x-0 bottom-0 h-[48dvh] bg-gradient-to-t from-[#061126] via-[#061126]/96 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/10 to-black/88" />
+        <div className="absolute inset-x-0 bottom-0 h-[58dvh] bg-gradient-to-t from-black via-black/82 to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/65 to-transparent" />
 
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-[calc(22px+env(safe-area-inset-bottom))] pt-[calc(18px+env(safe-area-inset-top))]">
           <div className="flex items-center justify-between">
@@ -424,7 +454,7 @@ function OnboardingScreen() {
             </span>
           </div>
 
-          <div className="mt-auto">
+          <div className="mt-auto pb-2">
             <AnimatePresence mode="wait">
               <motion.div
                 key={slide.title}
@@ -433,14 +463,12 @@ function OnboardingScreen() {
                 exit={{ opacity: 0, x: -44 }}
                 transition={{ duration: 0.24, ease: "easeOut" }}
               >
-                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/78">
                   {slide.eyebrow}
                 </p>
-                <h1 className="mt-2 text-[46px] font-black uppercase italic leading-[0.86] tracking-tight">
-                  {slide.title.split(" ").slice(0, -1).join(" ")}{" "}
-                  <span className="text-[#c20f1a]">
-                    {slide.title.split(" ").slice(-1)}
-                  </span>
+                <h1 className="mt-2 max-w-[360px] text-[48px] font-black uppercase leading-[0.86] tracking-normal">
+                  {slide.title.replace(slide.accent, "").trim()}{" "}
+                  <span className="text-[#c20f1a]">{slide.accent}</span>
                 </h1>
                 <p className="mt-4 max-w-[330px] text-sm font-semibold leading-relaxed text-white/78">
                   {slide.text}
@@ -522,7 +550,7 @@ export default function AppLayout() {
   );
 
   const showBottomNav = !hideBottomNav;
-  const showPageFooter = false;
+  const showPageFooter = showFooter;
 
   useEffect(() => {
     trackPageView(location);
@@ -653,9 +681,10 @@ export default function AppLayout() {
         >
           <Outlet />
         </motion.div>
+
+        {showPageFooter && <Footer />}
       </main>
 
-      {showPageFooter && <Footer />}
       {showBottomNav && <PushPermissionPrompt />}
       {showBottomNav && <BottomNav />}
     </div>

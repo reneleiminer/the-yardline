@@ -216,9 +216,9 @@ function HorizontalRail({ children }) {
 
 function EmptyCard({ label }) {
   return (
-    <div className="rounded-[22px] bg-white px-4 py-6 text-center">
-      <p className="text-xs font-bold text-black/45">{label}</p>
-    </div>
+    <p className="py-6 text-center text-lg font-black uppercase italic leading-tight text-white">
+      {label}
+    </p>
   );
 }
 
@@ -228,9 +228,9 @@ function normalizeHighlight(item) {
   return {
     id: item.id,
     title: item.title || meta.title || "Game Highlight",
-    imageUrl: meta.thumbnail_url || item.imageUrl || "",
-    url: meta.external_video_url || meta.preview_video_url || "",
-    gameId: meta.game_id || "",
+    imageUrl: meta.thumbnail_url || meta.thumbnailUrl || item.imageUrl || "",
+    url: meta.external_video_url || meta.externalVideoUrl || meta.preview_video_url || meta.previewVideoUrl || meta.url || "",
+    gameId: meta.game_id || meta.gameId || "",
   };
 }
 
@@ -283,12 +283,12 @@ function normalizePodcast(item) {
   const meta = parseJsonMessage(item.message);
 
   return {
-    spotifyUrl: meta.spotify_url || meta.url || "",
-    podcastTitle: meta.podcast_title || "Football Germany Podcast",
-    episodeTitle: meta.episode_title || item.title || "",
-    thumbnailUrl: meta.thumbnail_url || item.imageUrl || "",
-    partnerName: meta.partner_name || "Football Germany",
-    updatedAt: meta.updated_at || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
+    spotifyUrl: meta.spotify_url || meta.spotifyUrl || meta.url || meta.link_url || meta.linkUrl || "",
+    podcastTitle: meta.podcast_title || meta.podcastTitle || meta.show_title || meta.showTitle || "Football Germany Podcast",
+    episodeTitle: meta.episode_title || meta.episodeTitle || item.title || "",
+    thumbnailUrl: meta.thumbnail_url || meta.thumbnailUrl || item.imageUrl || "",
+    partnerName: meta.partner_name || meta.partnerName || meta.author_name || meta.authorName || "Football Germany",
+    updatedAt: meta.updated_at || meta.updatedAt || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
     active: item.isActive !== false && meta.active !== false,
   };
 }
@@ -323,9 +323,11 @@ function normalizeShot(item) {
 
   return {
     id: item.id,
-    gameId: meta.game_id || "",
-    imageUrl: meta.image_url || item.imageUrl || "",
+    gameId: meta.game_id || meta.gameId || "",
+    imageUrl: meta.image_url || meta.imageUrl || item.imageUrl || "",
     caption: meta.caption || item.title || "",
+    sortOrder: Number(meta.sort_order ?? meta.sortOrder ?? 0),
+    updatedAt: meta.updated_at || meta.updatedAt || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
     active: item.isActive !== false && meta.active !== false,
   };
 }
@@ -430,7 +432,7 @@ export default function Home() {
 
   const { data: appUpdates = [] } = useQuery({
     queryKey: ["home-overview-updates"],
-    queryFn: () => base44.entities.AppUpdate.list("-created_date", 100),
+    queryFn: () => base44.entities.AppUpdate.list("-created_date", 2000),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     retry: 1,
@@ -496,10 +498,18 @@ export default function Home() {
     return appUpdates
       .filter((item) => item.version === GAMEDAY_SHOT_VERSION && item.isActive !== false)
       .map(normalizeShot)
+      .filter((shot) => shot.active && shot.imageUrl)
       .filter((shot) => {
+        if (!shot.gameId) return true;
+
         const game = gamesById.get(shot.gameId);
         const date = getGameDate(game);
-        return shot.active && shot.imageUrl && date && !isBefore(date, lastTwentyOneDays);
+
+        return !date || !isBefore(date, lastTwentyOneDays);
+      })
+      .sort((a, b) => {
+        if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+        return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
       })
       .slice(0, 4);
   }, [appUpdates, gamesById, lastTwentyOneDays]);

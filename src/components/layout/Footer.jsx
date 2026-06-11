@@ -68,6 +68,7 @@ function PartnerLogoRail({ partners }) {
             />
           ))}
         </div>
+
       </div>
 
       <style>{`
@@ -133,6 +134,19 @@ export default function Footer() {
           <p className="text-xs text-white/75 mt-1">
             © 2026 Alle Rechte vorbehalten.
           </p>
+        </div>
+
+        <div className="relative mx-auto mt-8 h-12 max-w-4xl overflow-hidden rounded-sm border-y-2 border-white/70">
+          <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-white/80" />
+          <div className="absolute inset-0 grid grid-cols-10">
+            {Array.from({ length: 10 }).map((_, index) => (
+              <span
+                key={index}
+                className="border-l border-white/30 first:border-l-0"
+              />
+            ))}
+          </div>
+          <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-white/35" />
         </div>
       </div>
     </footer>
