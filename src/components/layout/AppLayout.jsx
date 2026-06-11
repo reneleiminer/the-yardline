@@ -541,7 +541,7 @@ export default function AppLayout() {
       <Header />
 
       <main
-        className={`yardline-main-scroll relative z-10 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto bg-black pt-[calc(68px+env(safe-area-inset-top))] ${
+        className={`yardline-main-scroll relative z-10 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto pt-[calc(68px+env(safe-area-inset-top))] ${
           showBottomNav
             ? "pb-[calc(92px+env(safe-area-inset-bottom))]"
             : "pb-[env(safe-area-inset-bottom)]"
