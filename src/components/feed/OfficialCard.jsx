@@ -97,11 +97,7 @@ export default function OfficialCard({ post, isLiked }) {
             </div>
 
             {authorData.username && (
-              <Link
-                to={authorData.id ? `/profile/${authorData.id}` : '/'}
-                onClick={event => event.stopPropagation()}
-                className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 hover:border-primary/50 transition-colors"
-              >
+              <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-black/60 backdrop-blur-sm border border-white/10">
                 {authorData.avatar ? (
                   <img
                     src={getImageUrl(authorData.avatar)}
@@ -125,7 +121,7 @@ export default function OfficialCard({ post, isLiked }) {
                 {authorData.verified && (
                   <BadgeCheck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                 )}
-              </Link>
+              </div>
             )}
           </div>
         ) : (
@@ -138,11 +134,7 @@ export default function OfficialCard({ post, isLiked }) {
             </div>
 
             {authorData.username && (
-              <Link
-                to={authorData.id ? `/profile/${authorData.id}` : '/'}
-                onClick={event => event.stopPropagation()}
-                className="flex items-center gap-1.5 ml-auto hover:text-primary transition-colors"
-              >
+              <div className="ml-auto flex items-center gap-1.5">
                 {authorData.avatar && (
                   <img
                     src={getImageUrl(authorData.avatar)}
@@ -164,7 +156,7 @@ export default function OfficialCard({ post, isLiked }) {
                 {authorData.verified && (
                   <BadgeCheck className="w-3.5 h-3.5 text-primary" />
                 )}
-              </Link>
+              </div>
             )}
           </div>
         )}

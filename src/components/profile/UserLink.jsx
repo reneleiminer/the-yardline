@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getImageUrl } from '@/lib/imageUtils';
 import { BadgeCheck, Camera, FileText, Trophy, Megaphone } from 'lucide-react';
@@ -16,23 +15,14 @@ export default function UserLink({
   className,
   variant = 'inline',
 }) {
-  const navigate = useNavigate();
-
   const roleSlug = getRoleSlug(role);
   const roleLabel = getRoleDisplayLabel(role);
   const isAdmin = roleSlug === 'admin';
 
-  const handleClick = event => {
-    event.stopPropagation();
-    if (isAdmin) return;
-    navigate(`/profile/${username}`);
-  };
-
   if (variant === 'avatar') {
     return (
       <Avatar
-        className={`w-9 h-9 ${!isAdmin ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className || ''}`}
-        onClick={!isAdmin ? handleClick : undefined}
+        className={`w-9 h-9 ${className || ''}`}
       >
         <AvatarImage src={getImageUrl(isSystemRole(role) ? getAvatarForRole({ avatar, role }) : avatar)} />
         <AvatarFallback className="bg-secondary text-xs font-bold">
@@ -94,13 +84,12 @@ export default function UserLink({
   }
 
   return (
-    <button
-      onClick={handleClick}
-      className={`flex items-center gap-1 hover:text-primary transition-colors ${className || ''}`}
+    <span
+      className={`flex items-center gap-1 ${className || ''}`}
     >
       <span className="font-semibold text-sm">{displayName || username}</span>
       {getRoleBadge()}
       {verified && <BadgeCheck className="w-4 h-4 text-primary flex-shrink-0" />}
-    </button>
+    </span>
   );
 }

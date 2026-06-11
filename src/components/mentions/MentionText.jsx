@@ -1,9 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export default function MentionText({ text, mentions = [] }) {
-  const navigate = useNavigate();
-  
   if (!text) return null;
   if (!mentions || mentions.length === 0) return <>{text}</>;
   
@@ -31,18 +28,14 @@ export default function MentionText({ text, mentions = [] }) {
         );
       }
       
-      // Add mention as link
+      // Keep mentions readable without exposing public user profiles.
        parts.push(
-         <button
+         <span
            key={`mention-${idx}`}
-           onClick={(e) => {
-             e.stopPropagation();
-             navigate(`/profile/${mention.userId}`);
-           }}
-           className="text-primary hover:underline font-medium"
+           className="font-medium text-primary"
          >
            {mentionText}
-         </button>
+         </span>
        );
       
       lastIndex = index + mentionText.length;

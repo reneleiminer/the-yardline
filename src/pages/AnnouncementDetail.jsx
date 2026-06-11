@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import useSetHeader from "@/hooks/useSetHeader";
 import { base44 } from "@/api/base44Client";
 import { ExternalLink, Play, PlaySquare, Search } from "lucide-react";
 import { getImageUrl } from "@/lib/imageUtils";
@@ -215,11 +214,6 @@ function EmptyState() {
 }
 
 export default function Highlights() {
-  useSetHeader({
-    mode: "back",
-    title: "Highlights",
-  });
-
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
 

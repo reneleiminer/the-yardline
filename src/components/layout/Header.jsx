@@ -373,7 +373,8 @@ export default function Header() {
   }, [location.pathname]);
 
   const requestedMode = config?.mode || "default";
-  const mode = location.pathname === "/" ? "default" : requestedMode;
+  const defaultHeaderRoutes = ["/", "/feed", "/match-center", "/highlights"];
+  const mode = defaultHeaderRoutes.includes(location.pathname) ? "default" : requestedMode;
 
   const hideMenuButton = [
     "/settings",

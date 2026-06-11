@@ -438,7 +438,8 @@ export default function AppLayout() {
     previousIndexRef.current = activeIndex;
   }, [activeIndex]);
 
-  const canSwipeMainPages = activeIndex >= 0;
+  const isMainPage = activeIndex >= 0;
+  const canSwipeMainPages = isMainPage && !isDetailLikePage;
   const renderDirection =
     activeIndex >= 0 && previousIndex >= 0 && activeIndex !== previousIndex
       ? activeIndex > previousIndex ? 1 : -1
@@ -469,6 +470,45 @@ export default function AppLayout() {
     setDirection(nextIndex > activeIndex ? 1 : -1);
   };
 
+  useEffect(() => {
+    if (!canSwipeMainPages) return undefined;
+
+    let startX = 0;
+    let startY = 0;
+    let edgeSwipe = false;
+
+    const onTouchStart = (event) => {
+      const touch = event.touches?.[0];
+      if (!touch) return;
+
+      startX = touch.clientX;
+      startY = touch.clientY;
+      edgeSwipe = startX <= 28;
+    };
+
+    const onTouchMove = (event) => {
+      if (!edgeSwipe) return;
+
+      const touch = event.touches?.[0];
+      if (!touch) return;
+
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+
+      if (dx > 18 && Math.abs(dx) > Math.abs(dy)) {
+        event.preventDefault();
+      }
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+    };
+  }, [canSwipeMainPages]);
+
   if (isLoadingAuth && !appUserSnapshot) {
     return (
       <div className="min-h-dvh bg-[#061126]" />
@@ -497,6 +537,7 @@ export default function AppLayout() {
           touchAction: "pan-y",
           WebkitOverflowScrolling: "touch",
           overflowAnchor: "none",
+          overscrollBehaviorX: isMainPage ? "contain" : "auto",
         }}
       >
         <MainPageTabs activeIndex={activeIndex} onNavigate={handleTopTabNavigate} />
@@ -511,6 +552,7 @@ export default function AppLayout() {
             drag={canSwipeMainPages ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.08}
+            dragDirectionLock
             onDragEnd={handleDragEnd}
             className="min-h-full"
           >
