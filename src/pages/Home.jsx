@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { addDays, format, isBefore, startOfDay, subDays } from "date-fns";
+import { format, isBefore, subDays } from "date-fns";
 import { de } from "date-fns/locale";
 import { ChevronRight, Play, Radio } from "lucide-react";
 
@@ -10,7 +10,6 @@ import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
 
 const HIGHLIGHT_VERSION = "game_highlight";
-const AD_BANNER_VERSION = "ad_banner";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
 const PODCAST_VERSION = "podcast_feature";
 
@@ -82,12 +81,6 @@ function normalizePresentedByLabel(label) {
     .trim()
     .replace(/^(presented\s+by|by)\s+/i, "")
     .trim();
-}
-
-function withAlpha(hex, alpha = "20") {
-  const value = String(hex || "").trim();
-  if (/^#[0-9a-f]{6}$/i.test(value)) return `${value}${alpha}`;
-  return "#eef2ff";
 }
 
 function TeamLogo({ team, className = "h-16 w-16" }) {
@@ -195,10 +188,6 @@ function SmallGameCard({ game, teamsById, leaguesById }) {
   return <ColorGameCard game={game} teamsById={teamsById} leaguesById={leaguesById} compact />;
 }
 
-function WideGameCard({ game, teamsById, leaguesById }) {
-  return <ColorGameCard game={game} teamsById={teamsById} leaguesById={leaguesById} />;
-}
-
 function SectionTitle({ title, to }) {
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
@@ -229,111 +218,6 @@ function EmptyCard({ label }) {
   return (
     <div className="rounded-[22px] bg-white px-4 py-6 text-center">
       <p className="text-xs font-bold text-black/45">{label}</p>
-    </div>
-  );
-}
-
-function groupGamesByLeague(games, leaguesById) {
-  const map = new Map();
-
-  games.forEach((game) => {
-    const leagueKey = game.leagueId || "unknown";
-    const league = leaguesById.get(game.leagueId);
-
-    if (!map.has(leagueKey)) {
-      map.set(leagueKey, {
-        key: leagueKey,
-        league,
-        title: league?.shortName || league?.name || "Ohne Liga",
-        games: [],
-      });
-    }
-
-    map.get(leagueKey).games.push(game);
-  });
-
-  return Array.from(map.values()).sort((a, b) => {
-    const sortA = Number(a.league?.sortOrder ?? a.league?.level ?? 999);
-    const sortB = Number(b.league?.sortOrder ?? b.league?.level ?? 999);
-    if (sortA !== sortB) return sortA - sortB;
-    return a.title.localeCompare(b.title, "de");
-  });
-}
-
-function LeagueGameGrid({ groups, teamsById, leaguesById, emptyLabel }) {
-  if (groups.length === 0) return <EmptyCard label={emptyLabel} />;
-
-  return (
-    <div className="space-y-5">
-      {groups.map((group) => (
-        <div key={group.key}>
-          <div className="mb-3 flex items-center gap-2.5">
-            {group.league?.logo && (
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white p-1.5">
-                <img
-                  src={getImageUrl(group.league.logo)}
-                  alt=""
-                  className="h-full w-full object-contain"
-                  loading="lazy"
-                />
-              </span>
-            )}
-            <h3 className="truncate text-base font-black uppercase italic tracking-normal text-white sm:text-lg">
-              {group.title}
-            </h3>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {group.games.map((game) => (
-              <SmallGameCard
-                key={game.id}
-                game={game}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function LeagueGameList({ groups, teamsById, leaguesById, emptyLabel }) {
-  if (groups.length === 0) return <EmptyCard label={emptyLabel} />;
-
-  return (
-    <div className="space-y-5">
-      {groups.map((group) => (
-        <div key={group.key}>
-          <div className="mb-3 flex items-center gap-2.5">
-            {group.league?.logo && (
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white p-1.5">
-                <img
-                  src={getImageUrl(group.league.logo)}
-                  alt=""
-                  className="h-full w-full object-contain"
-                  loading="lazy"
-                />
-              </span>
-            )}
-            <h3 className="truncate text-base font-black uppercase italic tracking-normal text-white sm:text-lg">
-              {group.title}
-            </h3>
-          </div>
-
-          <div className="space-y-3">
-            {group.games.map((game) => (
-              <WideGameCard
-                key={game.id}
-                game={game}
-                teamsById={teamsById}
-                leaguesById={leaguesById}
-              />
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
@@ -377,43 +261,6 @@ function HighlightCard({ item }) {
   }
 
   return <div className="min-w-[82vw] max-w-[82vw]">{content}</div>;
-}
-
-function normalizeAdBanner(item) {
-  const meta = parseJsonMessage(item.message);
-
-  return {
-    id: item.id,
-    title: item.title || meta.title || "",
-    imageUrl: meta.image_url || item.imageUrl || "",
-    linkUrl: meta.link_url || "",
-    position: meta.position || "after_highlights",
-    active: item.isActive !== false && meta.active !== false,
-  };
-}
-
-function AdBanner({ banner }) {
-  if (!banner?.active || (!banner.imageUrl && !banner.title)) return null;
-
-  const content = (
-    <div className="overflow-hidden rounded-[22px] bg-white text-black">
-      {banner.imageUrl ? (
-        <img src={getImageUrl(banner.imageUrl)} alt={banner.title || "Werbung"} className="aspect-[16/7] w-full object-cover" loading="lazy" />
-      ) : (
-        <div className="p-4 text-sm font-black">{banner.title}</div>
-      )}
-    </div>
-  );
-
-  if (banner.linkUrl?.startsWith("http")) {
-    return <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer">{content}</a>;
-  }
-
-  if (banner.linkUrl) {
-    return <Link to={banner.linkUrl}>{content}</Link>;
-  }
-
-  return content;
 }
 
 function NewsCard({ post }) {
@@ -605,23 +452,7 @@ export default function Home() {
 
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
-  const today = useMemo(() => startOfDay(new Date()), []);
-  const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
-  const lastTwentyOneDays = useMemo(() => subDays(today, 21), [today]);
-
-  const upcomingGroups = useMemo(() => {
-    const upcomingGames = games
-      .filter((game) => {
-        const date = getGameDate(game);
-        if (!date) return false;
-        const status = getEffectiveGameStatus(game);
-        return status !== "live" && status !== "final" && status !== "cancelled" && !isBefore(date, new Date()) && isBefore(date, addDays(nextSevenDays, 1));
-      })
-      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
-      .slice(0, 12);
-
-    return groupGamesByLeague(upcomingGames, leaguesById);
-  }, [games, leaguesById, nextSevenDays]);
+  const lastTwentyOneDays = useMemo(() => subDays(new Date(), 21), []);
 
   const gameOfTheWeek = useMemo(() => {
     return [...games]
@@ -642,13 +473,6 @@ export default function Home() {
       .filter((item) => item.version === HIGHLIGHT_VERSION && item.isActive !== false)
       .map(normalizeHighlight)
       .slice(0, 4);
-  }, [appUpdates]);
-
-  const adBanners = useMemo(() => {
-    return appUpdates
-      .filter((item) => item.version === AD_BANNER_VERSION && item.isActive !== false)
-      .map(normalizeAdBanner)
-      .filter((item) => item.active);
   }, [appUpdates]);
 
   const podcast = useMemo(() => {
@@ -696,9 +520,23 @@ export default function Home() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="space-y-7">
-        {adBanners.filter((banner) => banner.position === "top" || banner.position === "after_live").map((banner) => (
-          <AdBanner key={banner.id} banner={banner} />
-        ))}
+        <section>
+          <SectionTitle title="News" to="/feed" />
+          {news.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {news.map((post) => <NewsCard key={post.id} post={post} />)}
+            </div>
+          ) : (
+            <EmptyCard label="Keine News" />
+          )}
+        </section>
+
+        {gameOfTheWeek && (
+          <section>
+            <GameOfWeekTitle label={gameOfTheWeekLabel} />
+            <SmallGameCard game={gameOfTheWeek} teamsById={teamsById} leaguesById={leaguesById} />
+          </section>
+        )}
 
         <section>
           <SectionTitle title="Game Highlights" to="/highlights" />
@@ -718,35 +556,6 @@ export default function Home() {
           </section>
         )}
 
-        {gameOfTheWeek && (
-          <section>
-            <GameOfWeekTitle label={gameOfTheWeekLabel} />
-            <SmallGameCard game={gameOfTheWeek} teamsById={teamsById} leaguesById={leaguesById} />
-          </section>
-        )}
-
-        {news.length > 0 && (
-          <section>
-            <SectionTitle title="News" to="/feed" />
-            <div className="grid grid-cols-2 gap-3">
-              {news.map((post) => <NewsCard key={post.id} post={post} />)}
-            </div>
-          </section>
-        )}
-
-        {adBanners.filter((banner) => !["top", "after_live", "after_upcoming"].includes(banner.position)).map((banner) => (
-          <AdBanner key={banner.id} banner={banner} />
-        ))}
-
-        {undefeatedTeams.length > 0 && (
-          <section>
-            <SectionTitle title="Siegesserien" />
-            <HorizontalRail>
-              {undefeatedTeams.map((item) => <StreakCard key={item.team.id} item={item} />)}
-            </HorizontalRail>
-          </section>
-        )}
-
         <section>
           <SectionTitle title="GameDay Shots" />
           {shots.length > 0 ? (
@@ -758,19 +567,14 @@ export default function Home() {
           )}
         </section>
 
-        <section>
-          <SectionTitle title="Kommende Spiele" to="/match-center" />
-          <LeagueGameList
-            groups={upcomingGroups}
-            teamsById={teamsById}
-            leaguesById={leaguesById}
-            emptyLabel="Keine kommenden Spiele"
-          />
-        </section>
-
-        {adBanners.filter((banner) => banner.position === "after_upcoming").map((banner) => (
-          <AdBanner key={banner.id} banner={banner} />
-        ))}
+        {undefeatedTeams.length > 0 && (
+          <section>
+            <SectionTitle title="Siegesserien" />
+            <HorizontalRail>
+              {undefeatedTeams.map((item) => <StreakCard key={item.team.id} item={item} />)}
+            </HorizontalRail>
+          </section>
+        )}
       </div>
     </div>
   );
