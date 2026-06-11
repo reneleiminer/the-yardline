@@ -8,16 +8,15 @@ export function AppUserProvider({ children }) {
     appUserSnapshot,
     isLoadingAuth,
     refreshAuth,
+    updatePublicUser,
   } = useAuth();
 
   const value = useMemo(() => ({
     appUser: appUserSnapshot,
     loading: isLoadingAuth,
-    updateAppUser: async () => {
-      throw new Error("updateAppUser is disabled for internal auth. Use admin data actions instead.");
-    },
+    updateAppUser: updatePublicUser,
     refreshAppUser: refreshAuth,
-  }), [appUserSnapshot, isLoadingAuth, refreshAuth]);
+  }), [appUserSnapshot, isLoadingAuth, refreshAuth, updatePublicUser]);
 
   return (
     <AppUserContext.Provider value={value}>

@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   BellOff,
@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Database,
   Globe2,
+  LogOut,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -225,6 +226,41 @@ function AppInfoSettings() {
   );
 }
 
+function AccountSettings() {
+  const { appUserSnapshot, logout } = useAuth();
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="flex items-center gap-3 px-4 py-4">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+          <span className="text-sm font-black uppercase">
+            {(appUserSnapshot?.displayName || appUserSnapshot?.username || "Y").slice(0, 1)}
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-bold text-black">
+            {appUserSnapshot?.displayName || appUserSnapshot?.username || "Dein Konto"}
+          </h2>
+          <p className="truncate text-xs text-slate-500">
+            {appUserSnapshot?.email || "Angemeldet"}
+          </p>
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => logout(true)}
+          className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Abmelden
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function PushNotificationSettings() {
   const [state, setState] = React.useState({
     supported: false,
@@ -318,13 +354,11 @@ function PushNotificationSettings() {
 }
 
 export default function Settings() {
-  const [searchParams] = useSearchParams();
-
-  const showInternalLogin = searchParams.has("login");
+  const showInternalLogin = false;
 
   useSetHeader({
     mode: "back",
-    title: showInternalLogin ? getLoginTitle() : "Einstellungen",
+    title: "Einstellungen",
   });
 
   if (showInternalLogin) {
@@ -337,6 +371,7 @@ export default function Settings() {
   return (
     <div className="min-h-[calc(100dvh-68px)] w-full max-w-full overflow-x-hidden px-4 pt-4 pb-24 flex flex-col">
       <div className="space-y-3">
+        <AccountSettings />
         <PushNotificationSettings />
         <LanguageSettings />
         <AppInfoSettings />

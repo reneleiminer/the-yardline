@@ -56,7 +56,7 @@ export default function BottomNav() {
       style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}
       aria-label="Hauptnavigation"
     >
-      <div className="absolute inset-0 pointer-events-none border-t border-black/10 bg-white" />
+      <div className="absolute inset-0 pointer-events-none border-t border-red-900/20 bg-red-700" />
 
       <div className="relative grid h-[68px] w-full grid-cols-5 px-3 pointer-events-auto">
         {navItems.map((item) => {
@@ -78,9 +78,9 @@ export default function BottomNav() {
                 event.preventDefault();
                 scrollMainToTop();
               }}
-              className="flex min-w-0 items-center justify-center text-black"
+              className="flex min-w-0 items-center justify-center text-white"
             >
-              <Icon className={`h-7 w-7 ${isActive ? "text-blue-700" : "text-black/65"}`} />
+              <Icon className={`h-7 w-7 ${isActive ? "text-white" : "text-white/62"}`} />
             </Link>
           );
         })}

@@ -6,9 +6,7 @@ import {
   ChevronRight,
   FileText,
   Headphones,
-  Menu,
   Settings,
-  ShieldCheck,
   UserCircle,
   X,
 } from "lucide-react";
@@ -128,11 +126,11 @@ function BrandLogo({ centered = false }) {
         <img
           src={getImageUrl(logoUrl)}
           alt="The Yardline"
-          className="h-[46px] max-w-[24vw] sm:max-w-[150px] w-auto object-contain drop-shadow-[0_0_18px_rgba(239,0,31,0.35)]"
+          className="h-[46px] max-w-[24vw] sm:max-w-[150px] w-auto object-contain drop-shadow-[0_0_18px_rgba(255,255,255,0.26)]"
           loading="eager"
         />
       ) : (
-        <span className="text-xl font-black uppercase tracking-wide text-black">
+        <span className="text-xl font-black uppercase tracking-wide text-white">
           Yardline
         </span>
       )}
@@ -197,7 +195,7 @@ function BackButton({ onBack, backTo }) {
       style={{ width: 40, height: 40 }}
       aria-label="Zurueck"
     >
-      <ArrowLeft className="w-5 h-5 text-black" />
+      <ArrowLeft className="w-5 h-5 text-white" />
     </button>
   );
 }
@@ -208,7 +206,7 @@ function BackContent({ title, onBack, backTo }) {
       <BackButton onBack={onBack} backTo={backTo} />
 
       {title && (
-        <span className="text-sm font-bold text-black truncate">
+        <span className="text-sm font-bold text-white truncate">
           {title}
         </span>
       )}
@@ -236,12 +234,12 @@ function LeagueContent({ league, onBack, backTo }) {
       )}
 
       <div className="min-w-0">
-        <p className="text-sm font-bold text-black truncate leading-tight">
+        <p className="text-sm font-bold text-white truncate leading-tight">
           {league?.name || "..."}
         </p>
 
         {(league?.season || league?.country) && (
-          <p className="text-[10px] text-black/55 truncate leading-tight">
+          <p className="text-[10px] text-white/65 truncate leading-tight">
             {[league?.country, league?.season].filter(Boolean).join(" - ")}
           </p>
         )}
@@ -270,12 +268,12 @@ function ClubContent({ club, onBack, backTo }) {
       )}
 
       <div className="min-w-0">
-        <p className="text-sm font-bold text-black truncate leading-tight">
+        <p className="text-sm font-bold text-white truncate leading-tight">
           {club?.name || "..."}
         </p>
 
         {club?.city && (
-          <p className="text-[10px] text-black/55 truncate leading-tight">
+          <p className="text-[10px] text-white/65 truncate leading-tight">
             {club.city}
           </p>
         )}
@@ -304,13 +302,6 @@ function HeaderMenu({ open, onClose }) {
       route: "/legal",
     },
   ];
-
-    const internalLoginItem = {
-    label: "Interner Login",
-    description: "Admin, Dateneditor, Media, Podcast oder Verein",
-    icon: ShieldCheck,
-    route: "/settings?login=internal",
-  };
 
   if (!open) return null;
 
@@ -362,34 +353,6 @@ function HeaderMenu({ open, onClose }) {
           })}
         </div>
 
-               <div className="mt-4 rounded-2xl border border-red-500/25 bg-black/60 overflow-hidden shadow-[0_0_34px_rgba(239,0,31,0.10)] backdrop-blur-xl">
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              navigate(internalLoginItem.route);
-            }}
-            className="w-full min-h-[64px] flex items-center gap-3 px-4 text-left active:bg-red-500/10 transition-colors"
-            aria-label={internalLoginItem.label}
-            title={internalLoginItem.label}
-          >
-            <div className="w-10 h-10 rounded-xl border border-red-500/30 bg-red-500/10 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="w-5 h-5 text-red-500" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-bold text-white block">
-                {internalLoginItem.label}
-              </span>
-
-              <span className="text-[11px] text-white/45 block truncate mt-0.5">
-                {internalLoginItem.description}
-              </span>
-            </div>
-
-            <ChevronRight className="w-4 h-4 text-white/35 flex-shrink-0" />
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -432,10 +395,10 @@ export default function Header() {
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
-          background: "#ffffff",
+          background: "#005bff",
           boxShadow: scrolled
-            ? "0 1px 0 rgba(239,0,31,0.24), 0 18px 55px rgba(0,0,0,0.42)"
-            : "0 1px 0 rgba(239,0,31,0.18)",
+            ? "0 1px 0 rgba(255,255,255,0.18), 0 18px 55px rgba(0,40,130,0.28)"
+            : "0 1px 0 rgba(255,255,255,0.18)",
         }}
       >
         <div className="relative flex items-center h-[68px] px-2 sm:px-3 w-full">
@@ -450,7 +413,7 @@ export default function Header() {
                   aria-label="Profil"
                   title="Profil"
                 >
-                  <UserCircle className="h-8 w-8 text-black" strokeWidth={2.1} />
+                  <UserCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
                 </Link>
               )}
             </>
@@ -496,7 +459,7 @@ export default function Header() {
           style={{
             background: contextPrimary
               ? contextPrimary
-              : "rgba(0,0,0,0.10)",
+              : "rgba(255,255,255,0.18)",
           }}
         />
       </header>

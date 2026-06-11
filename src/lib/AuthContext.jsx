@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 
 const AuthContext = createContext();
 
+const SESSION_KEY = "yardline_user_session";
 const OWNER_EMAIL = "itsleimiro@gmail.com";
 const DEFAULT_ADMIN_USERNAME = "admin";
 const DEFAULT_ADMIN_PASSWORD = "ReneRicardo19";
@@ -38,6 +39,48 @@ function isDeletedOrBlocked(appUser) {
 
 function isInternalRole(appUser) {
   return ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
+}
+
+function getStoredSessionId() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return "";
+
+    const parsed = JSON.parse(raw);
+    return parsed?.appUserId || "";
+  } catch {
+    localStorage.removeItem(SESSION_KEY);
+    return "";
+  }
+}
+
+function storeSession(appUser) {
+  localStorage.setItem(
+    SESSION_KEY,
+    JSON.stringify({
+      appUserId: appUser.id,
+      createdAtUtc: new Date().toISOString(),
+    })
+  );
+}
+
+function clearStoredSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function normalizePublicAppUser(appUser) {
+  if (!appUser) return null;
+
+  const roleSlug = normalizeRole(appUser.roleSlug || appUser.role || "fan") || "fan";
+  const onboardingCompleted = appUser.onboardingCompleted === true;
+
+  return {
+    ...appUser,
+    roleSlug,
+    role: appUser.role || "Fan",
+    isInternalUser: false,
+    needsOnboarding: roleSlug === "fan" && !onboardingCompleted,
+  };
 }
 
 function getInternalRoleLabel(roleSlug) {
@@ -133,27 +176,257 @@ export const AuthProvider = ({ children }) => {
   const checkAppState = async () => {
     try {
       setIsLoadingPublicSettings(true);
+      setIsLoadingAuth(true);
       setAuthError(null);
       setAppPublicSettings(null);
 
-      setUser(null);
-      setAppUserSnapshot(null);
-      setIsAuthenticated(false);
+      const sessionId = getStoredSessionId();
+
+      if (!sessionId) {
+        setUser(null);
+        setAppUserSnapshot(null);
+        setIsAuthenticated(false);
+        setAuthChecked(true);
+        return;
+      }
+
+      const appUser = normalizePublicAppUser(await base44.entities.AppUser.get(sessionId));
+
+      if (!appUser || isDeletedOrBlocked(appUser)) {
+        clearStoredSession();
+        setUser(null);
+        setAppUserSnapshot(null);
+        setIsAuthenticated(false);
+        setAuthChecked(true);
+        return;
+      }
+
+      setUser({
+        id: appUser.id,
+        username: appUser.username,
+        full_name: appUser.displayName || appUser.username,
+        name: appUser.displayName || appUser.username,
+        email: appUser.email || "",
+      });
+      setAppUserSnapshot(appUser);
+      setIsAuthenticated(true);
       setAuthError(null);
-      setIsLoadingAuth(false);
       setAuthChecked(true);
-      setIsLoadingPublicSettings(false);
     } catch (error) {
       console.warn("Auth bootstrap failed:", error);
 
+      clearStoredSession();
       setUser(null);
       setAppUserSnapshot(null);
       setIsAuthenticated(false);
       setAuthError(null);
       setAuthChecked(true);
+    } finally {
       setIsLoadingAuth(false);
       setIsLoadingPublicSettings(false);
     }
+  };
+
+  const setPublicSession = (appUser) => {
+    const normalizedAppUser = normalizePublicAppUser(appUser);
+
+    storeSession(normalizedAppUser);
+
+    const publicUser = {
+      id: normalizedAppUser.id,
+      username: normalizedAppUser.username,
+      full_name: normalizedAppUser.displayName || normalizedAppUser.username,
+      name: normalizedAppUser.displayName || normalizedAppUser.username,
+      email: normalizedAppUser.email || "",
+    };
+
+    setUser(publicUser);
+    setAppUserSnapshot(normalizedAppUser);
+    setIsAuthenticated(true);
+    setAuthError(null);
+    setAuthChecked(true);
+
+    return {
+      ok: true,
+      user: publicUser,
+      appUser: normalizedAppUser,
+    };
+  };
+
+  const registerUser = async ({
+    username,
+    displayName,
+    birthDate,
+    email,
+    password,
+  }) => {
+    try {
+      setIsLoadingAuth(true);
+      setAuthError(null);
+
+      const cleanUsername = normalizeUsername(username);
+      const cleanDisplayName = String(displayName || "").trim();
+      const cleanBirthDate = String(birthDate || "").trim();
+      const cleanEmail = normalizeEmail(email);
+      const cleanPassword = String(password || "");
+
+      if (!cleanUsername || cleanUsername.length < 3) {
+        throw new Error("Der Benutzername braucht mindestens 3 Zeichen.");
+      }
+
+      if (!cleanDisplayName) {
+        throw new Error("Bitte gib deinen Namen ein.");
+      }
+
+      if (!cleanBirthDate) {
+        throw new Error("Bitte gib dein Geburtsdatum ein.");
+      }
+
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        throw new Error("Bitte gib eine gültige E-Mail ein.");
+      }
+
+      if (cleanPassword.length < 6) {
+        throw new Error("Das Passwort braucht mindestens 6 Zeichen.");
+      }
+
+      const existingByUsername = await base44.entities.AppUser.filter({
+        username: cleanUsername,
+      });
+
+      if (existingByUsername.length > 0) {
+        throw new Error("Dieser Benutzername ist bereits vergeben.");
+      }
+
+      const existingByEmail = await base44.entities.AppUser.filter({
+        email: cleanEmail,
+      });
+
+      if (existingByEmail.length > 0) {
+        throw new Error("Für diese E-Mail gibt es bereits ein Konto.");
+      }
+
+      const now = new Date().toISOString();
+      const created = await base44.entities.AppUser.create({
+        username: cleanUsername,
+        displayName: cleanDisplayName,
+        email: cleanEmail,
+        internalPassword: cleanPassword,
+        isInternalUser: false,
+        role: "Fan",
+        roleSlug: "fan",
+        verified: false,
+        status: "active",
+        birthDate: cleanBirthDate,
+        onboardingCompleted: false,
+        createdAtUtc: now,
+        updatedAtUtc: now,
+      });
+
+      return setPublicSession(created);
+    } catch (error) {
+      const authFailure = {
+        type: "register_failed",
+        message: error.message || "Registrierung fehlgeschlagen.",
+      };
+
+      setAuthError(authFailure);
+
+      return {
+        ok: false,
+        error: authFailure,
+      };
+    } finally {
+      setIsLoadingAuth(false);
+      setAuthChecked(true);
+    }
+  };
+
+  const loginUser = async ({ login, password }) => {
+    try {
+      setIsLoadingAuth(true);
+      setAuthError(null);
+
+      const cleanLogin = String(login || "").trim().toLowerCase();
+      const cleanPassword = String(password || "");
+
+      if (!cleanLogin || !cleanPassword) {
+        throw new Error("Bitte Login und Passwort eingeben.");
+      }
+
+      const byEmail = cleanLogin.includes("@")
+        ? await base44.entities.AppUser.filter({ email: cleanLogin })
+        : [];
+      const byUsername = await base44.entities.AppUser.filter({ username: cleanLogin });
+      const candidates = [...byEmail, ...byUsername];
+      const uniqueCandidates = Array.from(
+        new Map(candidates.map(item => [item.id || item.username, item])).values()
+      );
+
+      const appUser = uniqueCandidates.find(item => {
+        const emailMatch = normalizeEmail(item.email) === cleanLogin;
+        const usernameMatch = normalizeUsername(item.username) === cleanLogin;
+
+        return (emailMatch || usernameMatch) && !item.isInternalUser;
+      });
+
+      if (!appUser || isDeletedOrBlocked(appUser)) {
+        throw new Error("Benutzername, E-Mail oder Passwort ist falsch.");
+      }
+
+      const storedPassword =
+        appUser.internalPassword ||
+        appUser.password ||
+        appUser.loginPassword ||
+        appUser.temporaryPassword ||
+        "";
+
+      if (String(storedPassword) !== cleanPassword) {
+        throw new Error("Benutzername, E-Mail oder Passwort ist falsch.");
+      }
+
+      return setPublicSession(appUser);
+    } catch (error) {
+      const authFailure = {
+        type: "login_failed",
+        message: error.message || "Login fehlgeschlagen.",
+      };
+
+      setAuthError(authFailure);
+
+      return {
+        ok: false,
+        error: authFailure,
+      };
+    } finally {
+      setIsLoadingAuth(false);
+      setAuthChecked(true);
+    }
+  };
+
+  const completeOnboarding = async () => {
+    if (!appUserSnapshot?.id) return;
+
+    const updated = await base44.entities.AppUser.update(appUserSnapshot.id, {
+      onboardingCompleted: true,
+      updatedAtUtc: new Date().toISOString(),
+    });
+
+    setPublicSession(updated);
+  };
+
+  const updatePublicUser = async (updates = {}) => {
+    if (!appUserSnapshot?.id) {
+      throw new Error("Du bist nicht angemeldet.");
+    }
+
+    const updated = await base44.entities.AppUser.update(appUserSnapshot.id, {
+      ...updates,
+      updatedAtUtc: new Date().toISOString(),
+    });
+
+    setPublicSession(updated);
+    return updated;
   };
 
   const resolveAppUserForAuth = async (base44User) => {
@@ -438,27 +711,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = (shouldRedirect = true) => {
-    const wasInternalSession = user?.isInternalSession;
-
+    clearStoredSession();
     setUser(null);
     setAppUserSnapshot(null);
     setIsAuthenticated(false);
     setAuthError(null);
 
-    if (wasInternalSession) {
-      if (shouldRedirect) {
-        window.location.href = "/";
-      }
-
-      return;
-    }
-
     if (shouldRedirect) {
-      base44.auth.logout("/");
+      window.location.href = "/";
       return;
     }
-
-    base44.auth.logout();
   };
 
   const navigateToLogin = () => {
@@ -481,6 +743,10 @@ export const AuthProvider = ({ children }) => {
         appPublicSettings,
         authChecked,
         logout,
+        loginUser,
+        registerUser,
+        completeOnboarding,
+        updatePublicUser,
         internalLogin,
         navigateToLogin,
         checkUserAuth,
