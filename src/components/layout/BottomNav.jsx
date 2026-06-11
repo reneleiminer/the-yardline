@@ -6,14 +6,15 @@ function FootballIcon({ className }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
       <path
-        d="M4.2 15.7c-.6-3.6.6-6.9 3.2-9.1 2.7-2.2 6.2-2.9 9.6-1.7 1.5.5 2.5 1.5 3 3 .9 3.3-.2 6.6-3 8.9-2.9 2.4-7.1 2.7-10.5.8a4.4 4.4 0 0 1-2.3-1.9Z"
+        d="M2.8 12c2.2-4.5 5.4-6.8 9.2-6.8s7 2.3 9.2 6.8c-2.2 4.5-5.4 6.8-9.2 6.8S5 16.5 2.8 12Z"
         stroke="currentColor"
-        strokeWidth="1.9"
+        strokeWidth="1.8"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M7.4 16.3c2.9-2.4 6.3-5.8 8.7-9.1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="m9.7 12.7 2 2.4M11.5 10.8l2 2.4M13.2 8.9l2 2.4" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M6.4 12h11.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M9.2 9.8v4.4M11.1 9.5v5M13 9.5v5M14.9 9.8v4.4" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" />
+      <path d="M5.1 9.5c1.2 1.1 1.2 3.9 0 5M18.9 9.5c-1.2 1.1-1.2 3.9 0 5" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
     </svg>
   );
 }
