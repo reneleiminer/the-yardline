@@ -83,18 +83,16 @@ const EMPTY = {
   highlightSubtitle: "",
 };
 
-const GAME_STATUSES = ["scheduled", "live", "final", "cancelled"];
+const GAME_STATUSES = ["scheduled", "final", "cancelled"];
 
 const STATUS_COLORS = {
   scheduled: "bg-secondary text-foreground",
-  live: "bg-red-500/15 text-red-400",
   final: "bg-green-500/15 text-green-500",
   cancelled: "bg-orange-500/15 text-orange-400",
 };
 
 const STATUS_LABELS = {
   scheduled: "Geplant",
-  live: "Live",
   final: "Final",
   cancelled: "Abgesagt",
 };
@@ -867,7 +865,6 @@ function GameForm({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="scheduled">Geplant</SelectItem>
-          <SelectItem value="live">Live</SelectItem>
           <SelectItem value="final">Final</SelectItem>
           <SelectItem value="cancelled">Abgesagt</SelectItem>
         </SelectContent>
@@ -884,7 +881,7 @@ function GameForm({
         </div>
       )}
 
-      {(form.status === "live" || form.status === "final") && (
+      {form.status === "final" && (
         <div className="grid grid-cols-2 gap-2">
           <Input type="number" placeholder="Heim-Punkte" value={form.scoreHome} onChange={(event) => set("scoreHome", Number(event.target.value))} />
           <Input type="number" placeholder="Auswärts-Punkte" value={form.scoreAway} onChange={(event) => set("scoreAway", Number(event.target.value))} />
@@ -1112,7 +1109,7 @@ export default function AdminGames() {
         : null;
 
     const status = data.status || "scheduled";
-    const hasScore = status === "final" || status === "live";
+    const hasScore = status === "final";
 
     return {
       leagueId: data.leagueId || "",

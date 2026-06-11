@@ -52,16 +52,7 @@ function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
   if (game.status === "cancelled") return "cancelled";
   if (game.status === "final") return "final";
-  if (game.status === "live") return "live";
-
-  const kickoff = getGameDate(game);
-  if (!kickoff) return game.status || "scheduled";
-
-  if ((game.status || "scheduled") === "scheduled" && Date.now() >= kickoff.getTime()) {
-    return "live";
-  }
-
-  return game.status || "scheduled";
+  return "scheduled";
 }
 
 function getTeamName(team, fallback) {
@@ -82,14 +73,12 @@ function StatusBadge({ game }) {
   const status = getEffectiveGameStatus(game);
 
   const config = {
-    live: "bg-red-600 text-white border-red-500",
     final: "bg-black text-white border-black",
     cancelled: "bg-zinc-700 text-white border-zinc-600",
     scheduled: "bg-blue-700 text-white border-blue-500",
   }[status] || "bg-blue-700 text-white border-blue-500";
 
   const label = {
-    live: "LIVE",
     final: "FINAL",
     cancelled: "ABGESAGT",
     scheduled: "GEPLANT",
@@ -327,7 +316,6 @@ function GamesPanel({ games, teamsById, leaguesById }) {
         if (!date) return false;
         const status = getEffectiveGameStatus(game);
 
-        if (mode === "live") return status === "live";
         if (mode === "today") return isSameDay(date, today);
         if (mode === "upcoming") {
           return status !== "final" && status !== "cancelled" && !isBefore(date, tomorrow) && isBefore(date, addDays(sevenDaysAhead, 1));
@@ -343,7 +331,6 @@ function GamesPanel({ games, teamsById, leaguesById }) {
   }, [games, mode, sevenDaysAgo, sevenDaysAhead, today, tomorrow]);
 
   const modes = [
-    { key: "live", label: "Live" },
     { key: "today", label: "Heute" },
     { key: "upcoming", label: "Kommend" },
     { key: "past", label: "Final" },
@@ -354,7 +341,7 @@ function GamesPanel({ games, teamsById, leaguesById }) {
 
   return (
     <section>
-    <div className="mb-4 grid grid-cols-4 gap-1 rounded-2xl border border-black/10 bg-white p-1">
+    <div className="mb-4 grid grid-cols-3 gap-1 rounded-2xl border border-black/10 bg-white p-1">
         {modes.map((item) => (
           <button
             key={item.key}
@@ -660,11 +647,6 @@ export default function MatchCenter() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="space-y-4">
-        <div className="mb-1">
-          <h1 className="yardline-page-heading">Match Center</h1>
-          <div className="yardline-title-bars" />
-        </div>
-
         <div className="grid grid-cols-3 gap-2">
           <QuickPath
             active={activeTab === "games"}

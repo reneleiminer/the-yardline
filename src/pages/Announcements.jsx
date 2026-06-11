@@ -95,11 +95,6 @@ export default function Announcements() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
-      <div className="mb-5">
-        <h1 className="yardline-page-heading">News</h1>
-        <div className="yardline-title-bars" />
-      </div>
-
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/45" />
         <input

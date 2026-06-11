@@ -56,16 +56,7 @@ function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
   if (game.status === "cancelled") return "cancelled";
   if (game.status === "final") return "final";
-  if (game.status === "live") return "live";
-
-  const kickoff = getGameDate(game);
-  if (!kickoff) return game.status || "scheduled";
-
-  if ((game.status || "scheduled") === "scheduled" && Date.now() >= kickoff.getTime()) {
-    return "live";
-  }
-
-  return game.status || "scheduled";
+  return "scheduled";
 }
 
 function hasFinalScore(game) {
@@ -127,15 +118,12 @@ function TeamLogo({ team, fallback }) {
 function StatusPill({ game }) {
   const status = getEffectiveGameStatus(game);
   const label = {
-    live: "LIVE",
     final: "FINAL",
     cancelled: "ABGESAGT",
     scheduled: "GEPLANT",
   }[status] || "GEPLANT";
 
-  const className = status === "live"
-    ? "bg-red-600 text-white"
-    : status === "final"
+  const className = status === "final"
     ? "bg-slate-950 text-white"
     : "bg-blue-700 text-white";
 
@@ -658,14 +646,6 @@ export default function Home() {
   const nextSevenDays = useMemo(() => addDays(today, 7), [today]);
   const lastTwentyOneDays = useMemo(() => subDays(today, 21), [today]);
 
-  const liveGroups = useMemo(() => {
-    const liveGames = games
-      .filter((game) => getEffectiveGameStatus(game) === "live")
-      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
-
-    return groupGamesByLeague(liveGames, leaguesById);
-  }, [games, leaguesById]);
-
   const upcomingGroups = useMemo(() => {
     const upcomingGames = games
       .filter((game) => {
@@ -752,22 +732,7 @@ export default function Home() {
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
-      <div className="mb-5">
-        <h1 className="yardline-page-heading">Home</h1>
-        <div className="yardline-title-bars" />
-      </div>
-
       <div className="space-y-7">
-        <section>
-          <SectionTitle title="Live Now" to="/match-center" />
-          <LeagueGameGrid
-            groups={liveGroups}
-            teamsById={teamsById}
-            leaguesById={leaguesById}
-            emptyLabel="Keine Live Games"
-          />
-        </section>
-
         {adBanners.filter((banner) => banner.position === "top" || banner.position === "after_live").map((banner) => (
           <AdBanner key={banner.id} banner={banner} />
         ))}

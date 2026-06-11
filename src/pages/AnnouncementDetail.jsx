@@ -306,11 +306,6 @@ export default function Highlights() {
 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-5 pb-24">
-      <div className="mb-5">
-        <h1 className="yardline-page-heading">Game Highlights</h1>
-        <div className="yardline-title-bars" />
-      </div>
-
       <div className="relative mb-4">
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-black/45" />
 

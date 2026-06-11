@@ -9,6 +9,7 @@ import {
   Menu,
   Settings,
   ShieldCheck,
+  UserCircle,
   X,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
@@ -131,7 +132,7 @@ function BrandLogo({ centered = false }) {
           loading="eager"
         />
       ) : (
-        <span className="text-xl font-black uppercase tracking-[0.18em] text-red-500">
+        <span className="text-xl font-black uppercase tracking-wide text-black">
           Yardline
         </span>
       )}
@@ -143,10 +144,9 @@ function HeaderSlogan() {
   return (
     <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center px-2">
       <span
-        className="whitespace-nowrap text-[15px] leading-none text-white/92 min-[390px]:text-[17px] sm:text-[24px]"
+        className="whitespace-nowrap text-[15px] leading-none text-red-700 min-[390px]:text-[17px] sm:text-[24px]"
         style={{
           fontFamily: "var(--font-script)",
-          textShadow: "0 2px 0 rgba(0,0,0,0.22)",
         }}
       >
         Where Football Lives
@@ -193,11 +193,11 @@ function BackButton({ onBack, backTo }) {
     <button
       type="button"
       onClick={handleBack}
-      className="flex-shrink-0 flex items-center justify-center rounded-xl transition-colors hover:bg-white/8 active:bg-white/14"
+      className="flex-shrink-0 flex items-center justify-center rounded-xl transition-colors hover:bg-black/5 active:bg-black/10"
       style={{ width: 40, height: 40 }}
       aria-label="Zurueck"
     >
-      <ArrowLeft className="w-5 h-5 text-white/80" />
+      <ArrowLeft className="w-5 h-5 text-black" />
     </button>
   );
 }
@@ -208,7 +208,7 @@ function BackContent({ title, onBack, backTo }) {
       <BackButton onBack={onBack} backTo={backTo} />
 
       {title && (
-        <span className="text-sm font-bold text-white truncate">
+        <span className="text-sm font-bold text-black truncate">
           {title}
         </span>
       )}
@@ -236,12 +236,12 @@ function LeagueContent({ league, onBack, backTo }) {
       )}
 
       <div className="min-w-0">
-        <p className="text-sm font-bold text-white truncate leading-tight">
+        <p className="text-sm font-bold text-black truncate leading-tight">
           {league?.name || "..."}
         </p>
 
         {(league?.season || league?.country) && (
-          <p className="text-[10px] text-white/70 truncate leading-tight">
+          <p className="text-[10px] text-black/55 truncate leading-tight">
             {[league?.country, league?.season].filter(Boolean).join(" - ")}
           </p>
         )}
@@ -270,12 +270,12 @@ function ClubContent({ club, onBack, backTo }) {
       )}
 
       <div className="min-w-0">
-        <p className="text-sm font-bold text-white truncate leading-tight">
+        <p className="text-sm font-bold text-black truncate leading-tight">
           {club?.name || "..."}
         </p>
 
         {club?.city && (
-          <p className="text-[10px] text-white/70 truncate leading-tight">
+          <p className="text-[10px] text-black/55 truncate leading-tight">
             {club.city}
           </p>
         )}
@@ -432,8 +432,7 @@ export default function Header() {
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
-          background: scrolled ? "rgba(3,3,5,0.92)" : "rgba(3,3,5,0.78)",
-          backdropFilter: "blur(18px)",
+          background: "#ffffff",
           boxShadow: scrolled
             ? "0 1px 0 rgba(239,0,31,0.24), 0 18px 55px rgba(0,0,0,0.42)"
             : "0 1px 0 rgba(239,0,31,0.18)",
@@ -445,15 +444,14 @@ export default function Header() {
               <DefaultContent />
 
               {!hideMenuButton && (
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen(current => !current)}
-                  className="ml-auto w-11 h-11 flex items-center justify-center rounded-xl border border-red-500/20 bg-black/35 active:bg-red-500/10 transition-colors"
-                  aria-label="Menue"
-                  aria-expanded={menuOpen}
+                <Link
+                  to="/profile"
+                  className="ml-auto flex h-11 w-11 items-center justify-center rounded-full active:bg-black/5 transition-colors"
+                  aria-label="Profil"
+                  title="Profil"
                 >
-                  <Menu className="w-7 h-7 text-red-500" strokeWidth={2.5} />
-                </button>
+                  <UserCircle className="h-8 w-8 text-black" strokeWidth={2.1} />
+                </Link>
               )}
             </>
           ) : (
@@ -498,12 +496,12 @@ export default function Header() {
           style={{
             background: contextPrimary
               ? contextPrimary
-              : "rgba(239,0,31,0.32)",
+              : "rgba(0,0,0,0.10)",
           }}
         />
       </header>
 
-      {!hideMenuButton && (
+      {false && !hideMenuButton && (
         <HeaderMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       )}
     </>
