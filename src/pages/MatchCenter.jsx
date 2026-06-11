@@ -9,7 +9,7 @@ import {
   subDays,
 } from "date-fns";
 import { de } from "date-fns/locale";
-import { BarChart3, ChevronRight, Loader2, Search, Trophy } from "lucide-react";
+import { BarChart3, ChevronRight, Search, Trophy } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
@@ -109,7 +109,7 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
   const league = leaguesById.get(game.leagueId);
   const homeName = getTeamName(home, game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamPlaceholder);
-  const homeColor = getTeamColor(home, league?.primaryColor || "#005bff");
+  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
   const awayColor = getTeamColor(away, "#ef233c");
   const status = getEffectiveGameStatus(game);
   const showScore = status === "final";
@@ -189,7 +189,7 @@ function CompactGameRow({ game, teamsById, leaguesById }) {
 
   return (
     <Link to={`/game/${game.id}`} className="flex items-center gap-3 rounded-[22px] bg-white p-3 text-black">
-      <TeamLogo team={home} fallback={game.homeTeamPlaceholder} color={league?.primaryColor || "#005bff"} />
+      <TeamLogo team={home} fallback={game.homeTeamPlaceholder} color={league?.primaryColor || "#013369"} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-black">{getTeamName(home, game.homeTeamPlaceholder)}</p>
         <p className="truncate text-[10px] font-bold uppercase text-black/45">
@@ -209,7 +209,7 @@ function CompactGameRow({ game, teamsById, leaguesById }) {
           {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
         </p>
       </div>
-      <TeamLogo team={away} fallback={game.awayTeamPlaceholder} color="#b51222" />
+      <TeamLogo team={away} fallback={game.awayTeamPlaceholder} color="#c20f1a" />
     </Link>
   );
 }
@@ -650,11 +650,7 @@ export default function MatchCenter() {
 
         <SearchBox value={search} onChange={setSearch} />
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-          </div>
-        ) : (
+        {isLoading ? null : (
           <>
             {activeTab === "games" && (
               <GamesPanel

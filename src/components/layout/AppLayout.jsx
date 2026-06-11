@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Loader2, LogIn, UserPlus } from "lucide-react";
+import { ChevronRight, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
@@ -28,7 +28,7 @@ function MainPageTabs({ activeIndex, onNavigate }) {
   if (activeIndex < 0) return null;
 
   return (
-    <div className="w-full bg-white px-4 pt-4">
+    <div className="w-full bg-[#eef2f6] px-4 pt-4">
       <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
         <div className="mx-auto flex w-max min-w-full max-w-3xl items-end justify-center gap-6">
           {MAIN_TABS.map((tab, index) => {
@@ -58,13 +58,23 @@ function MainPageTabs({ activeIndex, onNavigate }) {
   );
 }
 
+function getTargetRouteForInternalRole(roleSlug) {
+  if (roleSlug === "admin") return "/admin";
+  if (roleSlug === "data_editor") return "/data-editor";
+  if (roleSlug === "media_partner") return "/data-editor";
+  if (roleSlug === "podcast_partner") return "/podcast";
+  return "/";
+}
+
 function AuthScreen() {
   const {
     loginUser,
     registerUser,
+    internalLogin,
     isLoadingAuth,
     authError,
   } = useAuth();
+  const navigate = useNavigate();
 
   const [mode, setMode] = useState("register");
   const [form, setForm] = useState({
@@ -87,80 +97,92 @@ function AuthScreen() {
 
     const result = mode === "register"
       ? await registerUser(form)
-      : await loginUser({
-        login: form.login,
-        password: form.password,
-      });
+      : mode === "internal"
+        ? await internalLogin({
+          username: form.login,
+          password: form.password,
+        })
+        : await loginUser({
+          login: form.login,
+          password: form.password,
+        });
 
     if (!result.ok) {
       setLocalError(result.error?.message || "Das hat nicht geklappt.");
+      return;
+    }
+
+    if (mode === "internal") {
+      const roleSlug = String(result.appUser?.roleSlug || result.appUser?.role || "").toLowerCase();
+      navigate(getTargetRouteForInternalRole(roleSlug), { replace: true });
     }
   };
 
   const errorMessage = localError || authError?.message || "";
 
   return (
-    <div className="min-h-dvh bg-[#f1f4f8] text-black">
-      <div className="min-h-dvh bg-[linear-gradient(135deg,rgba(0,91,255,0.18),transparent_34%),linear-gradient(315deg,rgba(188,18,34,0.18),transparent_32%)] px-5 py-6">
-        <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-md flex-col">
+    <div className="min-h-dvh bg-[#08101f] text-white">
+      <div className="relative min-h-dvh overflow-hidden">
+        <img
+          src="/yardline-launch.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#061126]/10 via-[#061126]/42 to-[#061126]" />
+        <div className="absolute inset-x-0 bottom-0 h-[54dvh] bg-gradient-to-t from-[#061126] via-[#061126]/96 to-transparent" />
+
+        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-[calc(18px+env(safe-area-inset-bottom))] pt-[calc(18px+env(safe-area-inset-top))]">
           <div className="flex items-center justify-between">
             <img
               src="/yardline-logo.png"
               alt="The Yardline"
-              className="h-12 w-auto object-contain"
+              className="h-11 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
             />
-            <span className="rounded-full bg-blue-700 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-white">
-              Europa
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur">
+              Europe
             </span>
           </div>
 
-          <div className="mt-8 rounded-[28px] bg-blue-800 p-5 text-white shadow-[0_22px_70px_rgba(0,38,105,0.28)]">
-            <div className="min-h-[260px] rounded-[24px] bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,0.22),transparent_28%),linear-gradient(145deg,#005bff,#06163c_70%)] p-6">
-              <p className="yardline-script text-[30px] leading-none text-red-300">
-                Welcome
+          <div className="mt-auto">
+            <div className="mb-5">
+              <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
+                The Yardline
               </p>
-              <h1 className="mt-5 text-[42px] font-black uppercase leading-[0.9] tracking-tight">
-                American<br />Football
+              <h1 className="mt-2 text-[46px] font-black uppercase italic leading-[0.86] tracking-tight">
+                American<br />
+                <span className="text-[#c20f1a]">Football</span>
               </h1>
-              <p className="mt-4 max-w-[250px] text-sm font-semibold leading-relaxed text-white/80">
-                Die Zentrale fuer Scores, News, Highlights und Football aus Europa.
+              <p className="mt-3 max-w-[320px] text-sm font-semibold leading-relaxed text-white/76">
+                All leagues in one app. News, Match Center, Highlights und Football aus Europa.
               </p>
             </div>
-          </div>
 
-          <div className="mt-5 rounded-[24px] bg-white p-4 shadow-[0_16px_48px_rgba(13,24,48,0.12)]">
-            <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("register");
-                  setLocalError("");
-                }}
-                className={`rounded-xl py-2 text-sm font-black transition-colors ${
-                  mode === "register"
-                    ? "bg-red-700 text-white"
-                    : "text-black/55"
-                }`}
-              >
-                Registrieren
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode("login");
-                  setLocalError("");
-                }}
-                className={`rounded-xl py-2 text-sm font-black transition-colors ${
-                  mode === "login"
-                    ? "bg-blue-700 text-white"
-                    : "text-black/55"
-                }`}
-              >
-                Einloggen
-              </button>
-            </div>
+            <div className="rounded-[28px] border border-white/12 bg-[#071329]/92 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+              <div className="grid grid-cols-3 rounded-2xl bg-white/7 p-1">
+                {[
+                  { key: "register", label: "Registrieren" },
+                  { key: "login", label: "Login" },
+                  { key: "internal", label: "Intern" },
+                ].map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setMode(item.key);
+                      setLocalError("");
+                    }}
+                    className={`rounded-xl py-2 text-[11px] font-black uppercase tracking-wide transition-colors ${
+                      mode === item.key
+                        ? "bg-[#c20f1a] text-white"
+                        : "text-white/48"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
 
-            <form onSubmit={handleSubmit} className="mt-4 space-y-3">
+              <form onSubmit={handleSubmit} className="mt-4 space-y-3">
               {mode === "register" ? (
                 <>
                   <Input
@@ -168,21 +190,21 @@ function AuthScreen() {
                     onChange={event => updateForm("username", event.target.value)}
                     placeholder="Benutzername"
                     autoComplete="username"
-                    className="bg-slate-50 text-black"
+                    className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                   <Input
                     value={form.displayName}
                     onChange={event => updateForm("displayName", event.target.value)}
                     placeholder="Normaler Name"
                     autoComplete="name"
-                    className="bg-slate-50 text-black"
+                    className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                   <Input
                     type="date"
                     value={form.birthDate}
                     onChange={event => updateForm("birthDate", event.target.value)}
                     aria-label="Geburtsdatum"
-                    className="bg-slate-50 text-black"
+                    className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                   <Input
                     type="email"
@@ -190,16 +212,16 @@ function AuthScreen() {
                     onChange={event => updateForm("email", event.target.value)}
                     placeholder="E-Mail"
                     autoComplete="email"
-                    className="bg-slate-50 text-black"
+                    className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                 </>
               ) : (
                 <Input
                   value={form.login}
                   onChange={event => updateForm("login", event.target.value)}
-                  placeholder="Benutzername oder E-Mail"
+                  placeholder={mode === "internal" ? "Interner Benutzername" : "Benutzername oder E-Mail"}
                   autoComplete="username"
-                  className="bg-slate-50 text-black"
+                  className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                 />
               )}
 
@@ -209,11 +231,11 @@ function AuthScreen() {
                 onChange={event => updateForm("password", event.target.value)}
                 placeholder="Passwort"
                 autoComplete={mode === "register" ? "new-password" : "current-password"}
-                className="bg-slate-50 text-black"
+                className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
               />
 
               {errorMessage && (
-                <p className="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700">
+                <p className="rounded-2xl border border-red-400/30 bg-red-500/14 px-3 py-2 text-xs font-bold text-red-100">
                   {errorMessage}
                 </p>
               )}
@@ -221,18 +243,23 @@ function AuthScreen() {
               <Button
                 type="submit"
                 disabled={isLoadingAuth}
-                className="h-12 w-full rounded-2xl bg-blue-700 text-sm font-black text-white hover:bg-blue-800"
+                className="h-[52px] w-full rounded-2xl bg-[#c20f1a] text-sm font-black uppercase tracking-wide text-white shadow-[0_12px_34px_rgba(194,15,26,0.35)] hover:bg-[#a90d16]"
               >
-                {isLoadingAuth ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : mode === "register" ? (
+                {mode === "register" ? (
                   <UserPlus className="mr-2 h-4 w-4" />
+                ) : mode === "internal" ? (
+                  <ShieldCheck className="mr-2 h-4 w-4" />
                 ) : (
                   <LogIn className="mr-2 h-4 w-4" />
                 )}
-                {mode === "register" ? "Konto erstellen" : "Einloggen"}
+                {isLoadingAuth
+                  ? "Bitte warten"
+                  : mode === "register"
+                    ? "Get Started"
+                    : "Einloggen"}
               </Button>
             </form>
+            </div>
           </div>
         </div>
       </div>
@@ -243,18 +270,18 @@ function AuthScreen() {
 const ONBOARDING_SLIDES = [
   {
     eyebrow: "The Yardline",
-    title: "American Football Zentrale in Europa",
-    text: "Entdecke Spiele, Wettbewerbe, Teams und alles, was rund um Football in Europa passiert.",
+    title: "American Football",
+    text: "Die Zentrale fuer American Football in Europa. Alle Ligen, Teams und Stories in einer App.",
   },
   {
     eyebrow: "Match Center",
-    title: "Scores, Termine und Game Details",
-    text: "Verfolge kommende Spiele, Ergebnisse, Streams, Statistiken und Game of the Week an einem Ort.",
+    title: "All leagues in one app",
+    text: "Scores, Termine, Tabellen, Wettbewerbe und Game Details sauber an einem Ort.",
   },
   {
     eyebrow: "Highlights",
-    title: "News, Videos und Podcast",
-    text: "Bleib nah dran mit Game Highlights, News, Gameday Shots und neuen Podcast-Folgen.",
+    title: "Watch. Read. Follow.",
+    text: "News, Game Highlights, Podcast und Gameday Shots halten dich nah am Football.",
   },
 ];
 
@@ -274,49 +301,59 @@ function OnboardingScreen() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#f1f4f8] px-5 py-6 text-black">
-      <div className="mx-auto flex min-h-[calc(100dvh-48px)] w-full max-w-md flex-col">
-        <div className="flex items-center justify-between">
-          <img
-            src="/yardline-logo.png"
-            alt="The Yardline"
-            className="h-12 w-auto object-contain"
-          />
-          <span className="text-xs font-black uppercase tracking-wide text-red-700">
-            Schritt {index + 1}/{ONBOARDING_SLIDES.length}
-          </span>
-        </div>
+    <div className="min-h-dvh bg-[#061126] text-white">
+      <div className="relative min-h-dvh overflow-hidden">
+        <img
+          src="/yardline-launch.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#061126]/20 to-[#061126]" />
+        <div className="absolute inset-x-0 bottom-0 h-[48dvh] bg-gradient-to-t from-[#061126] via-[#061126]/96 to-transparent" />
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={slide.title}
-            initial={{ opacity: 0, x: 48 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -48 }}
-            transition={{ duration: 0.24, ease: "easeOut" }}
-            className="mt-8 flex-1 rounded-[32px] bg-white p-5 shadow-[0_20px_70px_rgba(13,24,48,0.12)]"
-          >
-            <div className="flex min-h-[360px] flex-col justify-end overflow-hidden rounded-[28px] bg-[radial-gradient(circle_at_70%_18%,rgba(255,255,255,0.30),transparent_25%),linear-gradient(150deg,#0048d9,#0a1d4a_58%,#b51222)] p-6 text-white">
-              <p className="yardline-script text-[30px] leading-none text-red-200">
-                {slide.eyebrow}
-              </p>
-              <h1 className="mt-5 text-[38px] font-black uppercase leading-[0.92] tracking-tight">
-                {slide.title}
-              </h1>
-              <p className="mt-4 text-sm font-semibold leading-relaxed text-white/82">
-                {slide.text}
-              </p>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-md flex-col px-5 pb-[calc(22px+env(safe-area-inset-bottom))] pt-[calc(18px+env(safe-area-inset-top))]">
+          <div className="flex items-center justify-between">
+            <img
+              src="/yardline-logo.png"
+              alt="The Yardline"
+              className="h-12 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
+            />
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur">
+              {index + 1}/{ONBOARDING_SLIDES.length}
+            </span>
+          </div>
 
-        <div className="mt-5 flex items-center justify-between">
+          <div className="mt-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={slide.title}
+                initial={{ opacity: 0, x: 44 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -44 }}
+                transition={{ duration: 0.24, ease: "easeOut" }}
+              >
+                <p className="text-[11px] font-black uppercase tracking-[0.24em] text-white/72">
+                  {slide.eyebrow}
+                </p>
+                <h1 className="mt-2 text-[46px] font-black uppercase italic leading-[0.86] tracking-tight">
+                  {slide.title.split(" ").slice(0, -1).join(" ")}{" "}
+                  <span className="text-[#c20f1a]">
+                    {slide.title.split(" ").slice(-1)}
+                  </span>
+                </h1>
+                <p className="mt-4 max-w-[330px] text-sm font-semibold leading-relaxed text-white/78">
+                  {slide.text}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="mt-7 flex items-center justify-between">
           <div className="flex gap-2">
             {ONBOARDING_SLIDES.map((item, dotIndex) => (
               <span
                 key={item.title}
                 className={`h-2 rounded-full transition-all ${
-                  dotIndex === index ? "w-8 bg-red-700" : "w-2 bg-black/20"
+                  dotIndex === index ? "w-9 bg-[#c20f1a]" : "w-2 bg-white/24"
                 }`}
               />
             ))}
@@ -326,11 +363,13 @@ function OnboardingScreen() {
             type="button"
             onClick={next}
             disabled={isLoadingAuth}
-            className="h-12 rounded-2xl bg-blue-700 px-5 font-black text-white hover:bg-blue-800"
+            className="h-[52px] rounded-2xl bg-[#c20f1a] px-6 font-black uppercase tracking-wide text-white shadow-[0_12px_34px_rgba(194,15,26,0.35)] hover:bg-[#a90d16]"
           >
-            {lastSlide ? "Verstanden" : "Weiter"}
+            {lastSlide ? "Get Started" : "Weiter"}
             {!lastSlide && <ChevronRight className="ml-1 h-4 w-4" />}
           </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -432,9 +471,7 @@ export default function AppLayout() {
 
   if (isLoadingAuth && !appUserSnapshot) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-white">
-        <Loader2 className="h-6 w-6 animate-spin text-blue-700" />
-      </div>
+      <div className="min-h-dvh bg-[#061126]" />
     );
   }
 
@@ -447,7 +484,7 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex flex-col min-h-dvh w-screen max-w-full bg-white overflow-x-hidden">
+    <div className="flex flex-col min-h-dvh w-screen max-w-full bg-[#eef2f6] overflow-x-hidden">
       <Header />
 
       <main

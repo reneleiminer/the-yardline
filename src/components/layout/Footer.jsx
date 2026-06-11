@@ -57,8 +57,8 @@ function PartnerLogoRail({ partners }) {
       </div>
 
       <div className="relative overflow-hidden">
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-[#b51222] to-transparent" />
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-[#b51222] to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-[#c20f1a] to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-[#c20f1a] to-transparent" />
 
         <div className="flex w-max animate-[partner-marquee_28s_linear_infinite]">
           {loopPartners.map((partner, index) => (
@@ -109,7 +109,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[#b51222] text-white border-t border-red-950/20 pt-7 pb-[calc(110px+env(safe-area-inset-bottom))]">
+    <footer className="bg-[#c20f1a] text-white border-t border-red-950/20 pt-7 pb-[calc(110px+env(safe-area-inset-bottom))]">
       <div className="max-w-7xl mx-auto px-4">
         <PartnerLogoRail partners={visiblePartners} />
 

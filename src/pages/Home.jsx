@@ -132,8 +132,8 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
   const showScore = status === "final";
-  const homeColor = getTeamColor(home, league?.primaryColor || "#005bff");
-  const awayColor = getTeamColor(away, "#b51222");
+  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
+  const awayColor = getTeamColor(away, "#c20f1a");
 
   return (
     <Link
@@ -526,7 +526,7 @@ function buildTeamRecords(games) {
 }
 
 function StreakCard({ item }) {
-  const color = getTeamColor(item.team, "#005bff");
+  const color = getTeamColor(item.team, "#013369");
 
   return (
     <Link

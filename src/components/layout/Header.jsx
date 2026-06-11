@@ -395,7 +395,7 @@ export default function Header() {
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
-          background: "#005bff",
+          background: "#013369",
           boxShadow: scrolled
             ? "0 1px 0 rgba(255,255,255,0.18), 0 18px 55px rgba(0,40,130,0.28)"
             : "0 1px 0 rgba(255,255,255,0.18)",

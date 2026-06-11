@@ -841,7 +841,7 @@ function AppBrandingPlanner({
             Vorschau
           </p>
 
-          <div className="relative h-16 rounded-xl bg-[#b51222] border border-red-900/20 overflow-hidden">
+          <div className="relative h-16 rounded-xl bg-[#c20f1a] border border-red-900/20 overflow-hidden">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 flex h-12 w-24 items-center justify-start">
               {formData.header_icon_url ? (
                 <img

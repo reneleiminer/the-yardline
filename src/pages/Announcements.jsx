@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { de } from "date-fns/locale";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { base44 } from "@/api/base44Client";
 import { getImageUrl } from "@/lib/imageUtils";
@@ -132,11 +132,7 @@ export default function Announcements() {
         />
       </div>
 
-      {isLoading && visiblePosts.length === 0 ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-blue-700" />
-        </div>
-      ) : visiblePosts.length === 0 ? (
+      {isLoading && visiblePosts.length === 0 ? null : visiblePosts.length === 0 ? (
         <div className="rounded-[24px] bg-white px-4 py-10 text-center">
           <p className="text-sm font-bold text-black/45">Keine News vorhanden.</p>
         </div>

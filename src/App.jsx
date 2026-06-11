@@ -3,7 +3,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClientInstance } from "@/lib/query-client";
 import { BrowserRouter as Router, Navigate, Route, Routes } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
 import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider } from "@/lib/AuthContext";
@@ -62,13 +61,7 @@ const Announcements = lazy(() => import("@/pages/Announcements"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
 
 function RouteLoader() {
-  return (
-    <div className="min-h-[calc(100dvh-160px)] w-full flex items-center justify-center">
-      <div className="h-12 w-12 rounded-2xl border border-primary/25 bg-black/70 flex items-center justify-center shadow-[0_0_24px_rgba(0,91,255,0.18)]">
-        <Loader2 className="w-5 h-5 animate-spin text-primary" />
-      </div>
-    </div>
-  );
+  return null;
 }
 
 function AdminRoute({ children }) {

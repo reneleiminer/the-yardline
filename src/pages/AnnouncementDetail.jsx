@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import useSetHeader from "@/hooks/useSetHeader";
 import { base44 } from "@/api/base44Client";
-import { ExternalLink, Loader2, Play, PlaySquare, Search } from "lucide-react";
+import { ExternalLink, Play, PlaySquare, Search } from "lucide-react";
 import { getImageUrl } from "@/lib/imageUtils";
 
 const HIGHLIGHT_VERSION = "game_highlight";
@@ -293,11 +293,7 @@ export default function Highlights() {
   }, [activeFilter, leaguesById, search, sortedHighlights]);
 
   if (isLoading) {
-    return (
-      <div className="w-full min-h-[calc(100dvh-140px)] flex items-center justify-center pb-24">
-        <Loader2 className="w-6 h-6 animate-spin text-red-700" />
-      </div>
-    );
+    return <div className="min-h-[calc(100dvh-140px)] pb-24" />;
   }
 
   if (sortedHighlights.length === 0) {
