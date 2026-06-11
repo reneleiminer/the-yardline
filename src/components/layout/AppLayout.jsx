@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 import Header from "./Header";
@@ -53,7 +53,20 @@ function getTargetRouteForInternalRole(roleSlug) {
   if (roleSlug === "data_editor") return "/data-editor";
   if (roleSlug === "media_partner") return "/data-editor";
   if (roleSlug === "podcast_partner") return "/podcast";
+  if (roleSlug === "club") return "/data-editor";
   return "/";
+}
+
+function isInternalRoleSlug(roleSlug) {
+  return ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug);
+}
+
+function isInternalDashboardPath(pathname) {
+  return (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/data-editor") ||
+    pathname.startsWith("/podcast")
+  );
 }
 
 function AuthScreen() {
@@ -67,6 +80,7 @@ function AuthScreen() {
   const navigate = useNavigate();
 
   const [mode, setMode] = useState("register");
+  const [birthDateFocused, setBirthDateFocused] = useState(false);
   const [form, setForm] = useState({
     username: "",
     displayName: "",
@@ -190,11 +204,16 @@ function AuthScreen() {
                     className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                   <Input
-                    type="date"
+                    type={birthDateFocused || form.birthDate ? "date" : "text"}
                     value={form.birthDate}
+                    onFocus={() => setBirthDateFocused(true)}
+                    onBlur={() => {
+                      if (!form.birthDate) setBirthDateFocused(false);
+                    }}
                     onChange={event => updateForm("birthDate", event.target.value)}
+                    placeholder="Geburtsdatum"
                     aria-label="Geburtsdatum"
-                    className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                    className="h-12 min-w-0 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                   <Input
                     type="email"
@@ -510,6 +529,11 @@ export default function AppLayout() {
 
   if (appUserSnapshot.needsOnboarding) {
     return <OnboardingScreen />;
+  }
+
+  const roleSlug = String(appUserSnapshot.roleSlug || appUserSnapshot.role || "").toLowerCase();
+  if (isInternalRoleSlug(roleSlug) && !isInternalDashboardPath(location.pathname)) {
+    return <Navigate to={getTargetRouteForInternalRole(roleSlug)} replace />;
   }
 
   return (

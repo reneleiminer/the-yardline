@@ -42,7 +42,7 @@ function getTargetRouteForRole(roleSlug) {
   if (roleSlug === "data_editor") return "/data-editor";
   if (roleSlug === "media_partner") return "/data-editor";
   if (roleSlug === "podcast_partner") return "/podcast";
-  if (roleSlug === "club") return "/";
+  if (roleSlug === "club") return "/data-editor";
 
   return "/";
 }

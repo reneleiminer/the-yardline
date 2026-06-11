@@ -80,7 +80,7 @@ function DataEditorRoute({ children }) {
   return (
     <ProtectedRoute
       requiredRoute="/data-editor"
-      allowedRoles={["data_editor", "media_partner"]}
+      allowedRoles={["data_editor", "media_partner", "club"]}
       fallbackRoute="/settings?login=internal"
     >
       {children}
