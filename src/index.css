@@ -188,7 +188,7 @@
 
 @layer components {
   .yardline-heading {
-    @apply text-2xl font-black leading-tight tracking-normal text-black sm:text-3xl;
+    @apply text-2xl font-black leading-tight tracking-normal text-blue-700 sm:text-3xl;
   }
 
   .yardline-page-heading {
@@ -200,7 +200,7 @@
   }
 
   .yardline-title-bars {
-    @apply mt-2 flex items-center gap-2;
+    display: none;
   }
 
   .yardline-title-bars::before,

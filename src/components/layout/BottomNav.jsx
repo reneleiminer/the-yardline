@@ -80,7 +80,7 @@ export default function BottomNav() {
               }}
               className="flex min-w-0 items-center justify-center text-black"
             >
-              <Icon className={`h-7 w-7 ${isActive ? "text-red-700" : "text-black/65"}`} />
+              <Icon className={`h-7 w-7 ${isActive ? "text-blue-700" : "text-black/65"}`} />
             </Link>
           );
         })}

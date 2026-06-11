@@ -92,27 +92,15 @@ function StatusBadge({ game }) {
 }
 
 function TeamLogo({ team, fallback, color }) {
-  const logoColor = getTeamColor(team, color || "#005bff");
+  if (!team?.logo) return null;
 
   return (
-    <div
-      className="flex h-16 w-16 items-center justify-center rounded-2xl border border-black/10 p-1.5"
-      style={{
-        background: `linear-gradient(135deg, ${withAlpha(logoColor, "50")}, #ffffff 58%)`,
-        boxShadow: `inset 0 -4px 0 ${logoColor}, 0 1px 2px rgba(15,23,42,0.12)`,
-      }}
-    >
-      {team?.logo ? (
-        <img
-          src={getImageUrl(team.logo)}
-          alt={team.name || ""}
-          className="h-full w-full object-contain"
-          loading="lazy"
-        />
-      ) : (
-        <span className="text-sm font-black text-black">{team?.shortName?.[0] || team?.name?.[0] || fallback?.[0] || "?"}</span>
-      )}
-    </div>
+    <img
+      src={getImageUrl(team.logo)}
+      alt={team.name || ""}
+      className="h-20 w-20 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)]"
+      loading="lazy"
+    />
   );
 }
 
@@ -125,76 +113,60 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
   const homeColor = getTeamColor(home, league?.primaryColor || "#005bff");
   const awayColor = getTeamColor(away, "#ef233c");
   const status = getEffectiveGameStatus(game);
-  const showScore = status === "live" || status === "final";
+  const showScore = status === "final";
   const kickoff = getGameDate(game);
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className="block overflow-hidden rounded-[26px] border border-black/10 bg-white text-black active:scale-[0.99] transition-transform"
+      className="block overflow-hidden rounded-[28px] bg-white text-white shadow-[0_12px_30px_rgba(15,23,42,0.12)] active:scale-[0.99] transition-transform"
     >
-      <div className="grid grid-cols-[6px_1fr_6px]">
-        <div style={{ background: homeColor }} />
-
-        <div className="px-3 py-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-[10px] font-black uppercase tracking-wide text-zinc-500">
+      <div className="relative grid min-h-[150px] grid-cols-2 overflow-hidden">
+        <div className="relative flex flex-col justify-between p-4" style={{ background: homeColor }}>
+          <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/20" />
+          <div className="relative z-10 flex items-start justify-between gap-2">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wide text-white/70">
                 {league?.shortName || league?.name || "Match"}
               </p>
-              <p className="truncate text-[11px] font-bold text-zinc-500">
-                {kickoff ? format(kickoff, "EEE dd.MM. HH:mm", { locale: de }) : "Termin offen"}
+              <p className="text-[10px] font-bold text-white/60">
+                {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </p>
             </div>
-
-            <StatusBadge game={game} />
+            <TeamLogo team={home} fallback={homeName} color={homeColor} />
           </div>
-
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-            <div className="min-w-0">
-              <TeamLogo team={home} fallback={homeName} color={homeColor} />
-              <p className="mt-2 text-sm font-black leading-tight text-black whitespace-normal break-words">
-                {homeName}
-              </p>
-            </div>
-
-            <div className="flex min-w-[78px] flex-col items-center justify-center rounded-2xl bg-black px-3 py-2 text-white">
-              {showScore ? (
-                <div className="flex items-center gap-2 text-2xl font-black tabular-nums">
-                  <span>{game.scoreHome ?? 0}</span>
-                  <span className="text-white/35">:</span>
-                  <span>{game.scoreAway ?? 0}</span>
-                </div>
-              ) : (
-                <>
-                  <span className="text-xl font-black">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</span>
-                  <span className="text-[9px] font-black uppercase text-white/50">
-                    {kickoff ? "Kickoff" : "Offen"}
-                  </span>
-                </>
-              )}
-            </div>
-
-            <div className="min-w-0 text-right">
-              <div className="flex justify-end">
-                <TeamLogo team={away} fallback={awayName} color={awayColor} />
-              </div>
-              <p className="mt-2 text-sm font-black leading-tight text-black whitespace-normal break-words">
-                {awayName}
-              </p>
-            </div>
-          </div>
-
-          {!compact && (game.roundName || game.venue || game.city) && (
-            <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold uppercase tracking-wide text-zinc-500">
-              {game.roundName && <span>{game.roundName}</span>}
-              {game.venue && <span>{game.venue}</span>}
-              {game.city && <span>{game.city}</span>}
-            </div>
-          )}
+          <p className="relative z-10 pr-12 line-clamp-2 text-lg font-black leading-tight">
+            {homeName}
+          </p>
         </div>
 
-        <div style={{ background: awayColor }} />
+        <div className="relative flex flex-col justify-between p-4 text-right" style={{ background: awayColor }}>
+          <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/20" />
+          <div className="relative z-10 flex items-start justify-between gap-2">
+            <TeamLogo team={away} fallback={awayName} color={awayColor} />
+            <StatusBadge game={game} />
+          </div>
+          <p className="relative z-10 pl-12 line-clamp-2 text-lg font-black leading-tight">
+            {awayName}
+          </p>
+        </div>
+
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[96px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
+          {showScore ? (
+            <div className="flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
+              <span>{game.scoreHome ?? 0}</span>
+              <span className="text-black/25">:</span>
+              <span>{game.scoreAway ?? 0}</span>
+            </div>
+          ) : (
+            <>
+              <span className="text-2xl font-black leading-none">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</span>
+              <span className="mt-1 text-[9px] font-black uppercase text-black/45">
+                {kickoff ? "Kickoff" : "Offen"}
+              </span>
+            </>
+          )}
+        </div>
       </div>
     </Link>
   );
@@ -206,7 +178,7 @@ function CompactGameRow({ game, teamsById, leaguesById }) {
   const league = leaguesById.get(game.leagueId);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
-  const showScore = status === "live" || status === "final";
+  const showScore = status === "final";
 
   return (
     <Link to={`/game/${game.id}`} className="flex items-center gap-3 rounded-[22px] bg-white p-3 text-black">

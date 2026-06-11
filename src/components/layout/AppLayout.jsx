@@ -20,32 +20,53 @@ function getMainTabIndex(pathname) {
   );
 }
 
-function MainPageTabs({ activeIndex }) {
+function MainPageTabs({ activeIndex, onNavigate }) {
   if (activeIndex < 0) return null;
 
-  return (
-    <div className="w-full overflow-x-auto bg-white px-4 pt-4 hide-scrollbar">
-      <div className="mx-auto flex w-full max-w-3xl items-end gap-6 whitespace-nowrap">
-        {MAIN_TABS.map((tab, index) => {
-          const active = index === activeIndex;
+  const activeTab = MAIN_TABS[activeIndex];
 
-          return (
+  return (
+    <div className="w-full bg-white px-4 pt-4">
+      <div className="mx-auto grid w-full max-w-3xl grid-cols-[1fr_auto_1fr] items-end gap-3">
+        <div className="flex min-w-0 justify-end gap-4 overflow-hidden">
+          {MAIN_TABS.slice(0, activeIndex).map((tab, index) => (
             <Link
               key={tab.path}
               to={tab.path}
-              className={`relative pb-3 leading-none transition-colors ${
-                active
-                  ? "yardline-script text-[34px] text-red-700"
-                  : "text-[22px] font-black text-black/35"
-              }`}
+              onClick={() => onNavigate(index)}
+              className="truncate pb-3 text-[20px] font-black leading-none text-black/30"
             >
               {tab.label}
-              {active && (
-                <span className="absolute bottom-0 left-0 h-1 w-full rounded-full bg-red-700" />
-              )}
             </Link>
-          );
-        })}
+          ))}
+        </div>
+
+        <Link
+          to={activeTab.path}
+          className="relative px-2 pb-3 text-center leading-none"
+        >
+          <span className="yardline-script whitespace-nowrap text-[38px] text-blue-700">
+            {activeTab.label}
+          </span>
+          <span className="absolute bottom-0 left-2 right-2 h-1 rounded-full bg-blue-700" />
+        </Link>
+
+        <div className="flex min-w-0 justify-start gap-4 overflow-hidden">
+          {MAIN_TABS.slice(activeIndex + 1).map((tab, offset) => {
+            const index = activeIndex + 1 + offset;
+
+            return (
+              <Link
+                key={tab.path}
+                to={tab.path}
+                onClick={() => onNavigate(index)}
+                className="truncate pb-3 text-[20px] font-black leading-none text-black/30"
+              >
+                {tab.label}
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -56,6 +77,7 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const previousIndexRef = useRef(getMainTabIndex(location.pathname));
   const activeIndex = getMainTabIndex(location.pathname);
+  const previousIndex = previousIndexRef.current;
   const [direction, setDirection] = useState(0);
 
   const footerVisibleRoutes = [
@@ -108,22 +130,34 @@ export default function AppLayout() {
   }, [activeIndex]);
 
   const canSwipeMainPages = activeIndex >= 0;
+  const renderDirection =
+    activeIndex >= 0 && previousIndex >= 0 && activeIndex !== previousIndex
+      ? activeIndex > previousIndex ? 1 : -1
+      : direction;
+
   const pageMotion = useMemo(() => ({
-    initial: { opacity: 0, x: direction >= 0 ? 42 : -42 },
+    initial: { opacity: 0, x: renderDirection >= 0 ? 96 : -96, scale: 0.985 },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: direction >= 0 ? -42 : 42 },
-  }), [direction]);
+    exit: { opacity: 0, x: renderDirection >= 0 ? -96 : 96, scale: 0.985 },
+  }), [renderDirection]);
 
   const handleDragEnd = (_event, info) => {
     if (!canSwipeMainPages) return;
 
     const threshold = 80;
     if (info.offset.x <= -threshold && activeIndex < MAIN_TABS.length - 1) {
+      setDirection(1);
       navigate(MAIN_TABS[activeIndex + 1].path);
     }
     if (info.offset.x >= threshold && activeIndex > 0) {
+      setDirection(-1);
       navigate(MAIN_TABS[activeIndex - 1].path);
     }
+  };
+
+  const handleTopTabNavigate = (nextIndex) => {
+    if (nextIndex === activeIndex) return;
+    setDirection(nextIndex > activeIndex ? 1 : -1);
   };
 
   return (
@@ -142,7 +176,7 @@ export default function AppLayout() {
           overflowAnchor: "none",
         }}
       >
-        <MainPageTabs activeIndex={activeIndex} />
+        <MainPageTabs activeIndex={activeIndex} onNavigate={handleTopTabNavigate} />
 
         <AnimatePresence initial={false} mode="wait">
           <motion.div
@@ -150,7 +184,7 @@ export default function AppLayout() {
             initial={pageMotion.initial}
             animate={pageMotion.animate}
             exit={pageMotion.exit}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             drag={canSwipeMainPages ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.08}
