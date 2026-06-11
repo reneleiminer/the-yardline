@@ -406,17 +406,15 @@ function GameOfWeekTitle({ label }) {
     <div className="mb-3">
       <div className="min-w-0">
         <div className="min-w-0">
-          <p className="yardline-heading">
-            Game of the Week
+          <p className="yardline-heading flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span>Game of the Week</span>
             {cleanLabel && (
-              <>
-                {" "}
-                <span
-                  className="yardline-script inline-block whitespace-nowrap text-lg font-normal normal-case text-red-700 align-baseline sm:text-2xl"
-                >
-                  presented by {cleanLabel}
-                </span>
-              </>
+              <span
+                className="yardline-script inline-flex items-baseline gap-1 whitespace-nowrap text-[12px] font-normal normal-case leading-none sm:text-[15px]"
+              >
+                <span className="text-[#c20f1a]">presented by</span>
+                <span className="text-[#005bff]">{cleanLabel}</span>
+              </span>
             )}
           </p>
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, LogIn, ShieldCheck, UserPlus } from "lucide-react";
+import { ChevronRight, KeyRound, LogIn, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import Header from "./Header";
 import BottomNav from "./BottomNav";
 import Footer from "./Footer";
@@ -22,29 +22,6 @@ const MAIN_TABS = [
 function getMainTabIndex(pathname) {
   return MAIN_TABS.findIndex((tab) =>
     tab.path === "/" ? pathname === "/" : pathname.startsWith(tab.path)
-  );
-}
-
-function MainPageTabs({ activeIndex, onNavigate }) {
-  if (activeIndex < 0) return null;
-  const activeTab = MAIN_TABS[activeIndex];
-
-  return (
-    <div className="w-full bg-transparent px-4 pb-3 pt-3 text-white">
-      <div className="mx-auto flex w-full max-w-3xl justify-center">
-        <Link
-          to={activeTab.path}
-          onClick={() => onNavigate(activeIndex)}
-          aria-current="page"
-          className="flex max-w-[92vw] flex-col items-center"
-        >
-          <span className="block max-w-full truncate px-1 pb-1 text-center text-[clamp(18px,7vw,30px)] font-black uppercase italic leading-[1.16] text-white">
-            {activeTab.label}
-          </span>
-          <span className="mt-0.5 h-[3px] w-full min-w-14 rounded-full bg-white" />
-        </Link>
-      </div>
-    </div>
   );
 }
 
@@ -73,6 +50,8 @@ function AuthScreen() {
   const {
     loginUser,
     registerUser,
+    requestPasswordReset,
+    confirmPasswordReset,
     internalLogin,
     isLoadingAuth,
     authError,
@@ -87,9 +66,12 @@ function AuthScreen() {
     birthDate: "",
     email: "",
     password: "",
+    passwordConfirm: "",
     login: "",
+    resetCode: "",
   });
   const [localError, setLocalError] = useState("");
+  const [localMessage, setLocalMessage] = useState("");
 
   const updateForm = (field, value) => {
     setForm(current => ({ ...current, [field]: value }));
@@ -98,6 +80,39 @@ function AuthScreen() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLocalError("");
+    setLocalMessage("");
+
+    if (mode === "forgot") {
+      const result = await requestPasswordReset({ email: form.email });
+
+      if (!result.ok) {
+        setLocalError(result.error?.message || "Reset-E-Mail konnte nicht gesendet werden.");
+        return;
+      }
+
+      setLocalMessage(result.message || "Wenn die E-Mail bekannt ist, wurde ein Code gesendet.");
+      setMode("reset");
+      return;
+    }
+
+    if (mode === "reset") {
+      const result = await confirmPasswordReset({
+        email: form.email,
+        code: form.resetCode,
+        password: form.password,
+        passwordConfirm: form.passwordConfirm,
+      });
+
+      if (!result.ok) {
+        setLocalError(result.error?.message || "Passwort konnte nicht zurückgesetzt werden.");
+        return;
+      }
+
+      setLocalMessage("Passwort wurde aktualisiert. Du kannst dich jetzt einloggen.");
+      setForm(current => ({ ...current, password: "", passwordConfirm: "", resetCode: "", login: current.email }));
+      setMode("login");
+      return;
+    }
 
     const result = mode === "register"
       ? await registerUser(form)
@@ -174,6 +189,7 @@ function AuthScreen() {
                     onClick={() => {
                       setMode(item.key);
                       setLocalError("");
+                      setLocalMessage("");
                     }}
                     className={`rounded-xl py-2 text-[11px] font-black uppercase tracking-wide transition-colors ${
                       mode === item.key
@@ -224,6 +240,27 @@ function AuthScreen() {
                     className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
                 </>
+              ) : mode === "forgot" || mode === "reset" ? (
+                <>
+                  <Input
+                    type="email"
+                    value={form.email}
+                    onChange={event => updateForm("email", event.target.value)}
+                    placeholder="E-Mail"
+                    autoComplete="email"
+                    className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                  />
+                  {mode === "reset" && (
+                    <Input
+                      value={form.resetCode}
+                      onChange={event => updateForm("resetCode", event.target.value)}
+                      placeholder="Code aus der E-Mail"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                    />
+                  )}
+                </>
               ) : (
                 <Input
                   value={form.login}
@@ -234,18 +271,51 @@ function AuthScreen() {
                 />
               )}
 
-              <Input
-                type="password"
-                value={form.password}
-                onChange={event => updateForm("password", event.target.value)}
-                placeholder="Passwort"
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
-                className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
-              />
+              {mode !== "forgot" && (
+                <Input
+                  type="password"
+                  value={form.password}
+                  onChange={event => updateForm("password", event.target.value)}
+                  placeholder={mode === "reset" ? "Neues Passwort" : "Passwort"}
+                  autoComplete={mode === "register" || mode === "reset" ? "new-password" : "current-password"}
+                  className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                />
+              )}
+
+              {(mode === "register" || mode === "reset") && (
+                <Input
+                  type="password"
+                  value={form.passwordConfirm}
+                  onChange={event => updateForm("passwordConfirm", event.target.value)}
+                  placeholder="Passwort bestätigen"
+                  autoComplete="new-password"
+                  className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
+                />
+              )}
+
+              {mode === "login" && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("forgot");
+                    setLocalError("");
+                    setLocalMessage("");
+                  }}
+                  className="text-xs font-black text-white/70 underline decoration-[#005bff] decoration-2 underline-offset-4 transition-colors hover:text-white"
+                >
+                  Passwort vergessen?
+                </button>
+              )}
 
               {errorMessage && (
                 <p className="rounded-2xl border border-red-400/30 bg-red-500/14 px-3 py-2 text-xs font-bold text-red-100">
                   {errorMessage}
+                </p>
+              )}
+
+              {localMessage && (
+                <p className="rounded-2xl border border-blue-400/30 bg-blue-500/14 px-3 py-2 text-xs font-bold text-blue-50">
+                  {localMessage}
                 </p>
               )}
 
@@ -256,6 +326,10 @@ function AuthScreen() {
               >
                 {mode === "register" ? (
                   <UserPlus className="mr-2 h-4 w-4" />
+                ) : mode === "forgot" ? (
+                  <Mail className="mr-2 h-4 w-4" />
+                ) : mode === "reset" ? (
+                  <KeyRound className="mr-2 h-4 w-4" />
                 ) : mode === "internal" ? (
                   <ShieldCheck className="mr-2 h-4 w-4" />
                 ) : (
@@ -265,8 +339,26 @@ function AuthScreen() {
                   ? "Bitte warten"
                   : mode === "register"
                     ? "Get Started"
+                    : mode === "forgot"
+                      ? "Reset-Code senden"
+                      : mode === "reset"
+                        ? "Passwort speichern"
                     : "Einloggen"}
               </Button>
+
+              {(mode === "forgot" || mode === "reset") && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("login");
+                    setLocalError("");
+                    setLocalMessage("");
+                  }}
+                  className="w-full text-center text-xs font-black uppercase tracking-wide text-white/55 transition-colors hover:text-white"
+                >
+                  Zurück zum Login
+                </button>
+              )}
             </form>
             </div>
           </div>
@@ -456,7 +548,6 @@ export default function AppLayout() {
   const pageMotion = useMemo(() => ({
     initial: { opacity: 1, x: renderDirection >= 0 ? "100%" : "-100%" },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 1, x: renderDirection >= 0 ? "-100%" : "100%" },
   }), [renderDirection]);
 
   const handleDragEnd = (_event, info) => {
@@ -471,11 +562,6 @@ export default function AppLayout() {
       setDirection(-1);
       navigate(MAIN_TABS[activeIndex - 1].path);
     }
-  };
-
-  const handleTopTabNavigate = (nextIndex) => {
-    if (nextIndex === activeIndex) return;
-    setDirection(nextIndex > activeIndex ? 1 : -1);
   };
 
   useEffect(() => {
@@ -553,25 +639,20 @@ export default function AppLayout() {
           overscrollBehaviorX: isMainPage ? "contain" : "auto",
         }}
       >
-        <MainPageTabs activeIndex={activeIndex} onNavigate={handleTopTabNavigate} />
-
-        <AnimatePresence initial={false} mode="sync">
-          <motion.div
-            key={location.pathname}
-            initial={pageMotion.initial}
-            animate={pageMotion.animate}
-            exit={pageMotion.exit}
-            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-            drag={canSwipeMainPages ? "x" : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.04}
-            dragDirectionLock
-            onDragEnd={handleDragEnd}
-            className="min-h-[calc(100dvh-170px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-transparent"
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={location.pathname}
+          initial={pageMotion.initial}
+          animate={pageMotion.animate}
+          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+          drag={canSwipeMainPages ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.04}
+          dragDirectionLock
+          onDragEnd={handleDragEnd}
+          className="min-h-[calc(100dvh-128px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-transparent"
+        >
+          <Outlet />
+        </motion.div>
       </main>
 
       {showPageFooter && <Footer />}

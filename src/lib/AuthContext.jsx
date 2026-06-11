@@ -259,6 +259,7 @@ export const AuthProvider = ({ children }) => {
     birthDate,
     email,
     password,
+    passwordConfirm,
   }) => {
     try {
       setIsLoadingAuth(true);
@@ -269,6 +270,7 @@ export const AuthProvider = ({ children }) => {
       const cleanBirthDate = String(birthDate || "").trim();
       const cleanEmail = normalizeEmail(email);
       const cleanPassword = String(password || "");
+      const cleanPasswordConfirm = String(passwordConfirm || "");
 
       if (!cleanUsername || cleanUsername.length < 3) {
         throw new Error("Der Benutzername braucht mindestens 3 Zeichen.");
@@ -288,6 +290,10 @@ export const AuthProvider = ({ children }) => {
 
       if (cleanPassword.length < 6) {
         throw new Error("Das Passwort braucht mindestens 6 Zeichen.");
+      }
+
+      if (cleanPassword !== cleanPasswordConfirm) {
+        throw new Error("Die Passwörter stimmen nicht überein.");
       }
 
       const existingByUsername = await base44.entities.AppUser.filter({
@@ -339,6 +345,112 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsLoadingAuth(false);
       setAuthChecked(true);
+    }
+  };
+
+  const requestPasswordReset = async ({ email }) => {
+    try {
+      setIsLoadingAuth(true);
+      setAuthError(null);
+
+      const cleanEmail = normalizeEmail(email);
+
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        throw new Error("Bitte gib deine E-Mail ein.");
+      }
+
+      const response = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Reset-E-Mail konnte nicht gesendet werden.");
+      }
+
+      return {
+        ok: true,
+        email: cleanEmail,
+        message: data.message || "Wenn die E-Mail bekannt ist, wurde ein Code gesendet.",
+      };
+    } catch (error) {
+      const authFailure = {
+        type: "password_reset_failed",
+        message: error.message || "Reset-E-Mail konnte nicht gesendet werden.",
+      };
+
+      setAuthError(authFailure);
+
+      return {
+        ok: false,
+        error: authFailure,
+      };
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  };
+
+  const confirmPasswordReset = async ({ email, code, password, passwordConfirm }) => {
+    try {
+      setIsLoadingAuth(true);
+      setAuthError(null);
+
+      const cleanEmail = normalizeEmail(email);
+      const cleanCode = String(code || "").trim();
+      const cleanPassword = String(password || "");
+      const cleanPasswordConfirm = String(passwordConfirm || "");
+
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        throw new Error("Bitte gib deine E-Mail ein.");
+      }
+
+      if (!cleanCode) {
+        throw new Error("Bitte gib den Code aus der E-Mail ein.");
+      }
+
+      if (cleanPassword.length < 6) {
+        throw new Error("Das neue Passwort braucht mindestens 6 Zeichen.");
+      }
+
+      if (cleanPassword !== cleanPasswordConfirm) {
+        throw new Error("Die Passwörter stimmen nicht überein.");
+      }
+
+      const response = await fetch("/api/auth/confirm-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          code: cleanCode,
+          password: cleanPassword,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Passwort konnte nicht zurückgesetzt werden.");
+      }
+
+      return {
+        ok: true,
+        message: data.message || "Passwort wurde aktualisiert.",
+      };
+    } catch (error) {
+      const authFailure = {
+        type: "password_reset_failed",
+        message: error.message || "Passwort konnte nicht zurückgesetzt werden.",
+      };
+
+      setAuthError(authFailure);
+
+      return {
+        ok: false,
+        error: authFailure,
+      };
+    } finally {
+      setIsLoadingAuth(false);
     }
   };
 
@@ -745,6 +857,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         loginUser,
         registerUser,
+        requestPasswordReset,
+        confirmPasswordReset,
         completeOnboarding,
         updatePublicUser,
         internalLogin,
