@@ -105,18 +105,19 @@ function TeamLogo({ team, className = "h-16 w-16" }) {
 
 function StatusPill({ game }) {
   const status = getEffectiveGameStatus(game);
+  if (status === "scheduled") return null;
+
   const label = {
     final: "FINAL",
     cancelled: "ABGESAGT",
-    scheduled: "GEPLANT",
-  }[status] || "GEPLANT";
+  }[status] || "";
 
   const className = status === "final"
     ? "bg-slate-950 text-white"
-    : "bg-blue-700 text-white";
+    : "bg-red-700 text-white";
 
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[8px] font-black ${className}`}>
+    <span className={`rounded-full px-2.5 py-1 text-[9px] font-black ${className}`}>
       {label}
     </span>
   );
@@ -145,13 +146,13 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
           style={{ background: homeColor }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/18" />
-          <div className="relative z-10 flex items-center justify-between gap-2">
+          <div className="relative z-10 flex items-start justify-start gap-2">
+            <TeamLogo team={home} className="h-20 w-20" />
             <p className="text-[10px] font-black uppercase tracking-wide text-white/75">
               {league?.shortName || league?.name || "Game"}
             </p>
-            <TeamLogo team={home} className="h-20 w-20" />
           </div>
-          <div className="relative z-10 pr-10">
+          <div className="relative z-10 pr-12 text-left">
             <p className="line-clamp-2 text-base font-black leading-tight">{homeName}</p>
           </div>
         </div>
@@ -161,25 +162,28 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
           style={{ background: awayColor }}
         >
           <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/18" />
-          <div className="relative z-10 flex items-center justify-between gap-2">
+          <div className="relative z-10 flex items-start justify-end gap-2">
+            <p className="text-[10px] font-black uppercase tracking-wide text-white/75">
+              {status === "final" ? "Result" : status === "cancelled" ? "Status" : ""}
+            </p>
             <TeamLogo team={away} className="h-20 w-20" />
-            <StatusPill game={game} />
           </div>
-          <div className="relative z-10 pl-10">
+          <div className="relative z-10 pl-12 text-right">
             <p className="line-clamp-2 text-base font-black leading-tight">{awayName}</p>
           </div>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[92px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[104px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
+          <StatusPill game={game} />
           {showScore ? (
-            <div className="flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
+            <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
               <span>{game.scoreHome ?? 0}</span>
               <span className="text-black/25">:</span>
               <span>{game.scoreAway ?? 0}</span>
             </div>
           ) : (
             <>
-              <span className="text-2xl font-black leading-none">
+              <span className="text-2xl font-black leading-none text-blue-700">
                 {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
               </span>
               <span className="mt-1 text-[9px] font-black uppercase text-black/45">
@@ -709,6 +713,13 @@ export default function Home() {
           )}
         </section>
 
+        {podcast && (
+          <section>
+            <SectionTitle title="Podcast" />
+            <PodcastCard podcast={podcast} />
+          </section>
+        )}
+
         {gameOfTheWeek && (
           <section>
             <GameOfWeekTitle label={gameOfTheWeekLabel} />
@@ -722,13 +733,6 @@ export default function Home() {
             <div className="grid grid-cols-2 gap-3">
               {news.map((post) => <NewsCard key={post.id} post={post} />)}
             </div>
-          </section>
-        )}
-
-        {podcast && (
-          <section>
-            <SectionTitle title="Podcast" />
-            <PodcastCard podcast={podcast} />
           </section>
         )}
 

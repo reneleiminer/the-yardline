@@ -98,9 +98,6 @@ export default function ClubGamesTab({ club }) {
                         ? formatDistanceToNow(new Date(game.date), { addSuffix: true, locale: de })
                         : 'Ohne Datum'}
                     </div>
-                    <Badge variant="secondary" className="text-xs mt-1">
-                      Geplant
-                    </Badge>
                   </>
                 )}
               </div>

@@ -71,18 +71,17 @@ function withAlpha(hex, alpha = "18") {
 
 function StatusBadge({ game }) {
   const status = getEffectiveGameStatus(game);
+  if (status === "scheduled") return null;
 
   const config = {
     final: "bg-black text-white border-black",
-    cancelled: "bg-zinc-700 text-white border-zinc-600",
-    scheduled: "bg-blue-700 text-white border-blue-500",
+    cancelled: "bg-red-700 text-white border-red-700",
   }[status] || "bg-blue-700 text-white border-blue-500";
 
   const label = {
     final: "FINAL",
     cancelled: "ABGESAGT",
-    scheduled: "GEPLANT",
-  }[status] || "GEPLANT";
+  }[status] || "";
 
   return (
     <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black tracking-wide ${config}`}>
@@ -124,7 +123,8 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
       <div className="relative grid min-h-[150px] grid-cols-2 overflow-hidden">
         <div className="relative flex flex-col justify-between p-4" style={{ background: homeColor }}>
           <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/20" />
-          <div className="relative z-10 flex items-start justify-between gap-2">
+          <div className="relative z-10 flex items-start justify-start gap-2">
+            <TeamLogo team={home} fallback={homeName} color={homeColor} />
             <div>
               <p className="text-[10px] font-black uppercase tracking-wide text-white/70">
                 {league?.shortName || league?.name || "Match"}
@@ -133,7 +133,6 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
                 {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </p>
             </div>
-            <TeamLogo team={home} fallback={homeName} color={homeColor} />
           </div>
           <p className="relative z-10 pr-12 line-clamp-2 text-lg font-black leading-tight">
             {homeName}
@@ -142,9 +141,16 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
 
         <div className="relative flex flex-col justify-between p-4 text-right" style={{ background: awayColor }}>
           <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/20" />
-          <div className="relative z-10 flex items-start justify-between gap-2">
+          <div className="relative z-10 flex items-start justify-end gap-2">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-wide text-white/70">
+                {showScore ? "Result" : ""}
+              </p>
+              <p className="text-[10px] font-bold text-white/60">
+                {kickoff ? format(kickoff, "HH:mm", { locale: de }) : ""}
+              </p>
+            </div>
             <TeamLogo team={away} fallback={awayName} color={awayColor} />
-            <StatusBadge game={game} />
           </div>
           <p className="relative z-10 pl-12 line-clamp-2 text-lg font-black leading-tight">
             {awayName}
@@ -152,17 +158,18 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
         </div>
 
         <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[96px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
+          <StatusBadge game={game} />
           {showScore ? (
-            <div className="flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
+            <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
               <span>{game.scoreHome ?? 0}</span>
               <span className="text-black/25">:</span>
               <span>{game.scoreAway ?? 0}</span>
             </div>
           ) : (
             <>
-              <span className="text-2xl font-black leading-none">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</span>
+              <span className="text-2xl font-black leading-none text-blue-700">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}</span>
               <span className="mt-1 text-[9px] font-black uppercase text-black/45">
-                {kickoff ? "Kickoff" : "Offen"}
+                {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </span>
             </>
           )}

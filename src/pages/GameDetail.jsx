@@ -502,11 +502,7 @@ const awayName = away?.name || away?.shortName || game.awayTeamPlaceholder || 'T
               <span className="text-[10px] font-bold text-orange-300 tracking-widest">
                 ABGESAGT
               </span>
-            ) : (
-              <span className="text-[10px] text-muted-foreground tracking-wider">
-                GEPLANT
-              </span>
-            )}
+            ) : null}
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1.5 min-w-0">

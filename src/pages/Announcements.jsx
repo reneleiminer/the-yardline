@@ -33,17 +33,44 @@ function NewsCard({ post, featured = false }) {
   const timeAgo = date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: de }) : "";
   const category = post.category || (post.sourceType === "club_news" ? "Vereinsnews" : "News");
 
+  if (!featured) {
+    return (
+      <Link to={`/post/${post.id}`} className="grid min-h-[122px] grid-cols-[1fr_132px] overflow-hidden rounded-[24px] bg-white text-black">
+        <div className="min-w-0 p-4">
+          <p className="text-[10px] font-black uppercase tracking-wide text-red-700">{category}</p>
+          <h2 className="mt-1 line-clamp-2 text-base font-black leading-tight">
+            {post.title || "News"}
+          </h2>
+          {(post.teaser || post.text) && (
+            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-relaxed text-black/55">
+              {post.teaser || post.text}
+            </p>
+          )}
+          {timeAgo && <p className="mt-2 text-[10px] font-bold text-black/40">{timeAgo}</p>}
+        </div>
+
+        <div className="bg-slate-200">
+          {image ? (
+            <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" loading="lazy" />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-blue-700 to-red-700" />
+          )}
+        </div>
+      </Link>
+    );
+  }
+
   return (
-    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[24px] bg-white text-black">
+    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[28px] bg-white text-black shadow-[0_12px_34px_rgba(15,23,42,0.10)]">
       {image && (
-        <div className={featured ? "aspect-[16/9] bg-slate-200" : "aspect-[16/10] bg-slate-200"}>
+        <div className="aspect-[16/9] bg-slate-200">
           <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" loading="lazy" />
         </div>
       )}
 
-      <div className={featured ? "p-4" : "p-3"}>
+      <div className="p-4">
         <p className="text-[10px] font-black uppercase tracking-wide text-red-700">{category}</p>
-        <h2 className={`${featured ? "text-xl" : "text-sm"} mt-1 line-clamp-2 font-black leading-tight`}>
+        <h2 className="mt-1 line-clamp-2 text-2xl font-black leading-tight">
           {post.title || "News"}
         </h2>
         {(post.teaser || post.text) && (
@@ -118,7 +145,7 @@ export default function Announcements() {
           {featured && <NewsCard post={featured} featured />}
 
           {rest.length > 0 && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               {rest.map((post) => (
                 <NewsCard key={post.id} post={post} />
               ))}

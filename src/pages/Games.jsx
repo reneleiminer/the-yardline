@@ -130,11 +130,7 @@ function StatusBadge({ game }) {
     );
   }
 
-  return (
-    <span className="text-[9px] font-black text-primary bg-primary/15 border border-primary/25 rounded-full px-2 py-0.5">
-      GEPLANT
-    </span>
-  );
+  return null;
 }
 
 function GameCard({ game, teamsById, leaguesById }) {

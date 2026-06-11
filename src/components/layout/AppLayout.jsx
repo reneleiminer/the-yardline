@@ -27,47 +27,29 @@ function getMainTabIndex(pathname) {
 function MainPageTabs({ activeIndex, onNavigate }) {
   if (activeIndex < 0) return null;
 
-  const activeTab = MAIN_TABS[activeIndex];
-
   return (
     <div className="w-full bg-white px-4 pt-4">
-      <div className="mx-auto grid w-full max-w-3xl grid-cols-[1fr_auto_1fr] items-end gap-3">
-        <div className="flex min-w-0 justify-end gap-4 overflow-hidden">
-          {MAIN_TABS.slice(0, activeIndex).map((tab, index) => (
+      <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
+        <div className="mx-auto flex w-max min-w-full max-w-3xl items-end justify-center gap-6">
+          {MAIN_TABS.map((tab, index) => {
+            const active = index === activeIndex;
+
+            return (
             <Link
               key={tab.path}
               to={tab.path}
               onClick={() => onNavigate(index)}
-              className="truncate pb-3 text-[20px] font-black leading-none text-black/30"
+              className={`relative whitespace-nowrap pb-3 font-black italic uppercase leading-none tracking-tight transition-colors ${
+                active
+                  ? "text-[34px] text-red-700"
+                  : "text-[24px] text-black/28"
+              }`}
             >
               {tab.label}
+              {active && (
+                <span className="absolute bottom-0 left-0 h-[3px] w-full rounded-full bg-black" />
+              )}
             </Link>
-          ))}
-        </div>
-
-        <Link
-          to={activeTab.path}
-          className="relative px-2 pb-3 text-center leading-none"
-        >
-          <span className="yardline-script whitespace-nowrap text-[38px] text-blue-700">
-            {activeTab.label}
-          </span>
-          <span className="absolute bottom-0 left-2 right-2 h-1 rounded-full bg-blue-700" />
-        </Link>
-
-        <div className="flex min-w-0 justify-start gap-4 overflow-hidden">
-          {MAIN_TABS.slice(activeIndex + 1).map((tab, offset) => {
-            const index = activeIndex + 1 + offset;
-
-            return (
-              <Link
-                key={tab.path}
-                to={tab.path}
-                onClick={() => onNavigate(index)}
-                className="truncate pb-3 text-[20px] font-black leading-none text-black/30"
-              >
-                {tab.label}
-              </Link>
             );
           })}
         </div>

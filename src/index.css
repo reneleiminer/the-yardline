@@ -188,7 +188,8 @@
 
 @layer components {
   .yardline-heading {
-    @apply text-2xl font-black leading-tight tracking-normal text-blue-700 sm:text-3xl;
+    @apply text-2xl font-black italic uppercase leading-tight tracking-normal text-red-700 sm:text-3xl;
+    font-family: var(--font-display);
   }
 
   .yardline-page-heading {
@@ -425,15 +426,15 @@ body::-webkit-scrollbar,
 
   .yardline-heading,
   .yardline-page-heading {
-    color: #f7f7f8;
+    color: #b51222;
   }
 
   .yardline-panel,
   .bg-card {
-    background: rgba(8, 8, 12, 0.72) !important;
-    border-color: rgba(239, 0, 31, 0.22) !important;
-    box-shadow: 0 0 34px rgba(239, 0, 31, 0.08) !important;
-    backdrop-filter: blur(18px);
+    background: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.10) !important;
+    box-shadow: none !important;
+    backdrop-filter: none;
   }
 
   .yardline-app-shell .bg-background {
@@ -441,7 +442,7 @@ body::-webkit-scrollbar,
   }
 
   .yardline-app-shell .bg-white {
-    background-color: rgba(8, 8, 12, 0.72) !important;
+    background-color: #ffffff !important;
   }
 
   .yardline-app-shell .bg-slate-50,
