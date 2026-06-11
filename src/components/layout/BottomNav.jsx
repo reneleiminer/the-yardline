@@ -34,7 +34,7 @@ const navItems = [
   { path: "/feed", icon: Newspaper, label: "News" },
   { path: "/match-center", icon: FieldIcon, label: "Match Center" },
   { path: "/highlights", icon: PlaySquare, label: "Game Highlights" },
-  { path: "/settings", icon: Menu, label: "Menue" },
+  { path: "/settings", icon: Menu, label: "Einstellungen" },
 ];
 
 function scrollMainToTop() {

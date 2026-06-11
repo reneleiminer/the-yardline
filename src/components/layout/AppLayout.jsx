@@ -16,7 +16,7 @@ const MAIN_TABS = [
   { path: "/feed", label: "News" },
   { path: "/match-center", label: "Match Center" },
   { path: "/highlights", label: "Game Highlights" },
-  { path: "/settings", label: "Menue" },
+  { path: "/settings", label: "Einstellungen" },
 ];
 
 function getMainTabIndex(pathname) {
@@ -30,18 +30,18 @@ function MainPageTabs({ activeIndex, onNavigate }) {
   const activeTab = MAIN_TABS[activeIndex];
 
   return (
-    <div className="w-full bg-transparent px-4 pb-3 pt-4 text-white">
+    <div className="w-full bg-transparent px-4 pb-3 pt-3 text-white">
       <div className="mx-auto flex w-full max-w-3xl justify-center">
         <Link
           to={activeTab.path}
           onClick={() => onNavigate(activeIndex)}
           aria-current="page"
-          className="flex max-w-[82vw] flex-col items-center"
+          className="flex max-w-[92vw] flex-col items-center"
         >
-          <span className="truncate text-center text-[22px] font-black uppercase italic leading-none text-white sm:text-[28px]">
+          <span className="block max-w-full truncate px-1 pb-1 text-center text-[clamp(18px,7vw,30px)] font-black uppercase italic leading-[1.16] text-white">
             {activeTab.label}
           </span>
-          <span className="mt-2 h-[3px] w-full min-w-14 rounded-full bg-white" />
+          <span className="mt-0.5 h-[3px] w-full min-w-14 rounded-full bg-white" />
         </Link>
       </div>
     </div>
