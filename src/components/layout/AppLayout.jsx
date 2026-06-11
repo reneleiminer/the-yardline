@@ -513,7 +513,7 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex flex-col min-h-dvh w-screen max-w-full bg-black overflow-x-hidden">
+    <div className="yardline-app-shell flex flex-col min-h-dvh w-screen max-w-full overflow-x-hidden">
       <Header />
 
       <main
@@ -543,7 +543,7 @@ export default function AppLayout() {
             dragElastic={0.04}
             dragDirectionLock
             onDragEnd={handleDragEnd}
-            className="min-h-[calc(100dvh-170px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-[#eef2f6]"
+            className="min-h-[calc(100dvh-170px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-transparent"
           >
             <Outlet />
           </motion.div>

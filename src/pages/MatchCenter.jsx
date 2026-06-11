@@ -112,9 +112,6 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
         </div>
 
         <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
-          <span className="mb-1 max-w-[94px] truncate text-[9px] font-black uppercase tracking-wide text-black/45">
-            {league?.shortName || league?.name || "Liga"}
-          </span>
           <StatusBadge game={game} />
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
@@ -244,11 +241,15 @@ function groupByLeague(items, getLeagueId, leaguesById) {
 
 function LeagueTitle({ group }) {
   return (
-    <div className="mb-2 flex items-center gap-2">
+    <div className="mb-3 flex items-center gap-2.5">
       {group.league?.logo && (
-        <img src={getImageUrl(group.league.logo)} alt="" className="h-5 w-5 object-contain" loading="lazy" />
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white p-1.5">
+          <img src={getImageUrl(group.league.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
+        </span>
       )}
-      <h3 className="text-xs font-black uppercase tracking-wide text-black/50">{group.title}</h3>
+      <h3 className="truncate text-base font-black uppercase italic tracking-normal text-white sm:text-lg">
+        {group.title}
+      </h3>
     </div>
   );
 }
