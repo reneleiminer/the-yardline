@@ -146,7 +146,6 @@ function GameCard({ game, teamsById, leaguesById }) {
   const effectiveStatus = getEffectiveGameStatus(game);
   const isCancelled = effectiveStatus === "cancelled";
   const showScore = effectiveStatus === "final" || effectiveStatus === "live";
-  const leagueLabel = league?.shortName || league?.name || "Liga";
 
   return (
     <Link
@@ -169,9 +168,6 @@ function GameCard({ game, teamsById, leaguesById }) {
           </p>
 
           <div className="absolute left-1/2 top-0 flex max-w-[48%] -translate-x-1/2 flex-col items-center gap-1">
-            <span className="max-w-full truncate rounded-full bg-secondary/80 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-foreground/70">
-              {leagueLabel}
-            </span>
             <StatusBadge game={game} />
           </div>
 

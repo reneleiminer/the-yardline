@@ -148,9 +148,6 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
           <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/18" />
           <div className="relative z-10 flex items-start justify-start gap-2">
             <TeamLogo team={home} className="h-20 w-20" />
-            <p className="text-[10px] font-black uppercase tracking-wide text-white/75">
-              {league?.shortName || league?.name || "Game"}
-            </p>
           </div>
           <div className="relative z-10 pr-12 text-left">
             <p className="line-clamp-2 text-base font-black leading-tight">{homeName}</p>
@@ -163,9 +160,6 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
         >
           <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/18" />
           <div className="relative z-10 flex items-start justify-end gap-2">
-            <p className="text-[10px] font-black uppercase tracking-wide text-white/75">
-              {status === "final" ? "Result" : status === "cancelled" ? "Status" : ""}
-            </p>
             <TeamLogo team={away} className="h-20 w-20" />
           </div>
           <div className="relative z-10 pl-12 text-right">
@@ -273,16 +267,18 @@ function LeagueGameGrid({ groups, teamsById, leaguesById, emptyLabel }) {
     <div className="space-y-5">
       {groups.map((group) => (
         <div key={group.key}>
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2.5">
             {group.league?.logo && (
-              <img
-                src={getImageUrl(group.league.logo)}
-                alt=""
-                className="h-5 w-5 object-contain"
-                loading="lazy"
-              />
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white p-1.5">
+                <img
+                  src={getImageUrl(group.league.logo)}
+                  alt=""
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                />
+              </span>
             )}
-            <h3 className="text-xs font-black uppercase tracking-wide text-black/55">
+            <h3 className="truncate text-base font-black uppercase italic tracking-normal text-white sm:text-lg">
               {group.title}
             </h3>
           </div>
@@ -310,16 +306,18 @@ function LeagueGameList({ groups, teamsById, leaguesById, emptyLabel }) {
     <div className="space-y-5">
       {groups.map((group) => (
         <div key={group.key}>
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2.5">
             {group.league?.logo && (
-              <img
-                src={getImageUrl(group.league.logo)}
-                alt=""
-                className="h-5 w-5 object-contain"
-                loading="lazy"
-              />
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white p-1.5">
+                <img
+                  src={getImageUrl(group.league.logo)}
+                  alt=""
+                  className="h-full w-full object-contain"
+                  loading="lazy"
+                />
+              </span>
             )}
-            <h3 className="text-xs font-black uppercase tracking-wide text-black/55">
+            <h3 className="truncate text-base font-black uppercase italic tracking-normal text-white sm:text-lg">
               {group.title}
             </h3>
           </div>
