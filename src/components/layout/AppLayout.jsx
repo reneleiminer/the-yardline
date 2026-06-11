@@ -30,30 +30,19 @@ function MainPageTabs({ activeIndex, onNavigate }) {
   const activeTab = MAIN_TABS[activeIndex];
 
   return (
-    <div className="w-full bg-black px-4 py-3 text-white">
-      <div className="relative mx-auto flex h-11 w-full max-w-3xl items-center justify-center">
-        <div className="absolute inset-y-0 left-0 flex items-center gap-1.5">
-          {MAIN_TABS.map((tab, index) => {
-            const active = index === activeIndex;
-
-            return (
-              <Link
-                key={tab.path}
-                to={tab.path}
-                onClick={() => onNavigate(index)}
-                aria-label={tab.label}
-                aria-current={active ? "page" : undefined}
-                className={`h-2.5 rounded-full transition-all ${
-                  active ? "w-7 bg-white" : "w-2.5 bg-white/28"
-                }`}
-              />
-            );
-          })}
-        </div>
-
-        <h1 className="max-w-[68vw] truncate text-center text-[22px] font-black uppercase italic leading-none text-white sm:text-[28px]">
-          {activeTab.label}
-        </h1>
+    <div className="w-full bg-transparent px-4 pb-3 pt-4 text-white">
+      <div className="mx-auto flex w-full max-w-3xl justify-center">
+        <Link
+          to={activeTab.path}
+          onClick={() => onNavigate(activeIndex)}
+          aria-current="page"
+          className="flex max-w-[82vw] flex-col items-center"
+        >
+          <span className="truncate text-center text-[22px] font-black uppercase italic leading-none text-white sm:text-[28px]">
+            {activeTab.label}
+          </span>
+          <span className="mt-2 h-[3px] w-full min-w-14 rounded-full bg-white" />
+        </Link>
       </div>
     </div>
   );
@@ -524,11 +513,11 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="flex flex-col min-h-dvh w-screen max-w-full bg-[#eef2f6] overflow-x-hidden">
+    <div className="flex flex-col min-h-dvh w-screen max-w-full bg-black overflow-x-hidden">
       <Header />
 
       <main
-        className={`yardline-main-scroll relative z-10 w-full max-w-full flex-1 overflow-y-auto pt-[calc(68px+env(safe-area-inset-top))] ${
+        className={`yardline-main-scroll relative z-10 w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto bg-black pt-[calc(68px+env(safe-area-inset-top))] ${
           showBottomNav
             ? "pb-[calc(92px+env(safe-area-inset-bottom))]"
             : "pb-[env(safe-area-inset-bottom)]"
@@ -554,7 +543,7 @@ export default function AppLayout() {
             dragElastic={0.04}
             dragDirectionLock
             onDragEnd={handleDragEnd}
-            className="min-h-full"
+            className="min-h-[calc(100dvh-170px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] bg-[#eef2f6]"
           >
             <Outlet />
           </motion.div>
