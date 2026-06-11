@@ -15,13 +15,14 @@ import ScrollToTop from "@/components/ScrollToTop";
 import MaintenanceGate from "@/components/MaintenanceGate";
 
 import AppLayout from "@/components/layout/AppLayout.jsx";
+import Home from "@/pages/Home";
+import MatchCenter from "@/pages/MatchCenter";
+import Highlights from "@/pages/AnnouncementDetail";
+import Announcements from "@/pages/Announcements";
+import Settings from "@/pages/Settings";
 
-const Home = lazy(() => import("@/pages/Home"));
-const MatchCenter = lazy(() => import("@/pages/MatchCenter"));
-const Highlights = lazy(() => import("@/pages/AnnouncementDetail"));
 const CompetitionDetail = lazy(() => import("@/pages/CompetitionDetail"));
 const Support = lazy(() => import("@/pages/Support"));
-const Settings = lazy(() => import("@/pages/Settings"));
 const Profile = lazy(() => import("@/pages/Profile"));
 const Legal = lazy(() => import("@/pages/Legal"));
 const Updates = lazy(() => import("@/pages/Updates"));
@@ -57,7 +58,6 @@ const AdminUpdates = lazy(() => import("@/pages/admin/AdminUpdates"));
 const AdminHighlights = lazy(() => import("@/pages/Tournaments"));
 const AdminGameResult = lazy(() => import("@/pages/admin/AdminGameResult"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
-const Announcements = lazy(() => import("@/pages/Announcements"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
 
 function RouteLoader() {

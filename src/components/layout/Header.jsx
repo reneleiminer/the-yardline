@@ -142,7 +142,7 @@ function HeaderSlogan() {
   return (
     <div className="pointer-events-none absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center px-2">
       <span
-        className="whitespace-nowrap text-[15px] leading-none text-red-700 min-[390px]:text-[17px] sm:text-[24px]"
+        className="whitespace-nowrap text-[15px] leading-none text-white min-[390px]:text-[17px] sm:text-[24px]"
         style={{
           fontFamily: "var(--font-script)",
         }}
@@ -373,11 +373,10 @@ export default function Header() {
   }, [location.pathname]);
 
   const requestedMode = config?.mode || "default";
-  const defaultHeaderRoutes = ["/", "/feed", "/match-center", "/highlights"];
+  const defaultHeaderRoutes = ["/", "/feed", "/match-center", "/highlights", "/settings"];
   const mode = defaultHeaderRoutes.includes(location.pathname) ? "default" : requestedMode;
 
   const hideMenuButton = [
-    "/settings",
     "/support",
     "/legal",
   ].includes(location.pathname);
@@ -396,9 +395,9 @@ export default function Header() {
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",
-          background: "#013369",
+          background: "#000000",
           boxShadow: scrolled
-            ? "0 1px 0 rgba(255,255,255,0.18), 0 18px 55px rgba(0,40,130,0.28)"
+            ? "0 1px 0 rgba(255,255,255,0.12), 0 18px 55px rgba(0,0,0,0.38)"
             : "0 1px 0 rgba(255,255,255,0.18)",
         }}
       >

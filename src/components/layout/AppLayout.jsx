@@ -16,6 +16,7 @@ const MAIN_TABS = [
   { path: "/feed", label: "News" },
   { path: "/match-center", label: "Match Center" },
   { path: "/highlights", label: "Game Highlights" },
+  { path: "/settings", label: "Menue" },
 ];
 
 function getMainTabIndex(pathname) {
@@ -26,33 +27,33 @@ function getMainTabIndex(pathname) {
 
 function MainPageTabs({ activeIndex, onNavigate }) {
   if (activeIndex < 0) return null;
+  const activeTab = MAIN_TABS[activeIndex];
 
   return (
-    <div className="w-full bg-[#eef2f6] px-4 pt-4">
-      <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
-        <div className="mx-auto flex w-max min-w-full max-w-3xl items-end justify-center gap-6">
+    <div className="w-full bg-black px-4 py-3 text-white">
+      <div className="relative mx-auto flex h-11 w-full max-w-3xl items-center justify-center">
+        <div className="absolute inset-y-0 left-0 flex items-center gap-1.5">
           {MAIN_TABS.map((tab, index) => {
             const active = index === activeIndex;
 
             return (
-            <Link
-              key={tab.path}
-              to={tab.path}
-              onClick={() => onNavigate(index)}
-              className={`relative whitespace-nowrap pb-3 font-black italic uppercase leading-none tracking-tight transition-colors ${
-                active
-                  ? "text-[34px] text-red-700"
-                  : "text-[24px] text-black/28"
-              }`}
-            >
-              {tab.label}
-              {active && (
-                <span className="absolute bottom-0 left-0 h-[3px] w-full rounded-full bg-black" />
-              )}
-            </Link>
+              <Link
+                key={tab.path}
+                to={tab.path}
+                onClick={() => onNavigate(index)}
+                aria-label={tab.label}
+                aria-current={active ? "page" : undefined}
+                className={`h-2.5 rounded-full transition-all ${
+                  active ? "w-7 bg-white" : "w-2.5 bg-white/28"
+                }`}
+              />
             );
           })}
         </div>
+
+        <h1 className="max-w-[68vw] truncate text-center text-[22px] font-black uppercase italic leading-none text-white sm:text-[28px]">
+          {activeTab.label}
+        </h1>
       </div>
     </div>
   );
@@ -398,7 +399,6 @@ export default function AppLayout() {
   ];
 
   const hideBottomNavRoutes = [
-    "/settings",
     "/support",
     "/legal",
     "/admin",
@@ -446,9 +446,9 @@ export default function AppLayout() {
       : direction;
 
   const pageMotion = useMemo(() => ({
-    initial: { opacity: 0, x: renderDirection >= 0 ? 96 : -96, scale: 0.985 },
+    initial: { opacity: 1, x: renderDirection >= 0 ? "100%" : "-100%" },
     animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: renderDirection >= 0 ? -96 : 96, scale: 0.985 },
+    exit: { opacity: 1, x: renderDirection >= 0 ? "-100%" : "100%" },
   }), [renderDirection]);
 
   const handleDragEnd = (_event, info) => {
@@ -542,16 +542,16 @@ export default function AppLayout() {
       >
         <MainPageTabs activeIndex={activeIndex} onNavigate={handleTopTabNavigate} />
 
-        <AnimatePresence initial={false} mode="wait">
+        <AnimatePresence initial={false} mode="sync">
           <motion.div
             key={location.pathname}
             initial={pageMotion.initial}
             animate={pageMotion.animate}
             exit={pageMotion.exit}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
             drag={canSwipeMainPages ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.08}
+            dragElastic={0.04}
             dragDirectionLock
             onDragEnd={handleDragEnd}
             className="min-h-full"
