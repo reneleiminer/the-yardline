@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import useSetHeader from '@/hooks/useSetHeader';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -765,6 +766,19 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
   const [creditLabel, setCreditLabel] = useState('by EuroFBShow');
   const [selectingId, setSelectingId] = useState(null);
 
+  const { data: selectedGameOfWeekRows = [] } = useQuery({
+    queryKey: ['game-of-week-selected'],
+    queryFn: async () => {
+      try {
+        return await base44.entities.Game.filter({ isGameOfTheWeek: true });
+      } catch (error) {
+        console.warn('GAME OF THE WEEK FILTER FALLBACK:', error);
+        return games.filter(item => item.isGameOfTheWeek === true);
+      }
+    },
+    enabled: games.length > 0,
+  });
+
   const upcomingWeekend = useMemo(() => getUpcomingWeekendWindow(), []);
   const nextSevenDays = useMemo(() => getNextSevenDaysWindow(), []);
 
@@ -777,7 +791,11 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     });
   }, [games]);
 
-  const currentSelection = sortedGames.find(game => game.isGameOfTheWeek === true) || null;
+  const selectedGameOfWeekList = selectedGameOfWeekRows.length > 0
+    ? selectedGameOfWeekRows
+    : sortedGames.filter(game => game.isGameOfTheWeek === true);
+
+  const currentSelection = selectedGameOfWeekList[0] || null;
 
   const mediaLeagueGames = sortedGames.filter(game => {
     const league = leaguesMap.get(game.leagueId);
@@ -794,32 +812,65 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     .filter(game => game.status !== 'cancelled')
     .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
 
-  const allSelectableGames = sortedGames
+  const allSelectableGames = mediaLeagueGames
     .filter(game => game.status !== 'cancelled')
-    .filter(game => {
-      const date = getGameDate(game);
-      if (!date) return true;
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      return date >= today;
-    })
     .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
 
-  const currentSelectionOnly = currentSelection
-    ? [currentSelection]
-    : [];
+  const clearGameOfTheWeek = async () => {
+    const selectedGames = selectedGameOfWeekList.filter(item => item?.id);
+
+    if (selectedGames.length === 0) {
+      toast.info('Es ist aktuell kein Game of the Week ausgewählt');
+      return;
+    }
+
+    setSelectingId('clear');
+
+    try {
+      await Promise.all(
+        selectedGames.map(item =>
+          base44.entities.Game.update(item.id, {
+            isGameOfTheWeek: false,
+            gameOfTheWeekLabel: '',
+            gameOfTheWeekSelectedBy: '',
+            gameOfTheWeekSelectedAtUtc: '',
+            updatedAtUtc: new Date().toISOString(),
+          })
+        )
+      );
+
+      invalidate();
+      toast.success('Game of the Week entfernt');
+    } catch (error) {
+      console.error('CLEAR GAME OF THE WEEK ERROR:', error);
+      toast.error(error.message || 'Game of the Week konnte nicht entfernt werden');
+    } finally {
+      setSelectingId(null);
+    }
+  };
 
   const selectGameOfTheWeek = async game => {
     if (!game?.id) return;
 
-    const isAlreadySelected = game.isGameOfTheWeek === true;
     const label = creditLabel.trim() || 'by Media';
 
     setSelectingId(game.id);
 
     try {
+      let selectedGames = selectedGameOfWeekList.filter(item => item?.id);
+
+      if (selectedGames.length === 0) {
+        try {
+          selectedGames = await base44.entities.Game.filter({ isGameOfTheWeek: true });
+        } catch (error) {
+          console.warn('GAME OF THE WEEK SELECTED FILTER FALLBACK:', error);
+          selectedGames = games.filter(item => item.isGameOfTheWeek === true);
+        }
+      }
+
+      const selectedIds = new Set(selectedGames.map(item => item.id));
+      const isAlreadySelected = selectedIds.has(game.id) && game.isGameOfTheWeek === true;
+
       if (isAlreadySelected) {
         await base44.entities.Game.update(game.id, {
           isGameOfTheWeek: false,
@@ -834,10 +885,10 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
         return;
       }
 
-      const selectedGames = games.filter(item => item.isGameOfTheWeek === true && item.id !== game.id);
+      const oldSelections = selectedGames.filter(item => item.id !== game.id);
 
       await Promise.all(
-        selectedGames.map(item =>
+        oldSelections.map(item =>
           base44.entities.Game.update(item.id, {
             isGameOfTheWeek: false,
             gameOfTheWeekLabel: '',
@@ -857,7 +908,7 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
       });
 
       invalidate();
-      toast.success('Game of the Week aktualisiert');
+      toast.success('Neues Game of the Week gesetzt. Alte Auswahl wurde automatisch entfernt.');
     } catch (error) {
       console.error('MEDIA GAME OF THE WEEK ERROR:', error);
       toast.error(error.message || 'Game of the Week konnte nicht gespeichert werden');
@@ -878,7 +929,7 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     if (list.length === 0) {
       return (
         <div className="text-center py-10 text-muted-foreground text-sm">
-          Keine Spiele in diesem Zeitraum gefunden.
+          Keine EFA- oder AFLE-Spiele in diesem Zeitraum gefunden.
         </div>
       );
     }
@@ -917,7 +968,7 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-5">
+      <div className="grid grid-cols-4 gap-2 mb-5">
         <StatTile
           icon={Calendar}
           label="Wochenende"
@@ -930,6 +981,14 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
           value={weekendGames.filter(game => game.status === 'scheduled').length}
           tone="text-green-400"
           bg="bg-green-500/10"
+        />
+
+        <StatTile
+          icon={Swords}
+          label="Alle"
+          value={allSelectableGames.length}
+          tone="text-blue-400"
+          bg="bg-blue-500/10"
         />
 
         <StatTile
@@ -982,35 +1041,35 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
               variant="outline"
               size="sm"
               className="mt-3 h-8 text-xs"
-              onClick={() => selectGameOfTheWeek(currentSelection)}
-              disabled={selectingId === currentSelection.id}
+              onClick={clearGameOfTheWeek}
+              disabled={selectingId === 'clear'}
             >
-              {selectingId === currentSelection.id ? (
-                <Loader2 className="w-3 h-3 animate-spin mr-2" />
+              {selectingId === 'clear' ? (
+                <Loader2 className="w-3 h-3 animate-spin mr-1" />
               ) : (
-                <X className="w-3 h-3 mr-2" />
+                <X className="w-3 h-3 mr-1" />
               )}
-              Auswahl entfernen
+              Aktuelle Auswahl entfernen
             </Button>
           </div>
         )}
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full mb-4 grid grid-cols-4">
-          <TabsTrigger value="weekend" className="text-xs">
+        <TabsList className="w-full mb-4">
+          <TabsTrigger value="weekend" className="flex-1 text-xs">
             Wochenende
           </TabsTrigger>
 
-          <TabsTrigger value="upcoming" className="text-xs">
+          <TabsTrigger value="upcoming" className="flex-1 text-xs">
             7 Tage
           </TabsTrigger>
 
-          <TabsTrigger value="all" className="text-xs">
+          <TabsTrigger value="all" className="flex-1 text-xs">
             Alle
           </TabsTrigger>
 
-          <TabsTrigger value="account" className="text-xs">
+          <TabsTrigger value="account" className="flex-1 text-xs">
             Konto
           </TabsTrigger>
         </TabsList>
@@ -1033,7 +1092,7 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
 
         <TabsContent value="all">
           <p className="text-xs text-muted-foreground mb-3">
-            Alle kommenden Spiele aus allen Ligen. Hier kannst du jederzeit ein neues Game of the Week wählen, auch wenn es nicht im Wochenend- oder 7-Tage-Filter auftaucht.
+            Alle auswählbaren EFA- und AFLE-Spiele. Wenn du hier ein neues Spiel auswählst, wird die alte Auswahl automatisch entfernt.
           </p>
 
           {renderMediaGames(allSelectableGames)}
@@ -1052,16 +1111,18 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
 
 export default function DataEditorDashboard() {
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const { teams = [], leagues = [] } = useGlobalData();
   const { appUserSnapshot } = useAuth();
 
   const roleSlug = normalizeRole(appUserSnapshot?.roleSlug || appUserSnapshot?.role);
+  const isAdmin = roleSlug === 'admin';
   const isMediaPartner = roleSlug === 'media_partner';
-  const canManageGameOfTheWeek = isMediaPartner || roleSlug === 'admin';
+  const shouldOpenGameOfTheWeek = searchParams.get('gameOfTheWeek') === '1';
 
   useSetHeader({
     mode: 'back',
-    title: canManageGameOfTheWeek ? 'Game of the Week' : 'Daten bearbeiten',
+    title: isMediaPartner ? 'Media' : 'Daten bearbeiten',
   });
 
   const [tab, setTab] = useState('overview');
@@ -1101,10 +1162,11 @@ export default function DataEditorDashboard() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['editor-games'] });
     queryClient.invalidateQueries({ queryKey: ['games'] });
+    queryClient.invalidateQueries({ queryKey: ['game-of-week-selected'] });
     queryClient.invalidateQueries({ queryKey: ['standingsConfigs'] });
   };
 
-  if (canManageGameOfTheWeek) {
+  if (isMediaPartner || (isAdmin && shouldOpenGameOfTheWeek)) {
     return (
       <MediaDashboard
         games={games}
