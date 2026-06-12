@@ -92,9 +92,10 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
   return (
     <Link
       to={`/game/${game.id}`}
-      className="block overflow-hidden rounded-[28px] bg-white text-white shadow-[0_12px_30px_rgba(15,23,42,0.12)] active:scale-[0.99] transition-transform"
+      className="block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_16px_40px_rgba(0,0,0,0.32)] active:scale-[0.99] transition-transform"
     >
       <div className="relative grid min-h-[152px] grid-cols-2 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-35" />
         <div className="relative flex flex-col justify-between p-4" style={{ background: homeColor }}>
           <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/22" />
           <div className="relative z-10 flex items-start justify-start">
@@ -111,20 +112,20 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
           <p className="relative z-10 pl-12 line-clamp-2 text-lg font-black leading-tight">{awayName}</p>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/18 bg-black/72 px-4 py-3 text-white shadow-[0_10px_26px_rgba(0,0,0,0.42)] backdrop-blur-md">
           <StatusBadge game={game} />
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
               <span>{game.scoreHome ?? 0}</span>
-              <span className="text-black/25">:</span>
+              <span className="text-white/35">:</span>
               <span>{game.scoreAway ?? 0}</span>
             </div>
           ) : (
             <>
-              <span className="text-2xl font-black leading-none text-[#013369]">
+              <span className="text-2xl font-black leading-none text-[#ff2338]">
                 {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
               </span>
-              <span className="mt-1 text-[9px] font-black uppercase text-black/45">
+              <span className="mt-1 text-[9px] font-black uppercase text-white/65">
                 {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </span>
             </>

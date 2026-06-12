@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isBefore, subDays } from "date-fns";
 import { de } from "date-fns/locale";
 import { ChevronRight, Play, Radio } from "lucide-react";
@@ -131,9 +131,10 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
   return (
     <Link
       to={`/game/${game.id}`}
-      className={`block overflow-hidden rounded-[28px] bg-white text-white shadow-[0_12px_30px_rgba(15,23,42,0.12)] ${compact ? "min-w-[82vw]" : ""}`}
+      className={`block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_16px_40px_rgba(0,0,0,0.32)] ${compact ? "min-w-[82vw]" : ""}`}
     >
       <div className="relative grid min-h-[150px] grid-cols-2 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-35" />
         <div
           className="relative flex flex-col justify-between p-3"
           style={{ background: homeColor }}
@@ -160,20 +161,20 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
           </div>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[104px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl bg-white px-4 py-3 text-black shadow-[0_8px_22px_rgba(0,0,0,0.22)]">
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[104px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/18 bg-black/72 px-4 py-3 text-white shadow-[0_10px_26px_rgba(0,0,0,0.42)] backdrop-blur-md">
           <StatusPill game={game} />
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
               <span>{game.scoreHome ?? 0}</span>
-              <span className="text-black/25">:</span>
+              <span className="text-white/35">:</span>
               <span>{game.scoreAway ?? 0}</span>
             </div>
           ) : (
             <>
-              <span className="text-2xl font-black leading-none text-blue-700">
+              <span className="text-2xl font-black leading-none text-[#ff2338]">
                 {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
               </span>
-              <span className="mt-1 text-[9px] font-black uppercase text-black/45">
+              <span className="mt-1 text-[9px] font-black uppercase text-white/65">
                 {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </span>
             </>
@@ -320,6 +321,14 @@ function PodcastCard({ podcast }) {
 
 function normalizeShot(item) {
   const meta = parseJsonMessage(item.message);
+  const createdAt =
+    meta.created_at ||
+    meta.createdAt ||
+    item.createdAtUtc ||
+    item.created_date ||
+    item.updatedAtUtc ||
+    item.updated_date ||
+    "";
 
   return {
     id: item.id,
@@ -328,13 +337,14 @@ function normalizeShot(item) {
     caption: meta.caption || item.title || "",
     sortOrder: Number(meta.sort_order ?? meta.sortOrder ?? 0),
     updatedAt: meta.updated_at || meta.updatedAt || item.updatedAtUtc || item.updated_date || item.createdAtUtc || item.created_date || "",
+    createdAt,
     active: item.isActive !== false && meta.active !== false,
   };
 }
 
 function ShotCard({ shot }) {
   return (
-    <div className="overflow-hidden rounded-[22px] bg-white text-black">
+    <div className="min-w-[42vw] max-w-[42vw] overflow-hidden rounded-[22px] border border-white/10 bg-black/72 text-white shadow-[0_12px_28px_rgba(0,0,0,0.26)] backdrop-blur sm:min-w-[220px] sm:max-w-[220px]">
       <img src={getImageUrl(shot.imageUrl)} alt="" className="aspect-[3/4] w-full object-cover" loading="lazy" />
       <div className="p-3">
         <p className="line-clamp-2 text-xs font-black leading-tight">{shot.caption || "GameDay Shot"}</p>
@@ -408,14 +418,14 @@ function GameOfWeekTitle({ label }) {
     <div className="mb-3">
       <div className="min-w-0">
         <div className="min-w-0">
-          <p className="yardline-heading flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          <p className="yardline-heading flex flex-wrap items-center gap-x-2 gap-y-2">
             <span>Game of the Week</span>
             {cleanLabel && (
               <span
-                className="yardline-script inline-flex items-baseline gap-1 whitespace-nowrap text-[12px] font-normal normal-case leading-none sm:text-[15px]"
+                className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-white/15 bg-black/55 px-2.5 py-1 text-[10px] font-black uppercase leading-none shadow-[0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur sm:text-[11px]"
               >
-                <span className="text-[#c20f1a]">presented by</span>
-                <span className="text-[#005bff]">{cleanLabel}</span>
+                <span className="text-[#ff2338]">Presented by</span>
+                <span className="text-[#2f7dff]">{cleanLabel}</span>
               </span>
             )}
           </p>
@@ -428,7 +438,8 @@ function GameOfWeekTitle({ label }) {
 }
 
 export default function Home() {
-  const { games, teams, leagues, gamesById } = useGlobalData();
+  const { games, teams, leagues } = useGlobalData();
+  const queryClient = useQueryClient();
 
   const { data: appUpdates = [] } = useQuery({
     queryKey: ["home-overview-updates"],
@@ -452,7 +463,7 @@ export default function Home() {
 
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
-  const lastTwentyOneDays = useMemo(() => subDays(new Date(), 21), []);
+  const sevenDaysAgo = useMemo(() => subDays(new Date(), 7), []);
 
   const gameOfTheWeek = useMemo(() => {
     return [...games]
@@ -500,19 +511,31 @@ export default function Home() {
       .map(normalizeShot)
       .filter((shot) => shot.active && shot.imageUrl)
       .filter((shot) => {
-        if (!shot.gameId) return true;
+        const createdAt = new Date(shot.createdAt || 0);
 
-        const game = gamesById.get(shot.gameId);
-        const date = getGameDate(game);
-
-        return !date || !isBefore(date, lastTwentyOneDays);
+        return Number.isNaN(createdAt.getTime()) || !isBefore(createdAt, sevenDaysAgo);
       })
       .sort((a, b) => {
         if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
         return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
       })
       .slice(0, 4);
-  }, [appUpdates, gamesById, lastTwentyOneDays]);
+  }, [appUpdates, sevenDaysAgo]);
+
+  useEffect(() => {
+    const staleShots = appUpdates
+      .filter((item) => item.version === GAMEDAY_SHOT_VERSION)
+      .map(normalizeShot)
+      .filter((shot) => {
+        const createdAt = new Date(shot.createdAt || 0);
+        return shot.id && !Number.isNaN(createdAt.getTime()) && isBefore(createdAt, sevenDaysAgo);
+      });
+
+    if (staleShots.length === 0) return;
+
+    Promise.allSettled(staleShots.map((shot) => base44.entities.AppUpdate.delete(shot.id)))
+      .then(() => queryClient.invalidateQueries({ queryKey: ["home-overview-updates"] }));
+  }, [appUpdates, queryClient, sevenDaysAgo]);
 
   const undefeatedTeams = useMemo(() => {
     const records = buildTeamRecords(games);
@@ -567,9 +590,9 @@ export default function Home() {
         <section>
           <SectionTitle title="GameDay Shots" />
           {shots.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3">
+            <HorizontalRail>
               {shots.map((shot) => <ShotCard key={shot.id} shot={shot} />)}
-            </div>
+            </HorizontalRail>
           ) : (
             <EmptyCard label="Noch keine GameDay Shots" />
           )}
