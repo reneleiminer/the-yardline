@@ -35,21 +35,21 @@ function NewsCard({ post, featured = false }) {
 
   if (!featured) {
     return (
-      <Link to={`/post/${post.id}`} className="grid min-h-[122px] grid-cols-[1fr_132px] overflow-hidden rounded-[24px] bg-white text-black">
+      <Link to={`/post/${post.id}`} className="grid min-h-[122px] grid-cols-[1fr_132px] overflow-hidden rounded-[24px] border border-white/10 bg-black/80 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
         <div className="min-w-0 p-4">
-          <p className="text-[10px] font-black uppercase tracking-wide text-red-700">{category}</p>
+          <p className="text-[10px] font-black uppercase tracking-wide text-[#ff2338]">{category}</p>
           <h2 className="mt-1 line-clamp-2 text-base font-black leading-tight">
             {post.title || "News"}
           </h2>
           {(post.teaser || post.text) && (
-            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-relaxed text-black/55">
+            <p className="mt-2 line-clamp-2 text-xs font-semibold leading-relaxed text-white/58">
               {post.teaser || post.text}
             </p>
           )}
-          {timeAgo && <p className="mt-2 text-[10px] font-bold text-black/40">{timeAgo}</p>}
+          {timeAgo && <p className="mt-2 text-[10px] font-bold text-white/45">{timeAgo}</p>}
         </div>
 
-        <div className="bg-slate-200">
+        <div className="bg-black/60">
           {image ? (
             <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" loading="lazy" />
           ) : (
@@ -61,24 +61,24 @@ function NewsCard({ post, featured = false }) {
   }
 
   return (
-    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[28px] bg-white text-black shadow-[0_12px_34px_rgba(15,23,42,0.10)]">
+    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[28px] border border-white/10 bg-black/80 text-white shadow-[0_16px_40px_rgba(0,0,0,0.30)]">
       {image && (
-        <div className="aspect-[16/9] bg-slate-200">
+        <div className="aspect-[16/9] bg-black/60">
           <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" loading="lazy" />
         </div>
       )}
 
       <div className="p-4">
-        <p className="text-[10px] font-black uppercase tracking-wide text-red-700">{category}</p>
+        <p className="text-[10px] font-black uppercase tracking-wide text-[#ff2338]">{category}</p>
         <h2 className="mt-1 line-clamp-2 text-2xl font-black leading-tight">
           {post.title || "News"}
         </h2>
         {(post.teaser || post.text) && (
-          <p className="mt-2 line-clamp-2 text-xs font-semibold leading-relaxed text-black/55">
+          <p className="mt-2 line-clamp-2 text-xs font-semibold leading-relaxed text-white/58">
             {post.teaser || post.text}
           </p>
         )}
-        {timeAgo && <p className="mt-3 text-[11px] font-bold text-black/40">{timeAgo}</p>}
+        {timeAgo && <p className="mt-3 text-[11px] font-bold text-white/45">{timeAgo}</p>}
       </div>
     </Link>
   );
@@ -123,19 +123,17 @@ export default function Announcements() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/45" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/48" />
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="News suchen..."
-          className="h-12 w-full rounded-2xl border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-black outline-none placeholder:text-black/35 focus:border-blue-600"
+          className="h-12 w-full rounded-2xl border border-white/12 bg-black/72 pl-10 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#2f7dff]"
         />
       </div>
 
       {isLoading && visiblePosts.length === 0 ? null : visiblePosts.length === 0 ? (
-        <div className="rounded-[24px] bg-white px-4 py-10 text-center">
-          <p className="text-sm font-bold text-black/45">Keine News vorhanden.</p>
-        </div>
+        <p className="py-10 text-center text-lg font-black uppercase italic text-white">Keine News vorhanden.</p>
       ) : (
         <div className="space-y-4">
           {featured && <NewsCard post={featured} featured />}

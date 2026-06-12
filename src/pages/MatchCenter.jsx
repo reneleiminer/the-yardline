@@ -244,7 +244,7 @@ function LeagueTitle({ group }) {
   return (
     <div className="mb-3 flex items-center gap-2.5">
       {group.league?.logo && (
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white p-1.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-black/78 p-1.5 shadow-[0_8px_18px_rgba(0,0,0,0.28)]">
           <img src={getImageUrl(group.league.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
         </span>
       )}
@@ -468,14 +468,14 @@ function LeagueIconPicker({ leagues, selectedLeagueId, onSelect }) {
               aria-label={league.name}
               className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border p-2 transition-all ${
                 active
-                  ? "border-black bg-black shadow-[0_10px_26px_rgba(0,0,0,0.18)]"
-                  : "border-black/10 bg-white active:bg-black/5"
+                  ? "border-[#ff2338]/70 bg-black shadow-[0_10px_26px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.10)]"
+                  : "border-white/12 bg-black/72 active:bg-black"
               }`}
             >
               {league.logo ? (
                 <img src={getImageUrl(league.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
               ) : (
-                <span className={`text-sm font-black ${active ? "text-white" : "text-black/55"}`}>
+                <span className={`text-sm font-black ${active ? "text-white" : "text-white/55"}`}>
                   {(league.shortName || league.name || "L").slice(0, 2)}
                 </span>
               )}
@@ -505,12 +505,10 @@ function StandingsPanel({ leagues, teams, games, standingsConfigs, clubsById, te
   }, [leagues, query, teams]);
 
   const [selectedLeagueId, setSelectedLeagueId] = useState("");
-  const selectedLeague = useMemo(() => {
-    if (visibleLeagues.some((league) => league.id === selectedLeagueId)) {
-      return visibleLeagues.find((league) => league.id === selectedLeagueId);
-    }
-    return visibleLeagues[0] || null;
-  }, [selectedLeagueId, visibleLeagues]);
+  const selectedLeague = useMemo(
+    () => visibleLeagues.find((league) => league.id === selectedLeagueId) || null,
+    [selectedLeagueId, visibleLeagues]
+  );
 
   const groups = useMemo(() => getGroupOptions(selectedLeague, teams), [selectedLeague, teams]);
   const tableGroups = groups.length > 0 ? groups : [{ id: "all", name: "Gesamttabelle" }];
@@ -534,9 +532,9 @@ function StandingsPanel({ leagues, teams, games, standingsConfigs, clubsById, te
           />
 
           {selectedLeague && (
-            <div className="rounded-[24px] bg-white p-3">
+            <div className="rounded-[24px] border border-white/10 bg-black/82 p-3 text-white shadow-[0_18px_44px_rgba(0,0,0,0.32)]">
               <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black p-2">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/12 bg-black p-2">
                   {selectedLeague.logo ? (
                     <img src={getImageUrl(selectedLeague.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
                   ) : (
@@ -546,8 +544,8 @@ function StandingsPanel({ leagues, teams, games, standingsConfigs, clubsById, te
                   )}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="truncate text-sm font-black text-black">{selectedLeague.name}</h3>
-                  <p className="truncate text-[11px] font-bold text-black/45">
+                  <h3 className="truncate text-sm font-black text-white">{selectedLeague.name}</h3>
+                  <p className="truncate text-[11px] font-bold text-white/52">
                     {[selectedLeague.country, selectedLeague.regionState || selectedLeague.stateRegion, selectedLeague.season].filter(Boolean).join(" - ") || "Tabelle"}
                   </p>
                 </div>
@@ -566,7 +564,7 @@ function StandingsPanel({ leagues, teams, games, standingsConfigs, clubsById, te
                   return (
                     <div key={group.id}>
                       {tableGroups.length > 1 && (
-                        <h4 className="mb-2 rounded-t-[18px] bg-[#dce3eb] px-3 py-2 text-xs font-black uppercase tracking-wide text-black/58">
+                        <h4 className="mb-2 rounded-t-[18px] border border-white/10 bg-white/10 px-3 py-2 text-xs font-black uppercase tracking-wide text-white/82">
                           {group.name}
                         </h4>
                       )}
@@ -595,21 +593,19 @@ function StandingsPanel({ leagues, teams, games, standingsConfigs, clubsById, te
 
 function EmptyState({ label }) {
   return (
-    <div className="rounded-[22px] bg-white px-4 py-8 text-center">
-      <p className="text-sm font-bold text-black/45">{label}</p>
-    </div>
+    <p className="py-8 text-center text-lg font-black uppercase italic text-white">{label}</p>
   );
 }
 
 function SearchBox({ value, onChange }) {
   return (
     <div className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/48" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder="Team, Liga oder Spiel suchen"
-        className="h-12 w-full rounded-2xl border border-black/10 bg-white pl-10 pr-3 text-sm font-semibold text-black outline-none placeholder:text-zinc-400 focus:border-[#013369]"
+        className="h-12 w-full rounded-2xl border border-white/12 bg-black/72 pl-10 pr-3 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#2f7dff]"
       />
     </div>
   );
@@ -617,14 +613,14 @@ function SearchBox({ value, onChange }) {
 
 function TabSwitch({ value, onChange }) {
   return (
-    <div className="grid grid-cols-2 rounded-2xl border border-black/10 bg-white p-1">
+    <div className="grid grid-cols-2 rounded-2xl border border-white/12 bg-black/72 p-1 shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
       {MATCH_TABS.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
           className={`h-11 rounded-xl text-xs font-black uppercase tracking-wide transition-colors ${
-            value === tab.key ? "bg-[#013369] text-white" : "text-zinc-500 hover:text-black"
+            value === tab.key ? "bg-[#013369] text-white" : "text-white/54 hover:text-white"
           }`}
         >
           {tab.label}
