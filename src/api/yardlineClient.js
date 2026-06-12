@@ -451,15 +451,8 @@ const OMIT_FIELDS = {
   Post: new Set(['authorId']),
 };
 
-const GAME_OF_THE_WEEK_LEGACY_FIELDS = new Set([
-  'isGameOfTheWeek',
-  'gameOfTheWeekLabel',
-  'gameOfTheWeekSelectedBy',
-  'gameOfTheWeekSelectedAtUtc',
-]);
-
-function shouldStoreInLegacyData(entityName, field) {
-  return entityName === 'Game' && GAME_OF_THE_WEEK_LEGACY_FIELDS.has(field);
+function shouldStoreInLegacyData() {
+  return false;
 }
 
 const FIELD_TO_COLUMN = {

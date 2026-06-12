@@ -1,15 +1,14 @@
 import { createContext, useContext, useMemo } from "react";
-import { useAuth } from "@/lib/AuthContext";
+import { AuthContext } from "@/lib/AuthContext";
 
 const AppUserContext = createContext(null);
 
 export function AppUserProvider({ children }) {
-  const {
-    appUserSnapshot,
-    isLoadingAuth,
-    refreshAuth,
-    updatePublicUser,
-  } = useAuth();
+  const auth = useContext(AuthContext);
+  const appUserSnapshot = auth?.appUserSnapshot || null;
+  const isLoadingAuth = auth?.isLoadingAuth ?? true;
+  const refreshAuth = auth?.refreshAuth || (async () => {});
+  const updatePublicUser = auth?.updatePublicUser || (async () => null);
 
   const value = useMemo(() => ({
     appUser: appUserSnapshot,

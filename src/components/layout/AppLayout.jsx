@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getImageUrl } from "@/lib/imageUtils";
+import { getRoleSlug } from "@/lib/roleDefinitions";
 
 const MAIN_TABS = [
   { path: "/", label: "Home" },
@@ -30,10 +31,9 @@ function getMainTabIndex(pathname) {
 
 function getTargetRouteForInternalRole(roleSlug) {
   if (roleSlug === "admin") return "/admin";
-  if (roleSlug === "data_editor") return "/data-editor";
-  if (roleSlug === "media_partner") return "/data-editor";
-  if (roleSlug === "podcast_partner") return "/podcast";
-  if (roleSlug === "club") return "/data-editor";
+  if (roleSlug === "gotw") return "/gotw";
+  if (roleSlug === "photographer") return "/photographer";
+  if (roleSlug === "podcast") return "/podcast";
   return "/";
 }
 
@@ -122,7 +122,7 @@ function AuthScreen() {
     }
 
     if (mode === "internal") {
-      const roleSlug = String(result.appUser?.roleSlug || result.appUser?.role || "").toLowerCase();
+      const roleSlug = getRoleSlug(result.appUser?.roleSlug || result.appUser?.role);
       navigate(getTargetRouteForInternalRole(roleSlug), { replace: true });
     }
   };
@@ -585,10 +585,6 @@ export default function AppLayout() {
   const activeIndex = getMainTabIndex(location.pathname);
   const previousIndex = previousIndexRef.current;
   const [direction, setDirection] = useState(0);
-  const roleSlug = String(appUserSnapshot?.roleSlug || appUserSnapshot?.role || "").toLowerCase();
-  const isInternalSession =
-    appUserSnapshot?.isInternalUser === true ||
-    ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug);
 
   const footerVisibleRoutes = [
     "/",
@@ -603,6 +599,8 @@ export default function AppLayout() {
     "/legal",
     "/admin",
     "/data-editor",
+    "/gotw",
+    "/photographer",
     "/podcast",
   ];
 
@@ -627,27 +625,6 @@ export default function AppLayout() {
   useEffect(() => {
     trackPageView(location);
   }, [location.pathname, location.search]);
-
-  useEffect(() => {
-    if (isLoadingAuth || !isAuthenticated || !appUserSnapshot || !isInternalSession) return;
-
-    const isInternalRoute =
-      location.pathname.startsWith("/admin") ||
-      location.pathname.startsWith("/data-editor") ||
-      location.pathname.startsWith("/podcast");
-
-    if (!isInternalRoute) {
-      navigate(getTargetRouteForInternalRole(roleSlug), { replace: true });
-    }
-  }, [
-    appUserSnapshot,
-    isAuthenticated,
-    isInternalSession,
-    isLoadingAuth,
-    location.pathname,
-    navigate,
-    roleSlug,
-  ]);
 
   useEffect(() => {
     const previous = previousIndexRef.current;

@@ -136,44 +136,23 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="relative mx-auto mt-8 h-[58px] max-w-5xl overflow-hidden rounded-[10px] border border-white/58 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.01))]">
-          <div className="absolute inset-x-0 top-0 h-px bg-white/48" />
-          <div className="absolute inset-x-0 bottom-0 h-px bg-white/48" />
+        <div className="relative mx-auto mt-8 h-[58px] max-w-5xl overflow-hidden rounded-[10px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.006))]">
+          <div className="absolute inset-x-0 top-[10px] h-px bg-white/52" />
+          <div className="absolute inset-x-0 bottom-[10px] h-px bg-white/52" />
+          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/18" />
 
-          {[
-            '10',
-            '20',
-            '30',
-            '40',
-            '50',
-            '40',
-            '30',
-            '20',
-            '10',
-          ].map((label, index) => {
-            const left = `${10 + index * 10}%`;
-            const isMidfield = label === '50';
+          {Array.from({ length: 11 }).map((_, index) => {
+            const left = `${index * 10}%`;
+            const isMidfield = index === 5;
 
             return (
-              <div
-                key={`${label}-${index}`}
-                className="absolute top-0 h-full"
+              <span
+                key={index}
+                className={`absolute top-[10px] w-px ${
+                  isMidfield ? 'h-[38px] bg-white/88' : 'h-[24px] bg-white/50'
+                }`}
                 style={{ left }}
-              >
-                <span
-                  className={`absolute left-0 top-0 h-[28px] w-px ${
-                    isMidfield ? 'bg-white/90' : 'bg-white/48'
-                  }`}
-                />
-                <span
-                  className={`absolute left-0 bottom-0 h-[16px] w-px ${
-                    isMidfield ? 'bg-white/90' : 'bg-white/42'
-                  }`}
-                />
-                <span className="absolute left-1/2 bottom-[8px] -translate-x-1/2 text-[8px] font-black tabular-nums leading-none text-white/58">
-                  {label}
-                </span>
-              </div>
+              />
             );
           })}
 
@@ -181,7 +160,16 @@ export default function Footer() {
             {Array.from({ length: 21 }).map((_, index) => (
               <span
                 key={index}
-                className="h-[10px] w-px bg-white/22"
+                className="h-[8px] w-px bg-white/24"
+              />
+            ))}
+          </div>
+
+          <div className="absolute inset-x-[5%] bottom-[18px] flex justify-between">
+            {Array.from({ length: 21 }).map((_, index) => (
+              <span
+                key={index}
+                className="h-[8px] w-px bg-white/24"
               />
             ))}
           </div>

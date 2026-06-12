@@ -3,9 +3,10 @@ import { Navigate } from "react-router-dom";
 import { ShieldOff } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { checkRouteAccess } from "@/lib/rolePermissions";
+import { getRoleSlug } from "@/lib/roleDefinitions";
 
 function normalizeRole(value) {
-  return String(value || "").trim().toLowerCase();
+  return getRoleSlug(value || "fan");
 }
 
 function AccessDenied() {

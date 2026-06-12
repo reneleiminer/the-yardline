@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import useSetHeader from '@/hooks/useSetHeader';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useGlobalData } from '@/lib/GlobalDataContext';
 import { useAuth } from '@/lib/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,6 +44,31 @@ function getGameDate(game) {
   );
 }
 
+function hasPlayableScore(game) {
+  return (
+    game?.scoreHome !== undefined &&
+    game?.scoreAway !== undefined &&
+    game?.scoreHome !== null &&
+    game?.scoreAway !== null &&
+    game?.scoreHome !== '' &&
+    game?.scoreAway !== '' &&
+    Number.isFinite(Number(game.scoreHome)) &&
+    Number.isFinite(Number(game.scoreAway))
+  );
+}
+
+function getEffectiveStatus(game) {
+  const rawStatus = String(game?.status || 'scheduled').toLowerCase();
+  const kickoff = getGameDate(game);
+
+  if (kickoff && kickoff.getTime() > Date.now() && rawStatus !== 'cancelled') {
+    return 'scheduled';
+  }
+
+  if (rawStatus === 'final' && !hasPlayableScore(game)) return 'scheduled';
+  return rawStatus;
+}
+
 function formatDate(date) {
   if (!date) return 'ohne Datum';
 
@@ -73,9 +97,9 @@ function GameCard({ game, teamsMap, leaguesMap, selected, selecting, onSelect })
   const away = teamsMap.get(game.awayTeamId);
   const league = leaguesMap.get(game.leagueId);
 
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
-  const status = game.status || 'scheduled';
+  const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
+  const status = getEffectiveStatus(game);
   const showScore = status === 'live' || status === 'final';
 
   return (
@@ -176,26 +200,34 @@ function GameCard({ game, teamsMap, leaguesMap, selected, selecting, onSelect })
 
 export default function AdminGameOfTheWeek() {
   useSetHeader({
-    mode: 'back',
+    mode: 'dashboard',
     title: 'Game of the Week',
-    backTo: '/admin',
   });
 
   const queryClient = useQueryClient();
-  const { teams = [], leagues = [] } = useGlobalData();
   const { appUserSnapshot } = useAuth();
 
   const [search, setSearch] = useState('');
   const [label, setLabel] = useState('by The Yardline');
   const [showOnlyUpcoming, setShowOnlyUpcoming] = useState(true);
 
-  const teamsMap = useMemo(() => new Map(teams.map(team => [team.id, team])), [teams]);
-  const leaguesMap = useMemo(() => new Map(leagues.map(league => [league.id, league])), [leagues]);
-
   const { data: games = [], isLoading } = useQuery({
     queryKey: ['admin-game-of-the-week-games'],
     queryFn: () => base44.entities.Game.list('-date', 500),
   });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ['admin-game-of-the-week-teams'],
+    queryFn: () => base44.entities.Team.list('name'),
+  });
+
+  const { data: leagues = [] } = useQuery({
+    queryKey: ['admin-game-of-the-week-leagues'],
+    queryFn: () => base44.entities.League.list('name'),
+  });
+
+  const teamsMap = useMemo(() => new Map(teams.map(team => [team.id, team])), [teams]);
+  const leaguesMap = useMemo(() => new Map(leagues.map(league => [league.id, league])), [leagues]);
 
   const currentSelection = useMemo(() => {
     return [...games]
@@ -220,8 +252,8 @@ export default function AdminGameOfTheWeek() {
         const away = teamsMap.get(game.awayTeamId);
         const league = leaguesMap.get(game.leagueId);
         const haystack = [
-          getTeamName(home, game.homeTeamPlaceholder),
-          getTeamName(away, game.awayTeamPlaceholder),
+          getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder),
+          getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder),
           league?.name,
           league?.shortName,
           game.roundName,
@@ -355,9 +387,9 @@ export default function AdminGameOfTheWeek() {
             Aktuell ausgewählt
           </p>
           <p className="mt-1 text-base font-black">
-            {getTeamName(teamsMap.get(currentSelection.homeTeamId), currentSelection.homeTeamPlaceholder)}
+            {getTeamName(teamsMap.get(currentSelection.homeTeamId), currentSelection.homeTeamNameSnapshot || currentSelection.homeTeamPlaceholder)}
             {' vs '}
-            {getTeamName(teamsMap.get(currentSelection.awayTeamId), currentSelection.awayTeamPlaceholder)}
+            {getTeamName(teamsMap.get(currentSelection.awayTeamId), currentSelection.awayTeamNameSnapshot || currentSelection.awayTeamPlaceholder)}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {formatDate(currentSelection.date)} · {currentSelection.time || currentSelection.kickoffTime || 'ohne Uhrzeit'} · {currentSelection.gameOfTheWeekLabel || 'Game of the Week'}

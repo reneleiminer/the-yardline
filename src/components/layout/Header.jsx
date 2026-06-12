@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FileText,
   Headphones,
+  Home,
   Settings,
   UserCircle,
   X,
@@ -217,19 +218,30 @@ function BackContent({ title, onBack, backTo }) {
 
 function DashboardContent({ title }) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
       <span className="truncate text-sm font-black uppercase tracking-wide text-white">
         {title || "Dashboard"}
       </span>
-      <button
-        type="button"
-        onClick={() => logout(true)}
-        className="flex-shrink-0 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/70 transition-colors hover:bg-white/14 hover:text-white"
-      >
-        Abmelden
-      </button>
+      <div className="flex flex-shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/78 transition-colors hover:bg-white/14 hover:text-white"
+        >
+          <Home className="h-3.5 w-3.5" />
+          App
+        </button>
+        <button
+          type="button"
+          onClick={() => logout(true)}
+          className="rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/70 transition-colors hover:bg-white/14 hover:text-white"
+        >
+          Abmelden
+        </button>
+      </div>
     </div>
   );
 }

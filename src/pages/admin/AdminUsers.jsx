@@ -6,17 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import {
-  Building2,
   CheckCircle2,
   KeyRound,
   Loader2,
   Lock,
-  Newspaper,
   Pencil,
   Plus,
+  Camera,
   Radio,
   RotateCcw,
   Search,
+  Star,
   ShieldCheck,
   Trash2,
   UserCog,
@@ -27,7 +27,7 @@ import { useAuth } from "@/lib/AuthContext";
 const EMPTY_USER = {
   username: "",
   displayName: "",
-  roleSlug: "data_editor",
+  roleSlug: "gotw",
   connectedTeamId: "",
   internalPassword: "",
   status: "active",
@@ -36,28 +36,25 @@ const EMPTY_USER = {
 const ROLE_LABELS = {
   fan: "Fan",
   admin: "Admin",
-  data_editor: "DataEditor",
-  media_partner: "Media",
-  podcast_partner: "Podcast",
-  club: "Verein",
+  gotw: "GOTW",
+  photographer: "Fotograf",
+  podcast: "Podcast",
 };
 
 const ROLE_DISPLAY_LABELS = {
   fan: "Nutzer",
   admin: "Admin",
-  data_editor: "Dateneditor",
-  media_partner: "Media",
-  podcast_partner: "Podcast",
-  club: "Verein",
+  gotw: "GOTW",
+  photographer: "Fotograf",
+  podcast: "Podcast",
 };
 
 const INTERNAL_ROLE_OPTIONS = [
   { value: "fan", label: "Nutzer" },
   { value: "admin", label: "Admin" },
-  { value: "data_editor", label: "Dateneditor" },
-  { value: "media_partner", label: "Media" },
-  { value: "podcast_partner", label: "Podcast" },
-  { value: "club", label: "Verein" },
+  { value: "gotw", label: "GOTW" },
+  { value: "photographer", label: "Fotograf" },
+  { value: "podcast", label: "Podcast" },
 ];
 
 const STATUS_LABELS = {
@@ -71,18 +68,40 @@ function normalizeUsername(value) {
 }
 
 function normalizeRole(value) {
-  return String(value || "").trim().toLowerCase();
+  const normalized = String(value || "").trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  const legacyMap = {
+    fan: "fan",
+    nutzer: "fan",
+    admin: "admin",
+    gotw: "gotw",
+    media: "gotw",
+    media_partner: "gotw",
+    game_of_the_week: "gotw",
+    photographer: "photographer",
+    fotograf: "photographer",
+    podcast: "podcast",
+    podcast_partner: "podcast",
+    data_editor: "fan",
+    club: "fan",
+    verein: "fan",
+    league: "fan",
+    journalist: "fan",
+    creator: "fan",
+    moderator: "fan",
+    official_media: "fan",
+  };
+
+  return legacyMap[normalized] || normalized;
 }
 
-function getInternalEmail(username, roleSlug = "data_editor") {
+function getInternalEmail(username, roleSlug = "gotw") {
   const cleanUsername = normalizeUsername(username).replace(/[^a-z0-9._-]/g, "-");
 
   const prefixByRole = {
     admin: "admin",
-    data_editor: "data-editor",
-    media_partner: "media",
-    podcast_partner: "podcast",
-    club: "verein",
+    gotw: "gotw",
+    photographer: "fotograf",
+    podcast: "podcast",
   };
 
   const prefix = prefixByRole[roleSlug] || "internal";
@@ -109,10 +128,9 @@ function isInternalLogin(user) {
 
   return (
     roleSlug === "admin" ||
-    roleSlug === "data_editor" ||
-    roleSlug === "media_partner" ||
-    roleSlug === "podcast_partner" ||
-    roleSlug === "club"
+    roleSlug === "gotw" ||
+    roleSlug === "photographer" ||
+    roleSlug === "podcast"
   );
 }
 
@@ -120,20 +138,16 @@ function isAdmin(user) {
   return getRoleSlug(user) === "admin";
 }
 
-function isDataEditor(user) {
-  return getRoleSlug(user) === "data_editor";
+function isGotw(user) {
+  return getRoleSlug(user) === "gotw";
 }
 
-function isMediaPartner(user) {
-  return getRoleSlug(user) === "media_partner";
+function isPhotographer(user) {
+  return getRoleSlug(user) === "photographer";
 }
 
-function isPodcastPartner(user) {
-  return getRoleSlug(user) === "podcast_partner";
-}
-
-function isClubAccount(user) {
-  return getRoleSlug(user) === "club";
+function isPodcast(user) {
+  return getRoleSlug(user) === "podcast";
 }
 
 function isInactive(user) {
@@ -161,25 +175,25 @@ function getTeamName(teams, teamId) {
 function RoleBadge({ user }) {
   const roleSlug = getRoleSlug(user);
   const admin = roleSlug === "admin";
-  const media = roleSlug === "media_partner";
-  const podcast = roleSlug === "podcast_partner";
-  const club = roleSlug === "club";
+  const gotw = roleSlug === "gotw";
+  const photographer = roleSlug === "photographer";
+  const podcast = roleSlug === "podcast";
 
   return (
     <span
       className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
         admin
           ? "bg-blue-500/15 text-blue-400"
-          : media
+          : gotw
           ? "bg-pink-500/15 text-pink-400"
+          : photographer
+          ? "bg-emerald-500/15 text-emerald-400"
           : podcast
           ? "bg-violet-500/15 text-violet-300"
-          : club
-          ? "bg-emerald-500/15 text-emerald-400"
           : "bg-primary/15 text-primary"
       }`}
     >
-      {ROLE_DISPLAY_LABELS[roleSlug] || "Dateneditor"}
+      {ROLE_DISPLAY_LABELS[roleSlug] || "Nutzer"}
     </span>
   );
 }
@@ -207,12 +221,8 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
     ...EMPTY_USER,
     ...initial,
     username: initial?.username || initial?.internalUsername || "",
-    roleSlug: initial?.roleSlug || "data_editor",
-    connectedTeamId:
-      initial?.connectedTeamId ||
-      initial?.connectedClubId ||
-      initial?.linkedClubId ||
-      "",
+    roleSlug: getRoleSlug(initial || EMPTY_USER),
+    connectedTeamId: initial?.connectedTeamId || "",
     internalPassword: "",
   });
 
@@ -230,15 +240,15 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
     }
 
     const username = normalizeUsername(form.username);
-    const roleSlug = normalizeRole(form.roleSlug || "data_editor");
+    const roleSlug = normalizeRole(form.roleSlug || "gotw");
 
-    if (!["fan", "admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug)) {
+    if (!["fan", "admin", "gotw", "photographer", "podcast"].includes(roleSlug)) {
       toast.error("Bitte eine gültige Account-Art auswählen.");
       return;
     }
 
-    if (roleSlug === "club" && !form.connectedTeamId) {
-      toast.error("Bitte einen Verein verbinden.");
+    if (roleSlug === "photographer" && !form.connectedTeamId) {
+      toast.error("Bitte ein Team für den Fotografen verbinden.");
       return;
     }
 
@@ -264,9 +274,9 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
       displayName: form.displayName.trim(),
       roleSlug,
       role: ROLE_LABELS[roleSlug],
-      connectedTeamId: roleSlug === "club" ? form.connectedTeamId : "",
-      connectedClubId: roleSlug === "club" ? form.connectedTeamId : "",
-      linkedClubId: roleSlug === "club" ? form.connectedTeamId : "",
+      connectedTeamId: roleSlug === "photographer" ? form.connectedTeamId : "",
+      connectedClubId: "",
+      linkedClubId: "",
       status: form.status || "active",
       internalPassword: roleSlug === "fan" ? "" : form.internalPassword.trim(),
     });
@@ -281,7 +291,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
           </h2>
 
           <p className="text-xs text-muted-foreground mt-0.5">
-            Login für Admin, Dateneditor, Media, Podcast oder Vereinszugänge
+            Login fuer Admin, GOTW, Fotografen, Podcast oder normale Nutzer
           </p>
         </div>
 
@@ -335,7 +345,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
             setForm(current => ({
               ...current,
               roleSlug: nextRole,
-              connectedTeamId: nextRole === "club" ? current.connectedTeamId : "",
+              connectedTeamId: nextRole === "photographer" ? current.connectedTeamId : "",
             }));
           }}
           disabled={isExistingProtected}
@@ -360,17 +370,17 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
         </select>
       </div>
 
-      {form.roleSlug === "club" && (
+      {form.roleSlug === "photographer" && (
         <select
           value={form.connectedTeamId}
           onChange={event => set("connectedTeamId", event.target.value)}
           disabled={isExistingProtected}
           className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground disabled:opacity-60"
         >
-          <option value="">Verein verbinden...</option>
+          <option value="">Team verbinden...</option>
           {teams.map(team => (
             <option key={team.id} value={team.id}>
-              {team.name || team.displayName || team.shortName || "Unbenannter Verein"}
+              {team.name || team.displayName || team.shortName || "Unbenanntes Team"}
             </option>
           ))}
         </select>
@@ -483,10 +493,10 @@ export default function AdminUsers() {
         email: getInternalEmail(data.username, data.roleSlug),
         displayName: data.displayName,
         roleSlug: data.roleSlug,
-        role: ROLE_LABELS[data.roleSlug] || "DataEditor",
-        connectedTeamId: data.roleSlug === "club" ? data.connectedTeamId : "",
-        connectedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
-        linkedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
+        role: ROLE_LABELS[data.roleSlug] || "Fan",
+        connectedTeamId: data.roleSlug === "photographer" ? data.connectedTeamId : "",
+        connectedClubId: "",
+        linkedClubId: "",
         status: data.status || "active",
         internalPassword: data.internalPassword,
         verified: true,
@@ -521,9 +531,9 @@ export default function AdminUsers() {
         displayName: data.displayName,
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
-        connectedTeamId: data.roleSlug === "club" ? data.connectedTeamId : "",
-        connectedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
-        linkedClubId: data.roleSlug === "club" ? data.connectedTeamId : "",
+        connectedTeamId: data.roleSlug === "photographer" ? data.connectedTeamId : "",
+        connectedClubId: "",
+        linkedClubId: "",
         status: data.status || "active",
         isInternalUser: data.roleSlug !== "fan",
         needsOnboarding: false,
@@ -650,7 +660,7 @@ export default function AdminUsers() {
           </h1>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Hier verwaltest du Admin-, Dateneditor-, Media-, Podcast- und Vereinszugänge. Dein Owner-Account ist geschützt.
+            Hier verwaltest du Admin-, GOTW-, Fotografen-, Podcast- und Nutzerkonten. Admin-Accounts sind geschuetzt.
           </p>
         </div>
 
@@ -667,7 +677,7 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-5">
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <UserCog className="w-4 h-4 text-white mb-2" />
           <div className="text-xl font-black">
@@ -685,37 +695,28 @@ export default function AdminUsers() {
         </div>
 
         <div className="bg-card border border-border/50 rounded-xl p-3">
-          <UserCog className="w-4 h-4 text-primary mb-2" />
+          <Star className="w-4 h-4 text-pink-400 mb-2" />
           <div className="text-xl font-black">
-            {internalUsers.filter(isDataEditor).length}
+            {internalUsers.filter(isGotw).length}
           </div>
-          <div className="text-[10px] text-muted-foreground">Dateneditoren</div>
+          <div className="text-[10px] text-muted-foreground">GOTW</div>
         </div>
 
         <div className="bg-card border border-border/50 rounded-xl p-3">
-          <Newspaper className="w-4 h-4 text-pink-400 mb-2" />
+          <Camera className="w-4 h-4 text-emerald-400 mb-2" />
           <div className="text-xl font-black">
-            {internalUsers.filter(isMediaPartner).length}
+            {internalUsers.filter(isPhotographer).length}
           </div>
-          <div className="text-[10px] text-muted-foreground">Media</div>
+          <div className="text-[10px] text-muted-foreground">Fotografen</div>
         </div>
 
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <Radio className="w-4 h-4 text-violet-300 mb-2" />
           <div className="text-xl font-black">
-            {internalUsers.filter(isPodcastPartner).length}
+            {internalUsers.filter(isPodcast).length}
           </div>
           <div className="text-[10px] text-muted-foreground">Podcast</div>
         </div>
-
-        <div className="bg-card border border-border/50 rounded-xl p-3">
-          <Building2 className="w-4 h-4 text-emerald-400 mb-2" />
-          <div className="text-xl font-black">
-            {internalUsers.filter(isClubAccount).length}
-          </div>
-          <div className="text-[10px] text-muted-foreground">Vereine</div>
-        </div>
-
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <Lock className="w-4 h-4 text-yellow-400 mb-2" />
           <div className="text-xl font-black">
@@ -769,10 +770,9 @@ export default function AdminUsers() {
             { key: "all", label: "Alle" },
             { key: "fan", label: "Nutzer" },
             { key: "admin", label: "Admin" },
-            { key: "data_editor", label: "Dateneditoren" },
-            { key: "media_partner", label: "Media" },
-            { key: "podcast_partner", label: "Podcast" },
-            { key: "club", label: "Vereine" },
+            { key: "gotw", label: "GOTW" },
+            { key: "photographer", label: "Fotografen" },
+            { key: "podcast", label: "Podcast" },
           ].map(item => (
             <button
               key={item.key}
@@ -812,7 +812,7 @@ export default function AdminUsers() {
           </h3>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle den ersten Zugang für Admin, Dateneditor, Media, Podcast oder Verein.
+            Erstelle den ersten Zugang fuer Admin, GOTW, Fotograf, Podcast oder Nutzer.
           </p>
         </div>
       ) : (
@@ -821,12 +821,12 @@ export default function AdminUsers() {
             const passwordSet = !!getInternalPassword(user);
             const protectedAccount = isProtectedAccount(user);
             const manageable = canManageTarget(user);
-            const media = isMediaPartner(user);
-            const podcast = isPodcastPartner(user);
-            const club = isClubAccount(user);
+            const gotw = isGotw(user);
+            const photographer = isPhotographer(user);
+            const podcast = isPodcast(user);
             const connectedTeamName = getTeamName(
               teams,
-              user.connectedTeamId || user.connectedClubId || user.linkedClubId
+              user.connectedTeamId
             );
 
             return (
@@ -838,12 +838,12 @@ export default function AdminUsers() {
                   <div className="w-11 h-11 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0">
                     {isAdmin(user) ? (
                       <ShieldCheck className="w-5 h-5 text-blue-400" />
-                    ) : media ? (
-                      <Newspaper className="w-5 h-5 text-pink-400" />
+                    ) : gotw ? (
+                      <Star className="w-5 h-5 text-pink-400" />
+                    ) : photographer ? (
+                      <Camera className="w-5 h-5 text-emerald-400" />
                     ) : podcast ? (
                       <Radio className="w-5 h-5 text-violet-300" />
-                    ) : club ? (
-                      <Building2 className="w-5 h-5 text-emerald-400" />
                     ) : (
                       <UserCog className="w-5 h-5 text-primary" />
                     )}
@@ -881,9 +881,9 @@ export default function AdminUsers() {
                       @{user.internalUsername || user.username}
                     </p>
 
-                    {club && (
+                    {photographer && (
                       <p className="text-[11px] text-emerald-300 mt-1">
-                        Verein: {connectedTeamName || "Nicht verbunden"}
+                        Team: {connectedTeamName || "Nicht verbunden"}
                       </p>
                     )}
 

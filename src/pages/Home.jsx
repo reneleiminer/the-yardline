@@ -53,16 +53,29 @@ function getGameDate(game) {
 
 function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
+  const kickoff = getGameDate(game);
+  if (kickoff && kickoff.getTime() > Date.now()) {
+    return game.status === "cancelled" ? "cancelled" : "scheduled";
+  }
   if (game.status === "cancelled") return "cancelled";
-  if (game.status === "final") return "final";
+  if (game.status === "final" && hasPlayableScore(game)) return "final";
   if (hasFinalScore(game)) return "final";
   return "scheduled";
 }
 
 function hasFinalScore(game) {
+  if (!hasPlayableScore(game)) return false;
+  const kickoff = getGameDate(game);
+  if (kickoff && kickoff.getTime() > Date.now()) return false;
+  return true;
+}
+
+function hasPlayableScore(game) {
   return (
     game.scoreHome != null &&
     game.scoreAway != null &&
+    game.scoreHome !== "" &&
+    game.scoreAway !== "" &&
     Number.isFinite(Number(game.scoreHome)) &&
     Number.isFinite(Number(game.scoreAway))
   );
@@ -120,8 +133,8 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
   const home = teamsById.get(game.homeTeamId);
   const away = teamsById.get(game.awayTeamId);
   const league = leaguesById.get(game.leagueId);
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
+  const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
   const showScore = status === "final";

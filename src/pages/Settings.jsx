@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { getRoleSlug } from "@/lib/roleDefinitions";
 
 const APP_VERSION =
   import.meta.env.VITE_APP_VERSION ||
@@ -32,7 +33,7 @@ const APP_VERSION =
   "0.0.0";
 
 function normalizeRole(value) {
-  return String(value || "").trim().toLowerCase();
+  return getRoleSlug(value || "fan");
 }
 
 function getLoginTitle() {
@@ -41,10 +42,9 @@ function getLoginTitle() {
 
 function getTargetRouteForRole(roleSlug) {
   if (roleSlug === "admin") return "/admin";
-  if (roleSlug === "data_editor") return "/data-editor";
-  if (roleSlug === "media_partner") return "/data-editor";
-  if (roleSlug === "podcast_partner") return "/podcast";
-  if (roleSlug === "club") return "/data-editor";
+  if (roleSlug === "gotw") return "/gotw";
+  if (roleSlug === "photographer") return "/photographer";
+  if (roleSlug === "podcast") return "/podcast";
 
   return "/";
 }
@@ -92,7 +92,7 @@ function InternalLoginBox() {
             Interner Login
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Ein Login für Admin, Dateneditor, Media, Podcast und Vereine.
+            Ein Login für Admin, GOTW, Fotografen und Podcast.
           </p>
         </div>
       </div>

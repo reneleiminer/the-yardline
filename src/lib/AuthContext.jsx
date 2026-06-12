@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 const SESSION_KEY = "yardline_user_session";
 const OWNER_EMAIL = "itsleimiro@gmail.com";
@@ -18,7 +18,33 @@ function normalizeUsername(value) {
 }
 
 function normalizeRole(value) {
-  return String(value || "").trim().toLowerCase();
+  const normalized = String(value || "").trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  const legacyMap = {
+    fan: "fan",
+    nutzer: "fan",
+    admin: "admin",
+    gotw: "gotw",
+    game_of_the_week: "gotw",
+    media: "gotw",
+    media_partner: "gotw",
+    photographer: "photographer",
+    fotograf: "photographer",
+    gameday_shots: "photographer",
+    podcast: "podcast",
+    podcast_partner: "podcast",
+    data_editor: "fan",
+    daten_editor: "fan",
+    club: "fan",
+    verein: "fan",
+    league: "fan",
+    liga: "fan",
+    journalist: "fan",
+    creator: "fan",
+    moderator: "fan",
+    official_media: "fan",
+  };
+
+  return legacyMap[normalized] || normalized;
 }
 
 function isOwnerEmail(email) {
@@ -38,7 +64,7 @@ function isDeletedOrBlocked(appUser) {
 }
 
 function isInternalRole(appUser) {
-  return ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
+  return ["admin", "gotw", "photographer", "podcast"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
 }
 
 function getStoredSessionId() {
@@ -103,10 +129,9 @@ function normalizeSessionAppUser(appUser) {
 
 function getInternalRoleLabel(roleSlug) {
   if (roleSlug === "admin") return "Admin";
-  if (roleSlug === "data_editor") return "Daten-Editor";
-  if (roleSlug === "media_partner") return "Media";
-  if (roleSlug === "podcast_partner") return "Podcast";
-  if (roleSlug === "club") return "Verein";
+  if (roleSlug === "gotw") return "GOTW";
+  if (roleSlug === "photographer") return "Fotograf";
+  if (roleSlug === "podcast") return "Podcast";
   return "Intern";
 }
 

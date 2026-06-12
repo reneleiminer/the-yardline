@@ -38,7 +38,6 @@ const TeamDetail = lazy(() => import("@/pages/TeamDetail"));
 const LeagueDetail = lazy(() => import("@/pages/LeagueDetail"));
 const LeagueStandings = lazy(() => import("@/pages/LeagueStandings"));
 const GameDetail = lazy(() => import("@/pages/GameDetail"));
-const DataEditorDashboard = lazy(() => import("@/pages/DataEditorDashboard"));
 const PodcastDashboard = lazy(() => import("@/pages/PodcastDashboard"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
@@ -76,11 +75,23 @@ function AdminRoute({ children }) {
   );
 }
 
-function DataEditorRoute({ children }) {
+function GotwRoute({ children }) {
   return (
     <ProtectedRoute
-      requiredRoute="/data-editor"
-      allowedRoles={["data_editor", "media_partner", "club"]}
+      requiredRoute="/gotw"
+      allowedRoles={["gotw", "admin"]}
+      fallbackRoute="/settings?login=internal"
+    >
+      {children}
+    </ProtectedRoute>
+  );
+}
+
+function PhotographerRoute({ children }) {
+  return (
+    <ProtectedRoute
+      requiredRoute="/photographer"
+      allowedRoles={["photographer", "admin"]}
       fallbackRoute="/settings?login=internal"
     >
       {children}
@@ -92,7 +103,7 @@ function PodcastRoute({ children }) {
   return (
     <ProtectedRoute
       requiredRoute="/podcast"
-      allowedRoles={["podcast_partner", "admin"]}
+      allowedRoles={["podcast", "admin"]}
       fallbackRoute="/settings?login=internal"
     >
       {children}
@@ -102,9 +113,8 @@ function PodcastRoute({ children }) {
 
 function AppRoutes() {
   return (
-    <AppUserProvider>
-      <Suspense fallback={<RouteLoader />}>
-        <Routes>
+    <Suspense fallback={<RouteLoader />}>
+      <Routes>
           <Route
             path="/admin-login"
             element={<Navigate to="/settings?login=internal" replace />}
@@ -149,10 +159,24 @@ function AppRoutes() {
 
             <Route
               path="/data-editor"
+              element={<Navigate to="/gotw" replace />}
+            />
+
+            <Route
+              path="/gotw"
               element={
-                <DataEditorRoute>
-                  <DataEditorDashboard />
-                </DataEditorRoute>
+                <GotwRoute>
+                  <AdminGameOfTheWeek />
+                </GotwRoute>
+              }
+            />
+
+            <Route
+              path="/photographer"
+              element={
+                <PhotographerRoute>
+                  <AdminGameDayShots />
+                </PhotographerRoute>
               }
             />
 
@@ -320,9 +344,8 @@ function AppRoutes() {
           </Route>
 
           <Route path="*" element={<PageNotFound />} />
-        </Routes>
-      </Suspense>
-    </AppUserProvider>
+      </Routes>
+    </Suspense>
   );
 }
 
@@ -335,8 +358,10 @@ function App() {
             <MaintenanceGate>
               <GlobalDataProvider>
                 <HeaderProvider>
-                  <ScrollToTop />
-                  <AppRoutes />
+                  <AppUserProvider>
+                    <ScrollToTop />
+                    <AppRoutes />
+                  </AppUserProvider>
                 </HeaderProvider>
               </GlobalDataProvider>
             </MaintenanceGate>

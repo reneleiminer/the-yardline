@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
+import { useAuth } from '@/lib/AuthContext';
 
 const GAMEDAY_SHOT_VERSION = 'gameday_photo';
 
@@ -108,7 +109,7 @@ function buildGameTitle(game, teamsMap) {
   const home = teamsMap.get(game.homeTeamId);
   const away = teamsMap.get(game.awayTeamId);
 
-  return `${getTeamName(home, game.homeTeamPlaceholder)} vs ${getTeamName(away, game.awayTeamPlaceholder)}`;
+  return `${getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder)} vs ${getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder)}`;
 }
 
 function GameCard({ game, teamsMap, leaguesMap, selected, shotCount, onSelect }) {
@@ -146,13 +147,13 @@ function GameCard({ game, teamsMap, leaguesMap, selected, shotCount, onSelect })
 
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
         <p className="text-sm font-black truncate">
-          {getTeamName(home, game.homeTeamPlaceholder)}
+          {getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder)}
         </p>
 
         <p className="text-xs font-black text-muted-foreground">vs</p>
 
         <p className="text-sm font-black truncate text-right">
-          {getTeamName(away, game.awayTeamPlaceholder)}
+          {getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder)}
         </p>
       </div>
     </button>
@@ -248,9 +249,10 @@ function ShotCard({ shot, gameTitle, onEdit, onDelete, isDeleting }) {
 }
 
 export default function AdminGameDayShots() {
-  useSetHeader({ mode: 'back', title: 'GameDay Shots' });
+  useSetHeader({ mode: 'dashboard', title: 'GameDay Shots' });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
   const [selectedGameId, setSelectedGameId] = useState('');
   const [search, setSearch] = useState('');
   const [editingShotId, setEditingShotId] = useState(null);
@@ -285,6 +287,8 @@ export default function AdminGameDayShots() {
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesMap = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
   const gamesMap = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
+  const roleSlug = String(appUserSnapshot?.roleSlug || appUserSnapshot?.role || '').toLowerCase();
+  const photographerTeamId = roleSlug === 'photographer' ? appUserSnapshot?.connectedTeamId : '';
 
   const shotsByGameId = useMemo(() => {
     const map = new Map();
@@ -306,6 +310,10 @@ export default function AdminGameDayShots() {
 
     return [...games]
       .filter((game) => {
+        if (!photographerTeamId) return true;
+        return game.homeTeamId === photographerTeamId || game.awayTeamId === photographerTeamId;
+      })
+      .filter((game) => {
         if (!normalizedSearch) return true;
 
         const home = teamsMap.get(game.homeTeamId);
@@ -317,6 +325,8 @@ export default function AdminGameDayShots() {
           home?.shortName,
           away?.name,
           away?.shortName,
+          game.homeTeamNameSnapshot,
+          game.awayTeamNameSnapshot,
           game.homeTeamPlaceholder,
           game.awayTeamPlaceholder,
           league?.name,
@@ -333,7 +343,7 @@ export default function AdminGameDayShots() {
         return haystack.includes(normalizedSearch);
       })
       .sort((a, b) => getGameDateTime(b).localeCompare(getGameDateTime(a)));
-  }, [games, leaguesMap, search, teamsMap]);
+  }, [games, leaguesMap, photographerTeamId, search, teamsMap]);
 
   const invalidateShots = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-gameday-shots'] });

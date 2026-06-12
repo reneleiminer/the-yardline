@@ -25,13 +25,55 @@ function TeamLogo({ logo, name }) {
   );
 }
 
+function getKickoffDate(game) {
+  if (game?.date) {
+    const rawTime = game.time || game.kickoffTime || '00:00';
+    const [year, month, day] = String(game.date).split('-').map(Number);
+    const [hour, minute] = String(rawTime).split(':').map(Number);
+
+    if (year && month && day) {
+      return new Date(
+        year,
+        month - 1,
+        day,
+        Number.isFinite(hour) ? hour : 0,
+        Number.isFinite(minute) ? minute : 0
+      );
+    }
+  }
+
+  if (game?.kickoffAt) {
+    const kickoff = new Date(game.kickoffAt);
+    if (!Number.isNaN(kickoff.getTime())) return kickoff;
+  }
+
+  return null;
+}
+
+function hasPlayableScore(game) {
+  return (
+    game?.scoreHome !== undefined &&
+    game?.scoreAway !== undefined &&
+    game?.scoreHome !== null &&
+    game?.scoreAway !== null &&
+    game?.scoreHome !== '' &&
+    game?.scoreAway !== '' &&
+    Number.isFinite(Number(game.scoreHome)) &&
+    Number.isFinite(Number(game.scoreAway))
+  );
+}
+
 export default function ScoreHero({ game, home, away, league }) {
   const [animateWinner, setAnimateWinner] = useState(false);
   const navigate = useNavigate();
 
-  const status = String(game.status || 'scheduled').toLowerCase();
+  const rawStatus = String(game.status || 'scheduled').toLowerCase();
+  const kickoff = getKickoffDate(game);
+  const status = kickoff && kickoff.getTime() > Date.now() && rawStatus !== 'cancelled'
+    ? 'scheduled'
+    : rawStatus;
   const isLive = status === 'live';
-  const isFinal = status === 'final';
+  const isFinal = status === 'final' && hasPlayableScore(game);
   const hasScore = isLive || isFinal;
 
   const homeColor = home?.primaryColor || home?.colorPrimary || '#013369';
