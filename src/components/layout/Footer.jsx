@@ -136,24 +136,55 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="relative mx-auto mt-8 h-14 max-w-5xl overflow-hidden rounded-[10px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent)]">
-          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/42" />
-          <div className="absolute inset-0 grid grid-cols-10">
-            {Array.from({ length: 11 }).map((_, index) => (
+        <div className="relative mx-auto mt-8 h-[58px] max-w-5xl overflow-hidden rounded-[10px] border border-white/58 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.01))]">
+          <div className="absolute inset-x-0 top-0 h-px bg-white/48" />
+          <div className="absolute inset-x-0 bottom-0 h-px bg-white/48" />
+
+          {[
+            '10',
+            '20',
+            '30',
+            '40',
+            '50',
+            '40',
+            '30',
+            '20',
+            '10',
+          ].map((label, index) => {
+            const left = `${10 + index * 10}%`;
+            const isMidfield = label === '50';
+
+            return (
+              <div
+                key={`${label}-${index}`}
+                className="absolute top-0 h-full"
+                style={{ left }}
+              >
+                <span
+                  className={`absolute left-0 top-0 h-[28px] w-px ${
+                    isMidfield ? 'bg-white/90' : 'bg-white/48'
+                  }`}
+                />
+                <span
+                  className={`absolute left-0 bottom-0 h-[16px] w-px ${
+                    isMidfield ? 'bg-white/90' : 'bg-white/42'
+                  }`}
+                />
+                <span className="absolute left-1/2 bottom-[8px] -translate-x-1/2 text-[8px] font-black tabular-nums leading-none text-white/58">
+                  {label}
+                </span>
+              </div>
+            );
+          })}
+
+          <div className="absolute inset-x-[5%] top-[18px] flex justify-between">
+            {Array.from({ length: 21 }).map((_, index) => (
               <span
                 key={index}
-                className={`relative border-l ${
-                  index === 5 ? 'border-white/90' : 'border-white/30'
-                } first:border-l-0`}
-              >
-                <span className="absolute left-0 top-[10px] h-2 w-px bg-white/45" />
-                <span className="absolute bottom-[10px] left-0 h-2 w-px bg-white/45" />
-              </span>
+                className="h-[10px] w-px bg-white/22"
+              />
             ))}
           </div>
-          <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-white/78" />
-          <div className="absolute inset-x-6 top-[11px] h-px bg-white/38" />
-          <div className="absolute inset-x-6 bottom-[11px] h-px bg-white/38" />
         </div>
       </div>
     </footer>
