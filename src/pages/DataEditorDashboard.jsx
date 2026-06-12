@@ -756,7 +756,7 @@ function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSe
 
 function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) {
   useSetHeader({
-    mode: 'back',
+    mode: 'dashboard',
     title: 'Media',
   });
 

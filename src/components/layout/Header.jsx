@@ -13,6 +13,7 @@ import {
 import { base44 } from "@/api/base44Client";
 import { useHeaderConfig } from "@/lib/HeaderContext";
 import { getImageUrl } from "@/lib/imageUtils";
+import { useAuth } from "@/lib/AuthContext";
 
 const APP_BRANDING_VERSION = "app_branding";
 
@@ -210,6 +211,25 @@ function BackContent({ title, onBack, backTo }) {
           {title}
         </span>
       )}
+    </div>
+  );
+}
+
+function DashboardContent({ title }) {
+  const { logout } = useAuth();
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+      <span className="truncate text-sm font-black uppercase tracking-wide text-white">
+        {title || "Dashboard"}
+      </span>
+      <button
+        type="button"
+        onClick={() => logout(true)}
+        className="flex-shrink-0 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/70 transition-colors hover:bg-white/14 hover:text-white"
+      >
+        Abmelden
+      </button>
     </div>
   );
 }
@@ -425,6 +445,10 @@ export default function Header() {
                   onBack={config?.onBack}
                   backTo={config?.backTo}
                 />
+              )}
+
+              {mode === "dashboard" && (
+                <DashboardContent title={config?.title} />
               )}
 
               {mode === "league" && (

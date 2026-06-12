@@ -32,7 +32,6 @@ const EMPTY = {
   groups: [],
   showInOnboarding: false,
   onboardingOrder: 0,
-  onboardingImage: '',
 };
 
 async function uploadToCloudinary(file) {
@@ -244,7 +243,6 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
-  const [uploadingOnboarding, setUploadingOnboarding] = useState(false);
 
   const set = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
@@ -288,25 +286,6 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
     }
   };
 
-  const handleOnboardingUpload = async event => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploadingOnboarding(true);
-
-    try {
-      const url = await uploadToCloudinary(file);
-      set('onboardingImage', url);
-      toast.success('Einleitungsbild hochgeladen');
-    } catch (error) {
-      console.error('LEAGUE ONBOARDING UPLOAD ERROR:', error);
-      toast.error(error.message || 'Einleitungsbild Upload fehlgeschlagen');
-    } finally {
-      setUploadingOnboarding(false);
-      event.target.value = '';
-    }
-  };
-
   const handleSave = () => {
     if (!form.name.trim()) {
       toast.error('Bitte Liga-Namen eingeben');
@@ -331,7 +310,6 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
       isEuropeanLeague: !!form.isEuropeanLeague,
       showInOnboarding: !!form.showInOnboarding,
       onboardingOrder: Number(form.onboardingOrder ?? 0),
-      onboardingImage: form.onboardingImage || '',
     });
   };
 
@@ -597,9 +575,9 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
         <div className="rounded-2xl border border-white/10 bg-black/70 p-3 text-white">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black">In Einleitung anzeigen</p>
+              <p className="text-xs font-black">Liga-Icon in Welcome anzeigen</p>
               <p className="mt-0.5 text-[10px] font-semibold text-white/50">
-                Maximal 4 Ligen erscheinen auf der Intro-Seite.
+                Maximal 4 Liga-Logos erscheinen unten auf der Welcome-Seite.
               </p>
             </div>
 
@@ -625,42 +603,10 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
               />
             </div>
 
-            <div>
-              <label className="mb-1 block text-[10px] font-bold uppercase text-white/48">
-                Einleitungsbild
-              </label>
-              <div className="flex items-center gap-2">
-                {form.onboardingImage ? (
-                  <div className="relative h-10 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-white/8">
-                    <img src={form.onboardingImage} alt="" className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => set('onboardingImage', '')}
-                      className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive"
-                    >
-                      <X className="h-2.5 w-2.5 text-white" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex h-10 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-white/8 text-[9px] font-bold text-white/45">
-                    Bild
-                  </div>
-                )}
-
-                <label className="cursor-pointer">
-                  <span className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-black text-white">
-                    {uploadingOnboarding && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {uploadingOnboarding ? 'Laedt...' : form.onboardingImage ? 'Aendern' : 'Bild waehlen'}
-                  </span>
-                  <input
-                    type="file"
-                    accept=".png,.jpg,.jpeg,.webp,image/*"
-                    className="hidden"
-                    onChange={handleOnboardingUpload}
-                    disabled={uploadingOnboarding || isSaving}
-                  />
-                </label>
-              </div>
+            <div className="flex items-end">
+              <p className="rounded-2xl border border-white/10 bg-white/8 px-3 py-2 text-[11px] font-semibold text-white/58">
+                Das Logo der Liga kommt automatisch aus dem Logo-Feld oben.
+              </p>
             </div>
           </div>
         </div>
@@ -671,7 +617,7 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
           size="sm"
           className="flex-1"
           onClick={handleSave}
-          disabled={isSaving || uploadingLogo || uploadingBanner || uploadingOnboarding || !form.name}
+          disabled={isSaving || uploadingLogo || uploadingBanner || !form.name}
         >
           {isSaving ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -806,7 +752,6 @@ export default function AdminLeagues() {
                       groups: league.groups || [],
                       showInOnboarding: !!league.showInOnboarding,
                       onboardingOrder: league.onboardingOrder || 0,
-                      onboardingImage: league.onboardingImage || '',
                     }}
                     onSave={data => updateMutation.mutate({ id: league.id, data })}
                     onCancel={() => setEditingId(null)}

@@ -912,10 +912,9 @@ export default function AdminDashboard() {
   const [brandingForm, setBrandingForm] = useState(EMPTY_BRANDING_FORM);
 
   useSetHeader({
-  mode: 'back',
-  title: 'Admin Dashboard',
-  backTo: '/',
-});
+    mode: 'dashboard',
+    title: 'Admin Dashboard',
+  });
 
   const { data: users = [] } = useQuery({
     queryKey: ['admin-count-users'],

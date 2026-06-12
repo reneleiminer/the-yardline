@@ -270,7 +270,7 @@ function AccountSettings({ appUser, onSessionRefresh }) {
 }
 
 export default function PodcastDashboard() {
-  useSetHeader({ mode: "back", title: "Podcast" });
+  useSetHeader({ mode: "dashboard", title: "Podcast" });
 
   const queryClient = useQueryClient();
   const { appUserSnapshot, internalLogin } = useAuth();

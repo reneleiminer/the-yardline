@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, KeyRound, LogIn, Mail, ShieldCheck, UserPlus } from "lucide-react";
@@ -37,18 +37,6 @@ function getTargetRouteForInternalRole(roleSlug) {
   return "/";
 }
 
-function isInternalRoleSlug(roleSlug) {
-  return ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug);
-}
-
-function isInternalDashboardPath(pathname) {
-  return (
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/data-editor") ||
-    pathname.startsWith("/podcast")
-  );
-}
-
 function AuthScreen() {
   const {
     loginUser,
@@ -62,7 +50,6 @@ function AuthScreen() {
   const navigate = useNavigate();
 
   const [mode, setMode] = useState("register");
-  const [birthDateFocused, setBirthDateFocused] = useState(false);
   const [form, setForm] = useState({
     username: "",
     displayName: "",
@@ -222,18 +209,18 @@ function AuthScreen() {
                     autoComplete="name"
                     className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
                   />
-                  <Input
-                    type={birthDateFocused || form.birthDate ? "date" : "text"}
-                    value={form.birthDate}
-                    onFocus={() => setBirthDateFocused(true)}
-                    onBlur={() => {
-                      if (!form.birthDate) setBirthDateFocused(false);
-                    }}
-                    onChange={event => updateForm("birthDate", event.target.value)}
-                    placeholder="Geburtsdatum"
-                    aria-label="Geburtsdatum"
-                    className="h-12 min-w-0 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/45"
-                  />
+                  <label className="block">
+                    <span className="mb-1 block px-1 text-[10px] font-black uppercase tracking-wide text-white/52">
+                      Geburtsdatum
+                    </span>
+                    <Input
+                      type="date"
+                      value={form.birthDate}
+                      onChange={event => updateForm("birthDate", event.target.value)}
+                      aria-label="Geburtsdatum"
+                      className="h-12 min-w-0 rounded-2xl border-white/10 bg-white/10 text-white [color-scheme:dark]"
+                    />
+                  </label>
                   <Input
                     type="email"
                     value={form.email}
@@ -384,9 +371,9 @@ const ONBOARDING_SLIDES = [
   {
     kind: "leagues",
     eyebrow: "The Yardline",
-    title: "Leagues Hub",
-    accent: "Hub",
-    text: "Deine wichtigsten Ligen an einem Ort, direkt bereit fuer Spiele, Tabellen und Teams.",
+    title: "American Football",
+    accent: "Football",
+    text: "All leagues in one app. News, Spiele, Tabellen, Highlights und Football ohne Umwege.",
     image: "/onboarding/intro-player-run.jpg",
   },
   {
@@ -458,15 +445,10 @@ function OnboardingScreen() {
   });
   const introLeagues = useMemo(() => getIntroLeagues(leagues), [leagues]);
   const slides = useMemo(() => {
-    const leagueImage =
-      introLeagues.find(league => league.onboardingImage)?.onboardingImage ||
-      ONBOARDING_SLIDES[0].image;
-
     return ONBOARDING_SLIDES.map((item, itemIndex) => {
       if (itemIndex !== 0) return item;
       return {
         ...item,
-        image: leagueImage,
         leagues: introLeagues,
       };
     });
@@ -729,11 +711,6 @@ export default function AppLayout() {
 
   if (appUserSnapshot.needsOnboarding) {
     return <OnboardingScreen />;
-  }
-
-  const roleSlug = String(appUserSnapshot.roleSlug || appUserSnapshot.role || "").toLowerCase();
-  if (isInternalRoleSlug(roleSlug) && !isInternalDashboardPath(location.pathname)) {
-    return <Navigate to={getTargetRouteForInternalRole(roleSlug)} replace />;
   }
 
   return (

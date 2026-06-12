@@ -55,12 +55,12 @@ function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
   if (game.status === "cancelled") return "cancelled";
   if (game.status === "final") return "final";
+  if (hasFinalScore(game)) return "final";
   return "scheduled";
 }
 
 function hasFinalScore(game) {
   return (
-    game.status === "final" &&
     game.scoreHome != null &&
     game.scoreAway != null &&
     Number.isFinite(Number(game.scoreHome)) &&
