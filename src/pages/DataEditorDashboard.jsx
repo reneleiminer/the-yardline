@@ -747,7 +747,7 @@ function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSe
           ) : (
             <Star className="w-4 h-4 mr-2" />
           )}
-          {selected ? 'Ausgewählt' : 'Als Game of the Week setzen'}
+          {selected ? 'Auswahl entfernen' : 'Als Game of the Week setzen'}
         </Button>
       </div>
     </Card>
@@ -794,7 +794,24 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     .filter(game => game.status !== 'cancelled')
     .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
 
-    const selectGameOfTheWeek = async game => {
+  const allSelectableGames = sortedGames
+    .filter(game => game.status !== 'cancelled')
+    .filter(game => {
+      const date = getGameDate(game);
+      if (!date) return true;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      return date >= today;
+    })
+    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
+
+  const currentSelectionOnly = currentSelection
+    ? [currentSelection]
+    : [];
+
+  const selectGameOfTheWeek = async game => {
     if (!game?.id) return;
 
     const isAlreadySelected = game.isGameOfTheWeek === true;
@@ -861,7 +878,7 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     if (list.length === 0) {
       return (
         <div className="text-center py-10 text-muted-foreground text-sm">
-          Keine EFA- oder AFLE-Spiele in diesem Zeitraum gefunden.
+          Keine Spiele in diesem Zeitraum gefunden.
         </div>
       );
     }
@@ -959,21 +976,41 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
             <p className="text-xs text-muted-foreground mt-0.5">
               {currentSelection.gameOfTheWeekLabel || 'by Media'}
             </p>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 h-8 text-xs"
+              onClick={() => selectGameOfTheWeek(currentSelection)}
+              disabled={selectingId === currentSelection.id}
+            >
+              {selectingId === currentSelection.id ? (
+                <Loader2 className="w-3 h-3 animate-spin mr-2" />
+              ) : (
+                <X className="w-3 h-3 mr-2" />
+              )}
+              Auswahl entfernen
+            </Button>
           </div>
         )}
       </Card>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full mb-4">
-          <TabsTrigger value="weekend" className="flex-1 text-xs">
+        <TabsList className="w-full mb-4 grid grid-cols-4">
+          <TabsTrigger value="weekend" className="text-xs">
             Wochenende
           </TabsTrigger>
 
-          <TabsTrigger value="upcoming" className="flex-1 text-xs">
+          <TabsTrigger value="upcoming" className="text-xs">
             7 Tage
           </TabsTrigger>
 
-          <TabsTrigger value="account" className="flex-1 text-xs">
+          <TabsTrigger value="all" className="text-xs">
+            Alle
+          </TabsTrigger>
+
+          <TabsTrigger value="account" className="text-xs">
             Konto
           </TabsTrigger>
         </TabsList>
@@ -994,6 +1031,14 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
           {renderMediaGames(upcomingGames)}
         </TabsContent>
 
+        <TabsContent value="all">
+          <p className="text-xs text-muted-foreground mb-3">
+            Alle kommenden Spiele aus allen Ligen. Hier kannst du jederzeit ein neues Game of the Week wählen, auch wenn es nicht im Wochenend- oder 7-Tage-Filter auftaucht.
+          </p>
+
+          {renderMediaGames(allSelectableGames)}
+        </TabsContent>
+
         <TabsContent value="account">
           <MediaAccountSettings
             appUser={appUserSnapshot}
@@ -1012,10 +1057,11 @@ export default function DataEditorDashboard() {
 
   const roleSlug = normalizeRole(appUserSnapshot?.roleSlug || appUserSnapshot?.role);
   const isMediaPartner = roleSlug === 'media_partner';
+  const canManageGameOfTheWeek = isMediaPartner || roleSlug === 'admin';
 
   useSetHeader({
     mode: 'back',
-    title: isMediaPartner ? 'Media' : 'Daten bearbeiten',
+    title: canManageGameOfTheWeek ? 'Game of the Week' : 'Daten bearbeiten',
   });
 
   const [tab, setTab] = useState('overview');
@@ -1058,7 +1104,7 @@ export default function DataEditorDashboard() {
     queryClient.invalidateQueries({ queryKey: ['standingsConfigs'] });
   };
 
-  if (isMediaPartner) {
+  if (canManageGameOfTheWeek) {
     return (
       <MediaDashboard
         games={games}
