@@ -58,6 +58,7 @@ const AdminUpdates = lazy(() => import("@/pages/admin/AdminUpdates"));
 const AdminHighlights = lazy(() => import("@/pages/Tournaments"));
 const AdminGameResult = lazy(() => import("@/pages/admin/AdminGameResult"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
+const AdminGameOfTheWeek = lazy(() => import("@/pages/admin/AdminGameOfTheWeek"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
 
 function RouteLoader() {
@@ -80,7 +81,7 @@ function DataEditorRoute({ children }) {
   return (
     <ProtectedRoute
       requiredRoute="/data-editor"
-      allowedRoles={["admin", "data_editor", "media_partner", "club"]}
+      allowedRoles={["data_editor", "media_partner", "club"]}
       fallbackRoute="/settings?login=internal"
     >
       {children}
@@ -233,6 +234,15 @@ function AppRoutes() {
               element={
                 <AdminRoute>
                   <AdminGames />
+                </AdminRoute>
+              }
+            />
+
+            <Route
+              path="/admin/game-of-the-week"
+              element={
+                <AdminRoute>
+                  <AdminGameOfTheWeek />
                 </AdminRoute>
               }
             />
