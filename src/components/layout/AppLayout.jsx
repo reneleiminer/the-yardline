@@ -585,6 +585,10 @@ export default function AppLayout() {
   const activeIndex = getMainTabIndex(location.pathname);
   const previousIndex = previousIndexRef.current;
   const [direction, setDirection] = useState(0);
+  const roleSlug = String(appUserSnapshot?.roleSlug || appUserSnapshot?.role || "").toLowerCase();
+  const isInternalSession =
+    appUserSnapshot?.isInternalUser === true ||
+    ["admin", "data_editor", "media_partner", "podcast_partner", "club"].includes(roleSlug);
 
   const footerVisibleRoutes = [
     "/",
@@ -623,6 +627,27 @@ export default function AppLayout() {
   useEffect(() => {
     trackPageView(location);
   }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    if (isLoadingAuth || !isAuthenticated || !appUserSnapshot || !isInternalSession) return;
+
+    const isInternalRoute =
+      location.pathname.startsWith("/admin") ||
+      location.pathname.startsWith("/data-editor") ||
+      location.pathname.startsWith("/podcast");
+
+    if (!isInternalRoute) {
+      navigate(getTargetRouteForInternalRole(roleSlug), { replace: true });
+    }
+  }, [
+    appUserSnapshot,
+    isAuthenticated,
+    isInternalSession,
+    isLoadingAuth,
+    location.pathname,
+    navigate,
+    roleSlug,
+  ]);
 
   useEffect(() => {
     const previous = previousIndexRef.current;

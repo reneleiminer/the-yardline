@@ -148,6 +148,7 @@ function compactPathLabel(path) {
   if (path.startsWith('/club/')) return 'Club Detail';
   if (path.startsWith('/league/')) return 'Liga Detail';
   if (path.startsWith('/wettbewerbe/')) return 'Wettbewerb Detail';
+  if (path.startsWith('/profile')) return 'Einstellungen';
 
   return path
     .replace('/spiele', 'Spiele')
@@ -529,7 +530,7 @@ function AdBannerPlanner({
           </h2>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle dezente Banner nur fÃ¼r die Home-Seite.
+            Erstelle dezente Banner nur für die Home-Seite.
           </p>
         </div>
 
@@ -538,7 +539,7 @@ function AdBannerPlanner({
           onClick={onClose}
           className="text-xs font-bold text-muted-foreground hover:text-foreground"
         >
-          SchlieÃŸen
+          Schließen
         </button>
       </div>
 
@@ -578,7 +579,7 @@ function AdBannerPlanner({
             </span>
 
             <ImageUploadField
-              label="Werbebanner vom GerÃ¤t hochladen"
+              label="Werbebanner vom Gerät hochladen"
               value={formData.image_url}
               onChange={value => setFormData(current => ({ ...current, image_url: value }))}
             />
@@ -586,12 +587,12 @@ function AdBannerPlanner({
             <input
               value={formData.image_url}
               onChange={event => setFormData(current => ({ ...current, image_url: event.target.value }))}
-              placeholder="Oder Bild-URL einfÃ¼gen"
+              placeholder="Oder Bild-URL einfügen"
               className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
             />
 
             <p className="text-[10px] text-muted-foreground">
-              Du kannst ein Bild direkt vom GerÃ¤t hochladen oder eine bestehende Bild-URL nutzen.
+              Du kannst ein Bild direkt vom Gerät hochladen oder eine bestehende Bild-URL nutzen.
             </p>
           </div>
 
@@ -608,7 +609,7 @@ function AdBannerPlanner({
             />
 
             <p className="text-[10px] text-muted-foreground">
-              Wenn ein Link eingetragen ist, Ã¶ffnet sich diese Seite beim Klick auf die Werbung.
+              Wenn ein Link eingetragen ist, öffnet sich diese Seite beim Klick auf die Werbung.
             </p>
           </label>
 
@@ -757,7 +758,7 @@ function AdBannerPlanner({
                     </div>
 
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      {banner.position} Â· {banner.start_date || 'sofort'} bis {banner.end_date || 'offen'}
+                      {banner.position} · {banner.start_date || 'sofort'} bis {banner.end_date || 'offen'}
                     </p>
 
                     {banner.link_url && (
@@ -1132,11 +1133,11 @@ export default function AdminDashboard() {
     mutationFn: id => base44.entities.AppUpdate.delete(id),
     onSuccess: () => {
       invalidateAdBanners();
-      toast.success('Werbe-Banner gelÃ¶scht');
+      toast.success('Werbe-Banner gelöscht');
       resetBannerForm();
     },
     onError: error => {
-      toast.error(error.message || 'Werbe-Banner konnte nicht gelÃ¶scht werden');
+      toast.error(error.message || 'Werbe-Banner konnte nicht gelöscht werden');
     },
   });
 
@@ -1211,7 +1212,7 @@ export default function AdminDashboard() {
     {
       icon: UserCog,
       title: 'Nutzer & Logins',
-      description: 'Logins fÃ¼r Dateneditoren erstellen und verwalten',
+      description: 'Logins für Dateneditoren erstellen und verwalten',
       route: '/admin/users',
       count: managedUsers.length,
       color: 'text-blue-400',
@@ -1433,7 +1434,7 @@ export default function AdminDashboard() {
   return (
     <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 py-6 pb-24">
       <p className="sr-only">
-        Admin-Zentrale fÃ¼r Daten, Logins und App-Inhalte.
+        Admin-Zentrale für Daten, Logins und App-Inhalte.
       </p>
 
       <div className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
@@ -1469,7 +1470,7 @@ export default function AdminDashboard() {
             </h2>
 
             <p className="text-xs text-muted-foreground mt-1">
-              Interne Richtwerte fÃ¼r Reichweite, AktivitÃ¤t und spÃ¤tere Werbepreise.
+              Interne Richtwerte für Reichweite, Aktivität und spätere Werbepreise.
             </p>
           </div>
         </div>

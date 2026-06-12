@@ -23,7 +23,6 @@ import Settings from "@/pages/Settings";
 
 const CompetitionDetail = lazy(() => import("@/pages/CompetitionDetail"));
 const Support = lazy(() => import("@/pages/Support"));
-const Profile = lazy(() => import("@/pages/Profile"));
 const Legal = lazy(() => import("@/pages/Legal"));
 const Updates = lazy(() => import("@/pages/Updates"));
 const GameStatistics = lazy(() => import("@/components/profile/UserProfile"));
@@ -134,7 +133,7 @@ function AppRoutes() {
             <Route path="/support" element={<Support />} />
             <Route path="/applications" element={<Applications />} />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile" element={<Navigate to="/settings" replace />} />
             <Route path="/user/statistics" element={<GameStatistics />} />
 
             <Route path="/legal" element={<Legal />} />

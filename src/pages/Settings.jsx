@@ -7,7 +7,9 @@ import {
   ChevronRight,
   Database,
   Globe2,
+  LogOut,
   Sparkles,
+  UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -225,6 +227,44 @@ function AppInfoSettings() {
   );
 }
 
+function AccountSettings() {
+  const { appUserSnapshot, logout } = useAuth();
+  const displayName =
+    appUserSnapshot?.displayName ||
+    appUserSnapshot?.username ||
+    "Konto";
+
+  return (
+    <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-4">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <UserCircle className="w-5 h-5 text-primary" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <h2 className="text-sm font-bold truncate">
+            {displayName}
+          </h2>
+          <p className="text-xs text-muted-foreground truncate">
+            Konto und Anmeldung
+          </p>
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => logout(true)}
+          className="rounded-full border border-white/10 bg-black/40 px-3 text-xs font-black text-white hover:bg-red-600 hover:text-white"
+        >
+          <LogOut className="mr-1.5 h-3.5 w-3.5" />
+          Abmelden
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function PushNotificationSettings() {
   const [state, setState] = React.useState({
     supported: false,
@@ -335,6 +375,7 @@ export default function Settings() {
   return (
     <div className="min-h-[calc(100dvh-68px)] w-full max-w-full overflow-x-hidden px-4 pt-4 pb-24 flex flex-col">
       <div className="space-y-3">
+        <AccountSettings />
         <PushNotificationSettings />
         <LanguageSettings />
         <AppInfoSettings />

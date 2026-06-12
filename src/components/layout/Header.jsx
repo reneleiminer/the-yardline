@@ -428,10 +428,10 @@ export default function Header() {
 
               {!hideMenuButton && (
                 <Link
-                  to="/profile"
+                  to="/settings"
                   className="ml-auto flex h-11 w-11 items-center justify-center rounded-full active:bg-black/5 transition-colors"
-                  aria-label="Profil"
-                  title="Profil"
+                  aria-label="Konto und Einstellungen"
+                  title="Konto und Einstellungen"
                 >
                   <UserCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
                 </Link>

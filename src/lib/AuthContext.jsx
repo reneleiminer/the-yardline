@@ -83,6 +83,24 @@ function normalizePublicAppUser(appUser) {
   };
 }
 
+function normalizeSessionAppUser(appUser) {
+  if (!appUser) return null;
+
+  const roleSlug = normalizeRole(appUser.roleSlug || appUser.role || "fan") || "fan";
+
+  if (isInternalRole({ ...appUser, roleSlug }) || appUser.isInternalUser === true) {
+    return {
+      ...appUser,
+      roleSlug,
+      role: appUser.role || getInternalRoleLabel(roleSlug),
+      isInternalUser: true,
+      needsOnboarding: false,
+    };
+  }
+
+  return normalizePublicAppUser(appUser);
+}
+
 function getInternalRoleLabel(roleSlug) {
   if (roleSlug === "admin") return "Admin";
   if (roleSlug === "data_editor") return "Daten-Editor";
@@ -190,7 +208,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      const appUser = normalizePublicAppUser(await base44.entities.AppUser.get(sessionId));
+      const appUser = normalizeSessionAppUser(await base44.entities.AppUser.get(sessionId));
 
       if (!appUser || isDeletedOrBlocked(appUser)) {
         clearStoredSession();
@@ -700,6 +718,8 @@ export const AuthProvider = ({ children }) => {
       email: normalizedAppUser.email || "",
       isInternalSession: true,
     };
+
+    storeSession(normalizedAppUser);
 
     setUser(internalUser);
     setAppUserSnapshot(normalizedAppUser);
