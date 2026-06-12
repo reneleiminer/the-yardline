@@ -797,6 +797,15 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
 
   const currentSelection = selectedGameOfWeekList[0] || null;
 
+  const fetchSelectedGameOfTheWeek = async () => {
+    try {
+      return await base44.entities.Game.filter({ isGameOfTheWeek: true });
+    } catch (error) {
+      console.warn('GAME OF THE WEEK SELECTED FILTER FALLBACK:', error);
+      return games.filter(item => item.isGameOfTheWeek === true);
+    }
+  };
+
   const mediaLeagueGames = sortedGames.filter(game => {
     const league = leaguesMap.get(game.leagueId);
     return isAllowedMediaLeague(league);
@@ -817,7 +826,7 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
 
   const clearGameOfTheWeek = async () => {
-    const selectedGames = selectedGameOfWeekList.filter(item => item?.id);
+    const selectedGames = (await fetchSelectedGameOfTheWeek()).filter(item => item?.id);
 
     if (selectedGames.length === 0) {
       toast.info('Es ist aktuell kein Game of the Week ausgewählt');
@@ -832,14 +841,14 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
           base44.entities.Game.update(item.id, {
             isGameOfTheWeek: false,
             gameOfTheWeekLabel: '',
-            gameOfTheWeekSelectedBy: '',
-            gameOfTheWeekSelectedAtUtc: '',
+            gameOfTheWeekSelectedBy: null,
+            gameOfTheWeekSelectedAtUtc: null,
             updatedAtUtc: new Date().toISOString(),
           })
         )
       );
 
-      invalidate();
+      await Promise.resolve(invalidate());
       toast.success('Game of the Week entfernt');
     } catch (error) {
       console.error('CLEAR GAME OF THE WEEK ERROR:', error);
@@ -857,30 +866,21 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
     setSelectingId(game.id);
 
     try {
-      let selectedGames = selectedGameOfWeekList.filter(item => item?.id);
-
-      if (selectedGames.length === 0) {
-        try {
-          selectedGames = await base44.entities.Game.filter({ isGameOfTheWeek: true });
-        } catch (error) {
-          console.warn('GAME OF THE WEEK SELECTED FILTER FALLBACK:', error);
-          selectedGames = games.filter(item => item.isGameOfTheWeek === true);
-        }
-      }
+      const selectedGames = (await fetchSelectedGameOfTheWeek()).filter(item => item?.id);
 
       const selectedIds = new Set(selectedGames.map(item => item.id));
-      const isAlreadySelected = selectedIds.has(game.id) && game.isGameOfTheWeek === true;
+      const isAlreadySelected = selectedIds.has(game.id) || game.isGameOfTheWeek === true;
 
       if (isAlreadySelected) {
         await base44.entities.Game.update(game.id, {
           isGameOfTheWeek: false,
           gameOfTheWeekLabel: '',
-          gameOfTheWeekSelectedBy: '',
-          gameOfTheWeekSelectedAtUtc: '',
+          gameOfTheWeekSelectedBy: null,
+          gameOfTheWeekSelectedAtUtc: null,
           updatedAtUtc: new Date().toISOString(),
         });
 
-        invalidate();
+        await Promise.resolve(invalidate());
         toast.success('Game of the Week abgewählt');
         return;
       }
@@ -892,8 +892,8 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
           base44.entities.Game.update(item.id, {
             isGameOfTheWeek: false,
             gameOfTheWeekLabel: '',
-            gameOfTheWeekSelectedBy: '',
-            gameOfTheWeekSelectedAtUtc: '',
+            gameOfTheWeekSelectedBy: null,
+            gameOfTheWeekSelectedAtUtc: null,
             updatedAtUtc: new Date().toISOString(),
           })
         )
@@ -902,12 +902,12 @@ function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) 
       await base44.entities.Game.update(game.id, {
         isGameOfTheWeek: true,
         gameOfTheWeekLabel: label,
-        gameOfTheWeekSelectedBy: appUserSnapshot?.id || '',
+        gameOfTheWeekSelectedBy: null,
         gameOfTheWeekSelectedAtUtc: new Date().toISOString(),
         updatedAtUtc: new Date().toISOString(),
       });
 
-      invalidate();
+      await Promise.resolve(invalidate());
       toast.success('Neues Game of the Week gesetzt. Alte Auswahl wurde automatisch entfernt.');
     } catch (error) {
       console.error('MEDIA GAME OF THE WEEK ERROR:', error);

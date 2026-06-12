@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import useSetHeader from '@/hooks/useSetHeader';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useAuth } from '@/lib/AuthContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +22,20 @@ function getTeamName(team, placeholder) {
 
 function getStatusLabel(status) {
   return STATUS_LABELS[status] || status || 'Geplant';
+}
+
+function getErrorMessage(error, fallback) {
+  if (!error) return fallback;
+  if (typeof error === 'string') return error;
+  if (error.message) return error.message;
+  if (error.details) return error.details;
+  if (error.hint) return error.hint;
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return fallback;
+  }
 }
 
 function getGameDate(game) {
@@ -205,7 +218,6 @@ export default function AdminGameOfTheWeek() {
   });
 
   const queryClient = useQueryClient();
-  const { appUserSnapshot } = useAuth();
 
   const [search, setSearch] = useState('');
   const [label, setLabel] = useState('by The Yardline');
@@ -278,9 +290,12 @@ export default function AdminGameOfTheWeek() {
   }, [games, leaguesMap, search, showOnlyUpcoming, teamsMap]);
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin-game-of-the-week-games'] });
-    queryClient.invalidateQueries({ queryKey: ['games'] });
-    queryClient.invalidateQueries({ queryKey: ['editor-games'] });
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['admin-game-of-the-week-games'] }),
+      queryClient.invalidateQueries({ queryKey: ['game-of-week-selected'] }),
+      queryClient.invalidateQueries({ queryKey: ['games'] }),
+      queryClient.invalidateQueries({ queryKey: ['editor-games'] }),
+    ]);
   };
 
   const selectMutation = useMutation({
@@ -288,26 +303,38 @@ export default function AdminGameOfTheWeek() {
       if (!game?.id) return;
 
       const now = new Date().toISOString();
-      const selectedGames = games.filter(item => item.isGameOfTheWeek === true && item.id !== game.id);
+      let selectedGames = [];
 
-      if (game.isGameOfTheWeek === true) {
+      try {
+        selectedGames = await base44.entities.Game.filter({ isGameOfTheWeek: true });
+      } catch (error) {
+        console.warn('ADMIN GAME OF THE WEEK SELECTED FILTER FALLBACK:', error);
+        selectedGames = games.filter(item => item.isGameOfTheWeek === true);
+      }
+
+      const selectedIds = new Set(selectedGames.map(item => item.id));
+      const isAlreadySelected = selectedIds.has(game.id) || game.isGameOfTheWeek === true;
+
+      if (isAlreadySelected) {
         await base44.entities.Game.update(game.id, {
           isGameOfTheWeek: false,
           gameOfTheWeekLabel: '',
-          gameOfTheWeekSelectedBy: '',
-          gameOfTheWeekSelectedAtUtc: '',
+          gameOfTheWeekSelectedBy: null,
+          gameOfTheWeekSelectedAtUtc: null,
           updatedAtUtc: now,
         });
         return 'removed';
       }
 
       await Promise.all(
-        selectedGames.map(item =>
+        selectedGames
+          .filter(item => item.id !== game.id)
+          .map(item =>
           base44.entities.Game.update(item.id, {
             isGameOfTheWeek: false,
             gameOfTheWeekLabel: '',
-            gameOfTheWeekSelectedBy: '',
-            gameOfTheWeekSelectedAtUtc: '',
+            gameOfTheWeekSelectedBy: null,
+            gameOfTheWeekSelectedAtUtc: null,
             updatedAtUtc: now,
           })
         )
@@ -316,20 +343,21 @@ export default function AdminGameOfTheWeek() {
       await base44.entities.Game.update(game.id, {
         isGameOfTheWeek: true,
         gameOfTheWeekLabel: label.trim() || 'by The Yardline',
-        gameOfTheWeekSelectedBy: appUserSnapshot?.id || 'admin',
+        gameOfTheWeekSelectedBy: null,
         gameOfTheWeekSelectedAtUtc: now,
         updatedAtUtc: now,
       });
 
       return 'selected';
     },
-    onSuccess: result => {
-      invalidate();
+    onSuccess: async result => {
+      await invalidate();
       toast.success(result === 'removed' ? 'Game of the Week entfernt' : 'Game of the Week aktualisiert');
     },
     onError: error => {
-      console.error('ADMIN GAME OF THE WEEK ERROR:', error);
-      toast.error(error.message || 'Game of the Week konnte nicht gespeichert werden');
+      const message = getErrorMessage(error, 'Game of the Week konnte nicht gespeichert werden');
+      console.error('ADMIN GAME OF THE WEEK ERROR:', message, error);
+      toast.error(message);
     },
   });
 
