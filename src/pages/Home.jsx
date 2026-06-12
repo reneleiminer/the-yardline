@@ -161,7 +161,7 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
           </div>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[104px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/18 bg-black/72 px-4 py-3 text-white shadow-[0_10px_26px_rgba(0,0,0,0.42)] backdrop-blur-md">
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[104px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/24 bg-black px-4 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.62),0_0_0_1px_rgba(194,15,26,0.22)]">
           <StatusPill game={game} />
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
@@ -174,7 +174,7 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
               <span className="text-2xl font-black leading-none text-[#ff2338]">
                 {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
               </span>
-              <span className="mt-1 text-[9px] font-black uppercase text-white/65">
+              <span className="mt-1 text-[9px] font-black uppercase text-white/82">
                 {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </span>
             </>
