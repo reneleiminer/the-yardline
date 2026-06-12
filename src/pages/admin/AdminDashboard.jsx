@@ -1348,11 +1348,88 @@ export default function AdminDashboard() {
       bg: 'bg-rose-400/10',
     },  ];
 
+  const dashboardStats = [
+    { label: 'Nutzer', value: managedUsers.length, tone: 'from-[#2f7dff]/28 to-transparent' },
+    { label: 'Spiele', value: games.length, tone: 'from-[#c20f1a]/28 to-transparent' },
+    { label: 'Offene Tickets', value: openSupportTickets.length, tone: 'from-[#ff2338]/24 to-transparent' },
+    { label: 'Live Inhalte', value: activeHighlights.length + gameDayShots.length + activeBanners.length, tone: 'from-white/16 to-transparent' },
+  ];
+
+  const sectionGroups = [
+    {
+      title: 'System',
+      subtitle: 'Konten, Branding, Updates und Support',
+      items: sections.filter(section => [
+        '/admin/users',
+        '__app_branding__',
+        '/admin/updates',
+        '/admin/support',
+        '/admin/legal',
+      ].includes(section.route)),
+    },
+    {
+      title: 'Football Daten',
+      subtitle: 'Ligen, Teams, Spielplan, Tabellen und Streams',
+      items: sections.filter(section => [
+        '/admin/leagues',
+        '/admin/teams',
+        '/admin/games',
+        '/admin/standings',
+        '/admin/competitions',
+        '/admin/streams',
+        '/user/statistics',
+      ].includes(section.route)),
+    },
+    {
+      title: 'Content & Partner',
+      subtitle: 'Highlights, Shots, Banner und Partnerflächen',
+      items: sections.filter(section => [
+        '/admin/highlights',
+        '/admin/gameday-shots',
+        '__ad_banners__',
+        '/admin/partners',
+      ].includes(section.route)),
+    },
+  ];
+
+  const handleSectionClick = (section) => {
+    if (section.route === '__app_branding__') {
+      setShowBrandingPlanner(current => !current);
+      setShowBannerPlanner(false);
+      return;
+    }
+
+    if (section.route === '__ad_banners__') {
+      setShowBannerPlanner(current => !current);
+      setShowBrandingPlanner(false);
+      return;
+    }
+
+    navigate(section.route);
+  };
+
   return (
     <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 py-6 pb-24">
-      <p className="text-xs text-muted-foreground mb-6">
+      <p className="sr-only">
         Admin-Zentrale fÃ¼r Daten, Logins und App-Inhalte.
       </p>
+
+      <div className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <div className="relative p-5 sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(194,15,26,0.28),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(47,125,255,0.28),transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_18px)] opacity-80" />
+          <div className="relative">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-red-500">
+              The Yardline Admin
+            </p>
+            <h1 className="mt-2 text-2xl font-black italic leading-none sm:text-3xl">
+              Command Center
+            </h1>
+            <p className="mt-2 max-w-2xl text-xs font-semibold leading-relaxed text-white/58">
+              Alles fuer Konten, Football-Daten, Content, Updates und Support an einem Ort.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <TodaysGamesReminder />
 
@@ -1418,22 +1495,18 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mb-6">
-        {[
-          { label: 'Ligen', value: leagues.length },
-          { label: 'Teams', value: teams.length },
-          { label: 'Spiele', value: games.length },
-          { label: 'Highlights', value: activeHighlights.length },
-        ].map(stat => (
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {dashboardStats.map(stat => (
           <div
             key={stat.label}
-            className="bg-card border border-border/50 rounded-xl p-2.5 text-center"
+            className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/72 p-3 text-center text-white shadow-[0_14px_30px_rgba(0,0,0,0.24)]"
           >
-            <div className="text-base font-bold text-primary">
+            <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${stat.tone}`} />
+            <div className="relative text-xl font-black text-white">
               {stat.value}
             </div>
 
-            <div className="text-[10px] text-muted-foreground mt-0.5">
+            <div className="relative mt-1 text-[10px] font-black uppercase tracking-wide text-white/52">
               {stat.label}
             </div>
           </div>
@@ -1467,59 +1540,65 @@ export default function AdminDashboard() {
         />
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-        {sections.map(section => {
-          const Icon = section.icon;
-
-          return (
-            <button
-              key={section.route}
-              type="button"
-                            onClick={() => {
-                if (section.route === '__app_branding__') {
-                  setShowBrandingPlanner(current => !current);
-                  setShowBannerPlanner(false);
-                  return;
-                }
-
-                if (section.route === '__ad_banners__') {
-                  setShowBannerPlanner(current => !current);
-                  setShowBrandingPlanner(false);
-                  return;
-                }
-
-                navigate(section.route);
-              }}
-              className="flex items-center gap-3 p-3.5 bg-card border border-border/50 rounded-xl hover:border-primary/40 hover:bg-card/80 transition-all text-left active:scale-[0.98] w-full"
-            >
-              <div className={`w-10 h-10 rounded-xl ${section.bg} flex items-center justify-center flex-shrink-0`}>
-                <Icon className={`w-5 h-5 ${section.color}`} />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-semibold leading-tight">
-                    {section.title}
-                  </span>
-
-                  {section.count != null && <StatBadge count={section.count} />}
-
-                  {section.badge && (
-                    <span className="ml-auto bg-orange-500/15 text-orange-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      {section.badge}
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight line-clamp-1">
-                  {section.description}
+      <div className="space-y-5">
+        {sectionGroups.map(group => (
+          <section key={group.title} className="overflow-hidden rounded-[26px] border border-white/10 bg-black/64 p-3 text-white shadow-[0_18px_42px_rgba(0,0,0,0.28)]">
+            <div className="mb-3 flex items-end justify-between gap-3 px-1">
+              <div>
+                <h2 className="text-lg font-black italic leading-tight text-white">
+                  {group.title}
+                </h2>
+                <p className="mt-1 text-[11px] font-semibold text-white/48">
+                  {group.subtitle}
                 </p>
               </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black text-white/60">
+                {group.items.length}
+              </span>
+            </div>
 
-              <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            </button>
-          );
-        })}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {group.items.map(section => {
+                const Icon = section.icon;
+
+                return (
+                  <button
+                    key={section.route}
+                    type="button"
+                    onClick={() => handleSectionClick(section)}
+                    className="group flex min-h-[92px] w-full items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.055] p-3 text-left transition-all hover:border-red-500/45 hover:bg-white/[0.09] active:scale-[0.98]"
+                  >
+                    <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${section.bg} ring-1 ring-white/10`}>
+                      <Icon className={`h-6 w-6 ${section.color}`} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-black leading-tight text-white">
+                          {section.title}
+                        </span>
+
+                        {section.count != null && <StatBadge count={section.count} />}
+
+                        {section.badge && (
+                          <span className="ml-auto rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-black text-red-300">
+                            {section.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-snug text-white/48">
+                        {section.description}
+                      </p>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/35 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );

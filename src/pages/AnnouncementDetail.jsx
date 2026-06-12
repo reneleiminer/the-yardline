@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { isBefore, subDays } from "date-fns";
 import { base44 } from "@/api/base44Client";
 import { ExternalLink, Play, PlaySquare, Search } from "lucide-react";
 import { getImageUrl } from "@/lib/imageUtils";
@@ -45,6 +46,14 @@ function getLeagueLabel(highlight, leaguesById = new Map()) {
 
 function normalizeHighlight(item) {
   const meta = parseHighlightMessage(item.message);
+  const createdAt =
+    meta.created_at ||
+    meta.createdAt ||
+    item.createdAtUtc ||
+    item.created_date ||
+    item.updatedAtUtc ||
+    item.updated_date ||
+    "";
 
   return {
     ...item,
@@ -66,7 +75,13 @@ function normalizeHighlight(item) {
     active: item.isActive !== false && meta.active !== false,
     preview_video_url: meta.preview_video_url || meta.previewVideoUrl || "",
     duration: meta.duration || meta.video_duration || meta.videoDuration || "",
+    createdAt,
   };
+}
+
+function isFreshHighlight(highlight, minDate) {
+  const createdAt = new Date(highlight.createdAt || highlight.date || 0);
+  return Number.isNaN(createdAt.getTime()) || !isBefore(createdAt, minDate);
 }
 
 function openExternalUrl(url) {
@@ -184,8 +199,8 @@ function FilterPill({ active, children, onClick }) {
       onClick={onClick}
       className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${
         active
-          ? "bg-red-700 text-white"
-          : "bg-white border border-black/10 text-black/55 hover:text-black"
+          ? "bg-red-700 text-white shadow-[0_10px_24px_rgba(194,15,26,0.28)]"
+          : "bg-black/72 border border-white/12 text-white/70 hover:text-white"
       }`}
     >
       {children}
@@ -197,15 +212,15 @@ function EmptyState() {
   return (
     <div className="w-full min-h-[calc(100dvh-140px)] px-4 py-8 pb-24 flex items-center justify-center">
       <div className="w-full max-w-sm text-center">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-5">
-          <PlaySquare className="w-8 h-8 text-red-700" />
+        <div className="mx-auto w-16 h-16 rounded-2xl border border-white/12 bg-black/72 flex items-center justify-center mb-5 shadow-[0_18px_36px_rgba(0,0,0,0.3)]">
+          <PlaySquare className="w-8 h-8 text-red-500" />
         </div>
 
-          <h1 className="text-2xl font-black leading-tight text-black">
+          <h1 className="text-2xl font-black leading-tight text-white">
           Noch keine Highlights
         </h1>
 
-        <p className="text-sm text-black/50 mt-2 leading-relaxed">
+        <p className="text-sm text-white/55 mt-2 leading-relaxed">
           Sobald Highlights verfügbar sind, findest du sie hier.
         </p>
       </div>
@@ -216,6 +231,8 @@ function EmptyState() {
 export default function Highlights() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
+  const sevenDaysAgo = useMemo(() => subDays(new Date(), 7), []);
 
   const { data: leagues = [] } = useQuery({
     queryKey: ["highlight-leagues"],
@@ -241,14 +258,26 @@ export default function Highlights() {
     },
   });
 
+  useEffect(() => {
+    const staleHighlights = highlights.filter((highlight) => {
+      const createdAt = new Date(highlight.createdAt || highlight.date || 0);
+      return highlight.id && !Number.isNaN(createdAt.getTime()) && isBefore(createdAt, sevenDaysAgo);
+    });
+
+    if (staleHighlights.length === 0) return;
+
+    Promise.allSettled(staleHighlights.map((highlight) => base44.entities.AppUpdate.delete(highlight.id)))
+      .then(() => queryClient.invalidateQueries({ queryKey: ["game-highlights"] }));
+  }, [highlights, queryClient, sevenDaysAgo]);
+
   const sortedHighlights = useMemo(() => {
-    return [...highlights].sort((a, b) => {
+    return [...highlights].filter(item => isFreshHighlight(item, sevenDaysAgo)).sort((a, b) => {
       const dateA = new Date(a.date || a.createdAtUtc || a.created_date || 0).getTime();
       const dateB = new Date(b.date || b.createdAtUtc || b.created_date || 0).getTime();
 
       return dateB - dateA;
     });
-  }, [highlights]);
+  }, [highlights, sevenDaysAgo]);
 
   const filterOptions = useMemo(() => {
     const labels = sortedHighlights
@@ -297,13 +326,13 @@ export default function Highlights() {
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-5 pb-24">
       <div className="relative mb-4">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-black/45" />
+        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-white/48" />
 
         <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Highlights suchen..."
-          className="w-full h-12 rounded-2xl bg-white border border-black/10 pl-10 pr-3 text-sm font-semibold text-black placeholder:text-black/35 outline-none focus:border-blue-600"
+          className="w-full h-12 rounded-2xl border border-white/12 bg-black/72 pl-10 pr-3 text-sm font-semibold text-white placeholder:text-white/35 outline-none shadow-[0_14px_30px_rgba(0,0,0,0.28)] focus:border-[#2f7dff]"
         />
       </div>
 
@@ -320,8 +349,8 @@ export default function Highlights() {
       </div>
 
       {visibleHighlights.length === 0 ? (
-        <div className="rounded-[24px] bg-white px-4 py-8 text-center">
-          <p className="text-sm font-semibold text-black/45">
+        <div className="rounded-[24px] border border-white/12 bg-black/72 px-4 py-8 text-center shadow-[0_18px_36px_rgba(0,0,0,0.28)]">
+          <p className="text-sm font-black uppercase italic text-white/60">
             Keine passenden Highlights gefunden.
           </p>
         </div>

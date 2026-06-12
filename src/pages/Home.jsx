@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, isBefore, subDays } from "date-fns";
 import { de } from "date-fns/locale";
-import { ChevronRight, Play, Radio } from "lucide-react";
+import { ChevronRight, ExternalLink, Play, Radio } from "lucide-react";
 
 import { base44 } from "@/api/base44Client";
 import { useGlobalData } from "@/lib/GlobalDataContext";
@@ -225,6 +225,14 @@ function EmptyCard({ label }) {
 
 function normalizeHighlight(item) {
   const meta = parseJsonMessage(item.message);
+  const createdAt =
+    meta.created_at ||
+    meta.createdAt ||
+    item.createdAtUtc ||
+    item.created_date ||
+    item.updatedAtUtc ||
+    item.updated_date ||
+    "";
 
   return {
     id: item.id,
@@ -232,36 +240,87 @@ function normalizeHighlight(item) {
     imageUrl: meta.thumbnail_url || meta.thumbnailUrl || item.imageUrl || "",
     url: meta.external_video_url || meta.externalVideoUrl || meta.preview_video_url || meta.previewVideoUrl || meta.url || "",
     gameId: meta.game_id || meta.gameId || "",
+    leagueLabel: meta.league_name || meta.leagueName || meta.league || meta.source_name || meta.sourceName || "Highlight",
+    sourceName: meta.source_name || meta.sourceName || "",
+    duration: meta.duration || meta.video_duration || meta.videoDuration || "",
+    createdAt,
+    active: item.isActive !== false && meta.active !== false,
   };
+}
+
+function isFreshContent(item, minDate) {
+  const createdAt = new Date(item.createdAt || 0);
+  return Number.isNaN(createdAt.getTime()) || !isBefore(createdAt, minDate);
 }
 
 function HighlightCard({ item }) {
   const content = (
-    <div className="overflow-hidden rounded-[28px] bg-white text-black shadow-[0_12px_30px_rgba(15,23,42,0.10)]">
-      <div className="aspect-[16/9] bg-slate-200">
-        {item.imageUrl ? (
-          <img src={getImageUrl(item.imageUrl)} alt="" className="h-full w-full object-cover" loading="lazy" />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <Play className="h-7 w-7 text-red-700" />
-          </div>
+    <div className="group relative aspect-video overflow-hidden rounded-[24px] border border-white/10 bg-black text-white shadow-[0_18px_36px_rgba(0,0,0,0.34)]">
+      {item.imageUrl ? (
+        <img
+          src={getImageUrl(item.imageUrl)}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,91,255,0.35),transparent_35%),linear-gradient(135deg,#000,#07111f)]" />
+      )}
+
+      <div className="absolute inset-0 bg-gradient-to-t from-black/84 via-black/12 to-black/10" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black via-black/78 to-transparent" />
+
+      <div className="absolute left-3 top-3 right-16 flex items-center gap-2">
+        <span className="max-w-full truncate rounded-full bg-red-700 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
+          {item.leagueLabel}
+        </span>
+        {item.sourceName && item.sourceName !== item.leagueLabel && (
+          <span className="hidden rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-[10px] font-bold text-white/80 backdrop-blur sm:inline-flex">
+            {item.sourceName}
+          </span>
         )}
       </div>
-      <div className="p-4">
-        <p className="line-clamp-2 text-lg font-black leading-tight">{item.title}</p>
+
+      {item.url ? (
+        <div className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 shadow-[0_0_24px_rgba(0,91,255,0.28)] backdrop-blur transition-transform duration-300 group-hover:scale-105">
+          <Play className="ml-0.5 h-5 w-5 fill-white text-white" />
+        </div>
+      ) : null}
+
+      <div className="absolute bottom-3 left-3 right-3">
+        <p className="line-clamp-2 text-base font-black leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
+          {item.title}
+        </p>
+        <div className="mt-2 flex items-center justify-between gap-3">
+          <span className="text-[10px] font-black uppercase tracking-wider text-red-500">
+            Zum Highlight
+          </span>
+          <div className="flex items-center gap-2">
+            {item.duration ? (
+              <span className="rounded-lg bg-black/55 px-2 py-1 text-[10px] font-black text-white/90 backdrop-blur">
+                {item.duration}
+              </span>
+            ) : null}
+            {item.url ? (
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white">
+                <ExternalLink className="h-3.5 w-3.5 text-red-700" />
+              </span>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );
 
   if (item.url) {
     return (
-      <a href={item.url} target="_blank" rel="noopener noreferrer" className="block min-w-[82vw] max-w-[82vw]">
+      <a href={item.url} target="_blank" rel="noopener noreferrer" className="block min-w-[82vw] max-w-[82vw] sm:min-w-[520px] sm:max-w-[520px]">
         {content}
       </a>
     );
   }
 
-  return <div className="min-w-[82vw] max-w-[82vw]">{content}</div>;
+  return <div className="min-w-[82vw] max-w-[82vw] sm:min-w-[520px] sm:max-w-[520px]">{content}</div>;
 }
 
 function NewsCard({ post }) {
@@ -483,8 +542,9 @@ export default function Home() {
     return appUpdates
       .filter((item) => item.version === HIGHLIGHT_VERSION && item.isActive !== false)
       .map(normalizeHighlight)
+      .filter((item) => item.active && isFreshContent(item, sevenDaysAgo))
       .slice(0, 4);
-  }, [appUpdates]);
+  }, [appUpdates, sevenDaysAgo]);
 
   const podcast = useMemo(() => {
     return appUpdates
@@ -510,11 +570,7 @@ export default function Home() {
       .filter((item) => item.version === GAMEDAY_SHOT_VERSION && item.isActive !== false)
       .map(normalizeShot)
       .filter((shot) => shot.active && shot.imageUrl)
-      .filter((shot) => {
-        const createdAt = new Date(shot.createdAt || 0);
-
-        return Number.isNaN(createdAt.getTime()) || !isBefore(createdAt, sevenDaysAgo);
-      })
+      .filter((shot) => isFreshContent(shot, sevenDaysAgo))
       .sort((a, b) => {
         if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
         return String(b.updatedAt || "").localeCompare(String(a.updatedAt || ""));
@@ -525,15 +581,20 @@ export default function Home() {
   useEffect(() => {
     const staleShots = appUpdates
       .filter((item) => item.version === GAMEDAY_SHOT_VERSION)
-      .map(normalizeShot)
-      .filter((shot) => {
-        const createdAt = new Date(shot.createdAt || 0);
-        return shot.id && !Number.isNaN(createdAt.getTime()) && isBefore(createdAt, sevenDaysAgo);
-      });
+      .map(normalizeShot);
 
-    if (staleShots.length === 0) return;
+    const staleHighlights = appUpdates
+      .filter((item) => item.version === HIGHLIGHT_VERSION)
+      .map(normalizeHighlight);
 
-    Promise.allSettled(staleShots.map((shot) => base44.entities.AppUpdate.delete(shot.id)))
+    const staleItems = [...staleShots, ...staleHighlights].filter((item) => {
+      const createdAt = new Date(item.createdAt || 0);
+      return item.id && !Number.isNaN(createdAt.getTime()) && isBefore(createdAt, sevenDaysAgo);
+    });
+
+    if (staleItems.length === 0) return;
+
+    Promise.allSettled(staleItems.map((item) => base44.entities.AppUpdate.delete(item.id)))
       .then(() => queryClient.invalidateQueries({ queryKey: ["home-overview-updates"] }));
   }, [appUpdates, queryClient, sevenDaysAgo]);
 
