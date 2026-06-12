@@ -1196,6 +1196,7 @@ export default function AdminDashboard() {
   const activeHighlights = highlights.filter(item => item.isActive !== false);
   const activeBanners = adBanners.filter(item => getDateStatus(item) === 'Aktiv');
   const analyticsStats = buildAnalyticsStats(analyticsEvents);
+  const onboardingLeagueCount = leagues.filter(league => league.showInOnboarding).length;
 
   const pendingCommunitySubmissions = communityClipItems.filter(item =>
     item.version === COMMUNITY_CLIP_SUBMISSION_VERSION
@@ -1242,14 +1243,24 @@ export default function AdminDashboard() {
       color: 'text-cyan-400',
       bg: 'bg-cyan-400/10',
     },
-        {
+    {
       icon: Trophy,
       title: 'Ligen',
-      description: 'Ligen, Logos, Farben und Gruppen verwalten',
+      description: 'Ligen, Logos, Farben, Gruppen und Intro-Ligen verwalten',
       route: '/admin/leagues',
       count: leagues.length,
       color: 'text-yellow-400',
       bg: 'bg-yellow-400/10',
+    },
+    {
+      icon: Image,
+      title: 'Einleitung',
+      description: '4 Liga-Slots und Intro-Bilder fuer neue Nutzer pflegen',
+      route: '/admin/leagues?intro=1',
+      count: onboardingLeagueCount,
+      badge: `${Math.min(onboardingLeagueCount, 4)}/4`,
+      color: 'text-red-400',
+      bg: 'bg-red-400/10',
     },
     {
       icon: Building2,
@@ -1386,6 +1397,7 @@ export default function AdminDashboard() {
       items: sections.filter(section => [
         '/admin/highlights',
         '/admin/gameday-shots',
+        '/admin/leagues?intro=1',
         '__ad_banners__',
         '/admin/partners',
       ].includes(section.route)),

@@ -357,22 +357,38 @@ function PodcastCard({ podcast }) {
   if (!podcast?.spotifyUrl) return null;
 
   return (
-    <a href={podcast.spotifyUrl} target="_blank" rel="noopener noreferrer" className="grid grid-cols-[82px_1fr] gap-3 rounded-[22px] bg-white p-3 text-black">
-      <div className="h-[82px] w-[82px] overflow-hidden rounded-2xl bg-slate-200">
+    <a href={podcast.spotifyUrl} target="_blank" rel="noopener noreferrer" className="group relative grid min-h-[132px] grid-cols-[96px_1fr] gap-3 overflow-hidden rounded-[26px] border border-white/10 bg-black/78 p-3 text-white shadow-[0_18px_38px_rgba(0,0,0,0.34)] backdrop-blur">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(194,15,26,0.26),transparent_34%),radial-gradient(circle_at_88%_0%,rgba(47,125,255,0.24),transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_18px)] opacity-70" />
+
+      <div className="relative h-24 w-24 overflow-hidden rounded-[22px] border border-white/12 bg-white/8">
         {podcast.thumbnailUrl ? (
           <img src={getImageUrl(podcast.thumbnailUrl)} alt="" className="h-full w-full object-cover" loading="lazy" />
         ) : (
           <div className="flex h-full items-center justify-center">
-            <Radio className="h-7 w-7 text-red-700" />
+            <Radio className="h-8 w-8 text-red-500" />
           </div>
         )}
       </div>
-      <div className="min-w-0 self-center">
-        <p className="text-[10px] font-black uppercase text-red-700">{podcast.partnerName}</p>
-        <h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight">
+      <div className="relative min-w-0 self-center">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="rounded-full bg-red-700 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-white">
+            Podcast
+          </span>
+          <span className="truncate text-[10px] font-black uppercase tracking-wide text-[#2f7dff]">
+            {podcast.partnerName}
+          </span>
+        </div>
+        <h3 className="line-clamp-2 text-base font-black leading-tight text-white">
           {podcast.episodeTitle || podcast.podcastTitle}
         </h3>
-        <p className="mt-2 text-xs font-bold text-black/50">Spotify öffnen</p>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="truncate text-xs font-bold text-white/52">
+            {podcast.podcastTitle}
+          </p>
+          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white text-red-700 transition-transform group-hover:scale-105">
+            <Radio className="h-4 w-4" />
+          </span>
+        </div>
       </div>
     </a>
   );
@@ -671,3 +687,4 @@ export default function Home() {
     </div>
   );
 }
+

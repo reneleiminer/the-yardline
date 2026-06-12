@@ -30,6 +30,9 @@ const EMPTY = {
   isEuropeanLeague: false,
   groupsEnabled: false,
   groups: [],
+  showInOnboarding: false,
+  onboardingOrder: 0,
+  onboardingImage: '',
 };
 
 async function uploadToCloudinary(file) {
@@ -241,6 +244,7 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
   const [form, setForm] = useState({ ...EMPTY, ...initial });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [uploadingOnboarding, setUploadingOnboarding] = useState(false);
 
   const set = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
@@ -284,6 +288,25 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
     }
   };
 
+  const handleOnboardingUpload = async event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingOnboarding(true);
+
+    try {
+      const url = await uploadToCloudinary(file);
+      set('onboardingImage', url);
+      toast.success('Einleitungsbild hochgeladen');
+    } catch (error) {
+      console.error('LEAGUE ONBOARDING UPLOAD ERROR:', error);
+      toast.error(error.message || 'Einleitungsbild Upload fehlgeschlagen');
+    } finally {
+      setUploadingOnboarding(false);
+      event.target.value = '';
+    }
+  };
+
   const handleSave = () => {
     if (!form.name.trim()) {
       toast.error('Bitte Liga-Namen eingeben');
@@ -306,6 +329,9 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
       groupsEnabled: !!form.groupsEnabled,
       groups: form.groups || [],
       isEuropeanLeague: !!form.isEuropeanLeague,
+      showInOnboarding: !!form.showInOnboarding,
+      onboardingOrder: Number(form.onboardingOrder ?? 0),
+      onboardingImage: form.onboardingImage || '',
     });
   };
 
@@ -567,12 +593,85 @@ function LeagueForm({ initial = EMPTY, onSave, onCancel, isSaving }) {
         )}
       </Section>
 
+      <Section title="E) Einleitung / App-Start">
+        <div className="rounded-2xl border border-white/10 bg-black/70 p-3 text-white">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-black">In Einleitung anzeigen</p>
+              <p className="mt-0.5 text-[10px] font-semibold text-white/50">
+                Maximal 4 Ligen erscheinen auf der Intro-Seite.
+              </p>
+            </div>
+
+            <Switch
+              checked={!!form.showInOnboarding}
+              onCheckedChange={value => set('showInOnboarding', value)}
+            />
+          </div>
+
+          <div className="mt-3 grid grid-cols-[88px_1fr] gap-3">
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-white/48">
+                Reihenfolge
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="4"
+                value={form.onboardingOrder || ''}
+                onChange={event => set('onboardingOrder', Number(event.target.value))}
+                placeholder="1-4"
+                className="h-10"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-[10px] font-bold uppercase text-white/48">
+                Einleitungsbild
+              </label>
+              <div className="flex items-center gap-2">
+                {form.onboardingImage ? (
+                  <div className="relative h-10 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-white/8">
+                    <img src={form.onboardingImage} alt="" className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => set('onboardingImage', '')}
+                      className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive"
+                    >
+                      <X className="h-2.5 w-2.5 text-white" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex h-10 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-white/8 text-[9px] font-bold text-white/45">
+                    Bild
+                  </div>
+                )}
+
+                <label className="cursor-pointer">
+                  <span className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-xs font-black text-white">
+                    {uploadingOnboarding && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {uploadingOnboarding ? 'Laedt...' : form.onboardingImage ? 'Aendern' : 'Bild waehlen'}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.webp,image/*"
+                    className="hidden"
+                    onChange={handleOnboardingUpload}
+                    disabled={uploadingOnboarding || isSaving}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
       <div className="flex gap-2 pt-2">
         <Button
           size="sm"
           className="flex-1"
           onClick={handleSave}
-          disabled={isSaving || uploadingLogo || uploadingBanner || !form.name}
+          disabled={isSaving || uploadingLogo || uploadingBanner || uploadingOnboarding || !form.name}
         >
           {isSaving ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -705,6 +804,9 @@ export default function AdminLeagues() {
                       logo: league.logo || '',
                       banner: league.banner || '',
                       groups: league.groups || [],
+                      showInOnboarding: !!league.showInOnboarding,
+                      onboardingOrder: league.onboardingOrder || 0,
+                      onboardingImage: league.onboardingImage || '',
                     }}
                     onSave={data => updateMutation.mutate({ id: league.id, data })}
                     onCancel={() => setEditingId(null)}

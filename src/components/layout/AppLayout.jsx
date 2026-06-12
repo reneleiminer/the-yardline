@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, KeyRound, LogIn, Mail, ShieldCheck, UserPlus } from "lucide-react";
 import Header from "./Header";
@@ -7,9 +8,11 @@ import BottomNav from "./BottomNav";
 import Footer from "./Footer";
 import PushPermissionPrompt from "@/components/notifications/PushPermissionPrompt";
 import { trackPageView } from "@/lib/analyticsTracking";
+import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getImageUrl } from "@/lib/imageUtils";
 
 const MAIN_TABS = [
   { path: "/", label: "Home" },
@@ -379,47 +382,97 @@ function AuthScreen() {
 
 const ONBOARDING_SLIDES = [
   {
+    kind: "leagues",
     eyebrow: "The Yardline",
-    title: "American Football",
-    accent: "Football",
-    text: "Alle News, Ligen, Teams und Stories an einem Ort.",
-    image: "/yardline-launch.png",
+    title: "Leagues Hub",
+    accent: "Hub",
+    text: "Deine wichtigsten Ligen an einem Ort, direkt bereit fuer Spiele, Tabellen und Teams.",
+    image: "/onboarding/intro-player-run.jpg",
   },
   {
     eyebrow: "Match Center",
     title: "Live Games",
     accent: "Games",
     text: "Spiele, Ergebnisse, Game of the Week und Detailseiten direkt in der App.",
-    image: "/yardline-launch.png",
+    image: "/onboarding/intro-kickoff-night.jpg",
   },
   {
     eyebrow: "Tables",
     title: "Teams & Ligen",
     accent: "Ligen",
     text: "Tabellen nach Gruppen, Teams nach Liga und Wettbewerbe klar sortiert.",
-    image: "/yardline-launch.png",
+    image: "/onboarding/intro-helmet-day.jpg",
   },
   {
     eyebrow: "Media",
     title: "Highlights",
     accent: "Highlights",
     text: "Game Highlights, Podcast, GameDay Shots und News ohne Umwege.",
-    image: "/yardline-launch.png",
+    image: "/onboarding/intro-touchdown.jpg",
   },
   {
     eyebrow: "Community",
     title: "Stay Updated",
     accent: "Updated",
     text: "Pushs, Support und App-Updates halten dich nah am Football.",
-    image: "/yardline-launch.png",
+    image: "/onboarding/intro-field-night.jpg",
   },
 ];
+
+function resolveOnboardingImage(url, fallback = "/onboarding/intro-player-run.jpg") {
+  const value = String(url || "").trim();
+  if (!value) return fallback;
+  if (value.startsWith("/")) return value;
+  return getImageUrl(value, fallback);
+}
+
+function getIntroLeagues(leagues = []) {
+  const selected = leagues
+    .filter(league => league.showInOnboarding)
+    .sort((a, b) => {
+      const orderA = Number(a.onboardingOrder || 99);
+      const orderB = Number(b.onboardingOrder || 99);
+      if (orderA !== orderB) return orderA - orderB;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+
+  const fallback = [...leagues]
+    .sort((a, b) => {
+      const levelA = Number(a.level ?? 99);
+      const levelB = Number(b.level ?? 99);
+      if (levelA !== levelB) return levelA - levelB;
+      return String(a.name || "").localeCompare(String(b.name || ""));
+    });
+
+  return (selected.length > 0 ? selected : fallback).slice(0, 4);
+}
 
 function OnboardingScreen() {
   const { completeOnboarding, isLoadingAuth } = useAuth();
   const [index, setIndex] = useState(0);
-  const slide = ONBOARDING_SLIDES[index];
-  const lastSlide = index === ONBOARDING_SLIDES.length - 1;
+  const { data: leagues = [] } = useQuery({
+    queryKey: ["onboarding-leagues"],
+    queryFn: () => base44.entities.League.list(),
+    staleTime: 1000 * 60 * 10,
+    retry: 1,
+  });
+  const introLeagues = useMemo(() => getIntroLeagues(leagues), [leagues]);
+  const slides = useMemo(() => {
+    const leagueImage =
+      introLeagues.find(league => league.onboardingImage)?.onboardingImage ||
+      ONBOARDING_SLIDES[0].image;
+
+    return ONBOARDING_SLIDES.map((item, itemIndex) => {
+      if (itemIndex !== 0) return item;
+      return {
+        ...item,
+        image: leagueImage,
+        leagues: introLeagues,
+      };
+    });
+  }, [introLeagues]);
+  const slide = slides[index];
+  const lastSlide = index === slides.length - 1;
 
   const next = async () => {
     if (!lastSlide) {
@@ -434,7 +487,7 @@ function OnboardingScreen() {
     <div className="min-h-dvh bg-black text-white">
       <div className="relative min-h-dvh overflow-hidden">
         <img
-          src={slide.image}
+          src={resolveOnboardingImage(slide.image)}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
         />
@@ -450,7 +503,7 @@ function OnboardingScreen() {
               className="h-12 w-auto object-contain drop-shadow-[0_6px_18px_rgba(0,0,0,0.55)]"
             />
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur">
-              {index + 1}/{ONBOARDING_SLIDES.length}
+              {index + 1}/{slides.length}
             </span>
           </div>
 
@@ -473,12 +526,45 @@ function OnboardingScreen() {
                 <p className="mt-4 max-w-[330px] text-sm font-semibold leading-relaxed text-white/78">
                   {slide.text}
                 </p>
+
+                {slide.kind === "leagues" && slide.leagues?.length > 0 && (
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    {slide.leagues.map(league => (
+                      <div
+                        key={league.id}
+                        className="flex items-center gap-2 rounded-2xl border border-white/12 bg-black/52 p-2.5 backdrop-blur"
+                      >
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white">
+                          {league.logo ? (
+                            <img
+                              src={getImageUrl(league.logo)}
+                              alt=""
+                              className="h-8 w-8 object-contain"
+                            />
+                          ) : (
+                            <span className="text-xs font-black text-black">
+                              {(league.shortName || league.name || "L").slice(0, 2)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-black text-white">
+                            {league.shortName || league.name}
+                          </p>
+                          <p className="truncate text-[9px] font-bold uppercase text-white/48">
+                            {league.country || league.season || "League"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
 
             <div className="mt-7 flex items-center justify-between">
           <div className="flex gap-2">
-            {ONBOARDING_SLIDES.map((item, dotIndex) => (
+            {slides.map((item, dotIndex) => (
               <span
                 key={item.title}
                 className={`h-2 rounded-full transition-all ${

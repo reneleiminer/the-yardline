@@ -136,17 +136,24 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="relative mx-auto mt-8 h-12 max-w-4xl overflow-hidden rounded-sm border-y-2 border-white/70">
-          <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-white/80" />
+        <div className="relative mx-auto mt-8 h-14 max-w-5xl overflow-hidden rounded-[10px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent)]">
+          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/42" />
           <div className="absolute inset-0 grid grid-cols-10">
-            {Array.from({ length: 10 }).map((_, index) => (
+            {Array.from({ length: 11 }).map((_, index) => (
               <span
                 key={index}
-                className="border-l border-white/30 first:border-l-0"
-              />
+                className={`relative border-l ${
+                  index === 5 ? 'border-white/90' : 'border-white/30'
+                } first:border-l-0`}
+              >
+                <span className="absolute left-0 top-[10px] h-2 w-px bg-white/45" />
+                <span className="absolute bottom-[10px] left-0 h-2 w-px bg-white/45" />
+              </span>
             ))}
           </div>
-          <div className="absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-white/35" />
+          <div className="absolute left-1/2 top-0 h-full w-0.5 -translate-x-1/2 bg-white/78" />
+          <div className="absolute inset-x-6 top-[11px] h-px bg-white/38" />
+          <div className="absolute inset-x-6 bottom-[11px] h-px bg-white/38" />
         </div>
       </div>
     </footer>
