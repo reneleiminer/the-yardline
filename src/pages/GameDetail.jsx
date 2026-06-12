@@ -188,7 +188,7 @@ function hasFinalScore(game) {
 }
 
 function isFinalGame(game) {
-  return game?.status === 'final' || hasFinalScore(game);
+  return String(game?.status || '').toLowerCase() === 'final';
 }
 
 function buildPredictionStats(predictions, homeTeamId, awayTeamId) {
@@ -456,9 +456,10 @@ function CancelledGameNotice({ game }) {
 }
 
 function PlaceholderScoreHero({ game, home, away, league }) {
-  const isLive = game.status === 'live';
-  const isFinal = game.status === 'final';
-  const isCancelled = game.status === 'cancelled';
+  const status = String(game.status || 'scheduled').toLowerCase();
+  const isLive = status === 'live';
+  const isFinal = status === 'final';
+  const isCancelled = status === 'cancelled';
   const hasScore = isLive || isFinal;
 
   const leagueName = league?.name
