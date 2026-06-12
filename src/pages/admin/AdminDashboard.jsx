@@ -1,1693 +1,1627 @@
-import React, { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useSetHeader from '@/hooks/useSetHeader';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
+import ImageUploadField from '@/components/common/ImageUploadField';
 import {
+  Activity,
   BarChart3,
-  Calendar,
-  CheckCircle2,
-  Clock,
-  Database,
+  Building2,
+  Camera,
+  ChevronRight,
+  Eye,
   FileText,
-  KeyRound,
+  Handshake,
+  HeadphonesIcon,
+  Image,
+  ListOrdered,
   Loader2,
-  MapPin,
-  Newspaper,
-  Plus,
+  Menu,
+  MousePointer,
+  Pencil,
+  PlaySquare,
   Radio,
-  Save,
   Star,
   Swords,
+  Trash2,
+  TrendingUp,
   Trophy,
-  User,
-  X,
+  UserCog,
+  Users,
+  Zap,
 } from 'lucide-react';
-import { useGlobalData } from '@/lib/GlobalDataContext';
-import { useAuth } from '@/lib/AuthContext';
 import { toast } from 'sonner';
 
-const EMPTY_GAME = {
-  leagueId: '',
-  homeTeamId: '',
-  awayTeamId: '',
-  homeTeamPlaceholder: '',
-  awayTeamPlaceholder: '',
-  date: '',
-  time: '',
-  venue: '',
-  city: '',
-  status: 'scheduled',
-  scoreHome: 0,
-  scoreAway: 0,
-  streamUrl: '',
-  streamEnabled: false,
-  streamStatus: 'approved',
-  streamLinks: [],
-  predictionEnabled: true,
-  roundName: '',
-  notes: '',
+import TodaysGamesReminder from '@/components/admin/TodaysGamesReminder';
+import { getImageUrl } from '@/lib/imageUtils';
+
+
+const AD_BANNER_VERSION = 'ad_banner';
+const COMMUNITY_CLIP_VERSION = 'community_clip';
+const COMMUNITY_CLIP_SUBMISSION_VERSION = 'community_clip_submission';
+const GAMEDAY_SHOT_VERSION = 'gameday_photo';
+const ANALYTICS_VERSION = 'analytics_event';
+const APP_BRANDING_VERSION = 'app_branding';
+
+const StatBadge = ({ count }) => {
+  if (count == null) return null;
+
+  return (
+    <span className="ml-auto bg-primary/15 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
+      {count}
+    </span>
+  );
 };
 
-const STATUS_LABELS = {
-  scheduled: 'Geplant',
-  live: 'Live',
-  final: 'Final',
-  cancelled: 'Abgesagt',
-};
+function toInputDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
 
-function normalizeRole(value) {
-  return String(value || '').trim().toLowerCase();
+  return `${year}-${month}-${day}`;
 }
 
-function getStatusLabel(status) {
-  return STATUS_LABELS[status] || status || 'Geplant';
+
+function parseMessage(message) {
+  if (!message) return {};
+
+  try {
+    const parsed = JSON.parse(message);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
-function formatDate(date) {
-  if (!date) return 'ohne Datum';
+function getEventDate(item) {
+  const meta = parseMessage(item.message);
+  const value =
+    meta.created_at ||
+    item.createdAtUtc ||
+    item.created_date ||
+    item.updatedAtUtc ||
+    '';
 
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return date;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
 
-  return parsed.toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+function getVisitorIdFromEvent(item) {
+  const meta = parseMessage(item.message);
+  return meta.visitor_id || meta.user_id || meta.userId || '';
+}
+
+function getSessionIdFromEvent(item) {
+  const meta = parseMessage(item.message);
+  return meta.session_id || meta.sessionId || '';
+}
+
+function getEventPath(item) {
+  const meta = parseMessage(item.message);
+  return meta.full_path || meta.path || '/';
+}
+
+function getEventRouteGroup(item) {
+  const meta = parseMessage(item.message);
+  return meta.route_group || 'other';
+}
+
+function getEventDevice(item) {
+  const meta = parseMessage(item.message);
+  return meta.device_type || 'unknown';
+}
+
+function getEventReferrer(item) {
+  const meta = parseMessage(item.message);
+  return meta.referrer_host || 'direct';
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat('de-DE').format(Number(value || 0));
+}
+
+function formatDecimal(value) {
+  return new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+function getDateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getLastDays(days) {
+  return Array.from({ length: days }).map((_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - (days - 1 - index));
+    return getDateKey(date);
   });
 }
 
-function formatWeekRange(start, end) {
-  return `${formatDate(start.toISOString().slice(0, 10))} - ${formatDate(end.toISOString().slice(0, 10))}`;
+function compactPathLabel(path) {
+  if (path === '/') return 'Home';
+  if (path.startsWith('/game/')) return 'Game Detail';
+  if (path.startsWith('/team/')) return 'Team Detail';
+  if (path.startsWith('/club/')) return 'Club Detail';
+  if (path.startsWith('/league/')) return 'Liga Detail';
+  if (path.startsWith('/wettbewerbe/')) return 'Wettbewerb Detail';
+
+  return path
+    .replace('/spiele', 'Spiele')
+    .replace('/tabellen', 'Tabellen')
+    .replace('/wettbewerbe', 'Wettbewerbe')
+    .replace('/highlights', 'Highlights')
+    .replace('/feed', 'Feed')
+    .replace('/post/', 'Post ');
 }
 
-function getGameDate(game) {
-  if (!game?.date) return null;
-
-  const [year, month, day] = String(game.date).split('-').map(Number);
-  const [hour, minute] = String(game.time || game.kickoffTime || '00:00').split(':').map(Number);
-
-  if (!year || !month || !day) return null;
-
-  return new Date(
-    year,
-    month - 1,
-    day,
-    Number.isFinite(hour) ? hour : 0,
-    Number.isFinite(minute) ? minute : 0,
-    0,
-    0
-  );
+function pushCount(map, key) {
+  const normalizedKey = key || 'unknown';
+  map.set(normalizedKey, (map.get(normalizedKey) || 0) + 1);
 }
 
-function getUpcomingWeekendWindow() {
+function topEntries(map, limit = 5) {
+  return Array.from(map.entries())
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, limit);
+}
+
+function buildAnalyticsStats(events = []) {
   const now = new Date();
-  const start = new Date(now);
-  const day = start.getDay();
-  const daysUntilSaturday = (6 - day + 7) % 7;
 
-  start.setDate(start.getDate() + daysUntilSaturday);
-  start.setHours(0, 0, 0, 0);
+  const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const since30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const end = new Date(start);
-  end.setDate(start.getDate() + 1);
-  end.setHours(0, 0, 0, 0);
-
-  return { start, end };
-}
-
-function getNextSevenDaysWindow() {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(start.getDate() + 7);
-  end.setHours(23, 59, 59, 999);
-
-  return { start, end };
-}
-
-function isGameInWindow(game, window) {
-  const date = getGameDate(game);
-  if (!date) return false;
-
-  return date >= window.start && date < window.end;
-}
-
-function isAllowedMediaLeague(league) {
-  if (!league) return false;
-
-  const values = [
-    league.name,
-    league.shortName,
-    league.slug,
-    league.code,
-    league.abbreviation,
-  ]
-    .filter(Boolean)
-    .map(value => String(value).trim().toLowerCase());
-
-  return values.some(value =>
-    value === 'efa' ||
-    value === 'afle' ||
-    value.includes('european football alliance') ||
-    value.includes('american football league europe')
-  );
-}
-
-function getTeamName(team, fallback) {
-  return team?.shortName || team?.name || fallback || 'Teilnehmer offen';
-}
-
-function isTodayGame(game) {
-  if (!game.date) return false;
-
-  const today = new Date();
-  const date = new Date(game.date);
-
-  return (
-    today.getFullYear() === date.getFullYear() &&
-    today.getMonth() === date.getMonth() &&
-    today.getDate() === date.getDate()
-  );
-}
-
-function buildKickoffAt(date, time) {
-  if (!date || !time) return '';
-
-  const [year, month, day] = date.split('-').map(Number);
-  const [hours, minutes] = time.split(':').map(Number);
-
-  if (!year || !month || !day) return '';
-
-  return new Date(
-    year,
-    month - 1,
-    day,
-    hours || 0,
-    minutes || 0,
-    0,
-    0
-  ).toISOString();
-}
-
-function buildStreamLinks(form) {
-  if (!form.streamUrl?.trim()) return [];
-
-  return [
-    {
-      id: `stream_${Date.now()}`,
-      label: 'Stream',
-      url: form.streamUrl.trim(),
-      providerId: '',
-      providerName: '',
-      providerLogo: '',
-      platform: '',
-      status: form.streamStatus || 'approved',
-      enabled: form.streamEnabled !== false,
-      submittedByRole: 'data_editor',
-      createdAtUtc: new Date().toISOString(),
-      updatedAtUtc: new Date().toISOString(),
-    },
-  ];
-}
-
-function StatTile({ icon: Icon, label, value, tone = 'text-primary', bg = 'bg-primary/10' }) {
-  return (
-    <Card className="p-3">
-      <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-2`}>
-        <Icon className={`w-4 h-4 ${tone}`} />
-      </div>
-
-      <div className="text-xl font-black">
-        {value}
-      </div>
-
-      <div className="text-[10px] text-muted-foreground font-semibold">
-        {label}
-      </div>
-    </Card>
-  );
-}
-
-function DataAreaCard({ icon: Icon, title, description, badge }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Icon className="w-5 h-5 text-primary" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-bold truncate">
-              {title}
-            </h2>
-
-            {badge && (
-              <Badge className="text-[10px] bg-secondary text-muted-foreground border-0">
-                {badge}
-              </Badge>
-            )}
-          </div>
-
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            {description}
-          </p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function GameForm({ form, teams, leagues, onChange, onSave, onCancel, saving, title }) {
-  const leagueTeams = form.leagueId
-    ? teams.filter(team => team.leagueId === form.leagueId)
-    : teams;
-
-  const set = (key, value) => {
-    onChange(current => ({
-      ...current,
-      [key]: value,
-    }));
+  const windows = {
+    day: { visitors: new Set(), sessions: new Set(), views: 0 },
+    week: { visitors: new Set(), sessions: new Set(), views: 0 },
+    month: { visitors: new Set(), sessions: new Set(), views: 0 },
   };
 
-  const handleLeagueChange = value => {
-    onChange(current => ({
-      ...current,
-      leagueId: value,
-      homeTeamId: '',
-      awayTeamId: '',
-    }));
+  const seenEventKeys = new Set();
+  const topPages = new Map();
+  const routeGroups = new Map();
+  const devices = new Map();
+  const referrers = new Map();
+  const dailyViews = new Map(getLastDays(14).map(day => [day, 0]));
+  const dailyVisitors = new Map(getLastDays(14).map(day => [day, new Set()]));
+
+  events.forEach(event => {
+    const date = getEventDate(event);
+    if (!date) return;
+
+    const visitorId = getVisitorIdFromEvent(event);
+    const sessionId = getSessionIdFromEvent(event) || `${visitorId}_${getDateKey(date)}`;
+    const path = getEventPath(event);
+    const eventKey = [
+      visitorId || 'anonymous',
+      sessionId || 'session',
+      path,
+      Math.floor(date.getTime() / (30 * 60 * 1000)),
+    ].join('|');
+
+    if (seenEventKeys.has(eventKey)) return;
+    seenEventKeys.add(eventKey);
+
+    const applyWindow = windowStats => {
+      windowStats.views += 1;
+      if (visitorId) windowStats.visitors.add(visitorId);
+      if (sessionId) windowStats.sessions.add(sessionId);
+    };
+
+    if (date >= since24h) applyWindow(windows.day);
+
+    if (date >= since7d) {
+      applyWindow(windows.week);
+      pushCount(topPages, compactPathLabel(path));
+      pushCount(routeGroups, getEventRouteGroup(event));
+      pushCount(devices, getEventDevice(event));
+      pushCount(referrers, getEventReferrer(event));
+    }
+
+    if (date >= since30d) applyWindow(windows.month);
+
+    const dayKey = getDateKey(date);
+    if (dailyViews.has(dayKey)) {
+      dailyViews.set(dayKey, dailyViews.get(dayKey) + 1);
+      if (visitorId) dailyVisitors.get(dayKey).add(visitorId);
+    }
+  });
+
+  const weekSessions = windows.week.sessions.size;
+  const weekVisitors = windows.week.visitors.size;
+  const weekViews = windows.week.views;
+
+  return {
+    active24h: windows.day.visitors.size,
+    active7d: weekVisitors,
+    active30d: windows.month.visitors.size,
+    sessions24h: windows.day.sessions.size,
+    sessions7d: weekSessions,
+    sessions30d: windows.month.sessions.size,
+    views24h: windows.day.views,
+    views7d: weekViews,
+    views30d: windows.month.views,
+    pagesPerSession7d: weekSessions > 0 ? weekViews / weekSessions : 0,
+    viewsPerVisitor7d: weekVisitors > 0 ? weekViews / weekVisitors : 0,
+    topPages: topEntries(topPages, 6),
+    routeGroups: topEntries(routeGroups, 5),
+    devices: topEntries(devices, 4),
+    referrers: topEntries(referrers, 4),
+    daily: Array.from(dailyViews.entries()).map(([date, views]) => ({
+      date,
+      views,
+      visitors: dailyVisitors.get(date)?.size || 0,
+    })),
   };
-
-  return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <h2 className="text-sm font-bold">
-            {title}
-          </h2>
-
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Spielplan, Ergebnis, Streamdaten und Tippspiel pflegen
-          </p>
-        </div>
-
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        )}
-      </div>
-
-      <div className="space-y-3">
-        <select
-          value={form.leagueId}
-          onChange={event => handleLeagueChange(event.target.value)}
-          className="w-full h-10 rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
-        >
-          <option value="">Liga wählen</option>
-          {leagues.map(league => (
-            <option key={league.id} value={league.id}>
-              {league.shortName || league.name}
-            </option>
-          ))}
-        </select>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <select
-            value={form.homeTeamId}
-            onChange={event => set('homeTeamId', event.target.value)}
-            className="w-full h-10 rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
-          >
-            <option value="">Heimteam wählen</option>
-            {leagueTeams.map(team => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={form.awayTeamId}
-            onChange={event => set('awayTeamId', event.target.value)}
-            className="w-full h-10 rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
-          >
-            <option value="">Gastteam wählen</option>
-            {leagueTeams.map(team => (
-              <option key={team.id} value={team.id}>
-                {team.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input
-            placeholder="Heimteam-Name optional"
-            value={form.homeTeamPlaceholder}
-            onChange={event => set('homeTeamPlaceholder', event.target.value)}
-          />
-
-          <Input
-            placeholder="Gastteam-Name optional"
-            value={form.awayTeamPlaceholder}
-            onChange={event => set('awayTeamPlaceholder', event.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="date"
-            value={form.date}
-            onChange={event => set('date', event.target.value)}
-          />
-
-          <Input
-            type="time"
-            value={form.time}
-            onChange={event => set('time', event.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Input
-            placeholder="Stadion / Venue"
-            value={form.venue}
-            onChange={event => set('venue', event.target.value)}
-          />
-
-          <Input
-            placeholder="Stadt"
-            value={form.city}
-            onChange={event => set('city', event.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <select
-            value={form.status}
-            onChange={event => set('status', event.target.value)}
-            className="w-full h-10 rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
-          >
-            <option value="scheduled">Geplant</option>
-            <option value="live">Live</option>
-            <option value="final">Final</option>
-          </select>
-
-          <Input
-            type="number"
-            placeholder="Heim-Punkte"
-            value={form.scoreHome}
-            onChange={event => set('scoreHome', event.target.value)}
-          />
-
-          <Input
-            type="number"
-            placeholder="Gast-Punkte"
-            value={form.scoreAway}
-            onChange={event => set('scoreAway', event.target.value)}
-          />
-        </div>
-
-        <div className="rounded-xl border border-border/50 bg-secondary/20 p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <Radio className="w-4 h-4 text-primary" />
-            <p className="text-xs font-bold">
-              Stream
-            </p>
-          </div>
-
-          <Input
-            placeholder="Stream-Link optional"
-            value={form.streamUrl}
-            onChange={event => set('streamUrl', event.target.value)}
-          />
-
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={!!form.streamEnabled}
-              onChange={event => set('streamEnabled', event.target.checked)}
-              className="accent-primary"
-            />
-            Stream für Nutzer sichtbar machen
-          </label>
-        </div>
-
-        <div className="rounded-xl border border-border/50 bg-secondary/20 p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-primary" />
-            <p className="text-xs font-bold">
-              Tippspiel
-            </p>
-          </div>
-
-          <label className="flex items-start gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={form.predictionEnabled !== false}
-              onChange={event => set('predictionEnabled', event.target.checked)}
-              className="accent-primary mt-0.5"
-            />
-
-            <span>
-              Tippspiel für dieses Spiel aktivieren. Nutzer können vor Kickoff einmal auf den Gewinner tippen.
-            </span>
-          </label>
-        </div>
-
-        <Input
-          placeholder="Runde / Hinweis optional"
-          value={form.roundName}
-          onChange={event => set('roundName', event.target.value)}
-        />
-
-        <textarea
-          placeholder="Notizen optional"
-          value={form.notes}
-          onChange={event => set('notes', event.target.value)}
-          rows={2}
-          className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground resize-none"
-        />
-
-        <Button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="w-full"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          Speichern
-        </Button>
-      </div>
-    </Card>
-  );
 }
 
-function MediaAccountSettings({ appUser, onSaved }) {
-  const [username, setUsername] = useState(appUser?.username || appUser?.internalUsername || '');
-  const [displayName, setDisplayName] = useState(appUser?.displayName || '');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  const saveAccount = async () => {
-    const cleanUsername = username.trim().toLowerCase();
-    const cleanDisplayName = displayName.trim();
-    const cleanNewPassword = newPassword.trim();
-
-    if (!appUser?.id) {
-      toast.error('Account konnte nicht geladen werden.');
-      return;
-    }
-
-    if (!cleanUsername) {
-      toast.error('Bitte Benutzernamen eingeben.');
-      return;
-    }
-
-    if (!cleanDisplayName) {
-      toast.error('Bitte Anzeigenamen eingeben.');
-      return;
-    }
-
-    if (cleanNewPassword) {
-      const storedPassword =
-        appUser.internalPassword ||
-        appUser.password ||
-        appUser.loginPassword ||
-        appUser.temporaryPassword ||
-        '';
-
-      if (!currentPassword.trim()) {
-        toast.error('Bitte aktuelles Passwort eingeben.');
-        return;
-      }
-
-      if (String(storedPassword) !== currentPassword.trim()) {
-        toast.error('Aktuelles Passwort ist falsch.');
-        return;
-      }
-    }
-
-    setSaving(true);
-
-    try {
-      const payload = {
-        username: cleanUsername,
-        internalUsername: cleanUsername,
-        displayName: cleanDisplayName,
-        updatedAtUtc: new Date().toISOString(),
-      };
-
-      if (cleanNewPassword) {
-        payload.internalPassword = cleanNewPassword;
-      }
-
-      await base44.entities.AppUser.update(appUser.id, payload);
-
-      setCurrentPassword('');
-      setNewPassword('');
-      await onSaved?.();
-
-      toast.success('Account aktualisiert');
-    } catch (error) {
-      console.error('MEDIA ACCOUNT UPDATE ERROR:', error);
-      toast.error(error.message || 'Account konnte nicht aktualisiert werden');
-    } finally {
-      setSaving(false);
-    }
-  };
-
+function AnalyticsMetricCard({ icon: Icon, label, value, hint, tone = 'text-primary' }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <User className="w-5 h-5 text-primary" />
-        </div>
-
-        <div>
-          <h2 className="text-sm font-bold">
-            Profil & Login
-          </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Benutzername und Passwort für diesen Media-Zugang ändern.
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        <Input
-          value={username}
-          onChange={event => setUsername(event.target.value)}
-          placeholder="Benutzername"
-          autoComplete="username"
-        />
-
-        <Input
-          value={displayName}
-          onChange={event => setDisplayName(event.target.value)}
-          placeholder="Anzeigename"
-          autoComplete="name"
-        />
-
-        <div className="rounded-xl border border-border/50 bg-secondary/20 p-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <KeyRound className="w-4 h-4 text-primary" />
-            <p className="text-xs font-bold">
-              Passwort ändern
-            </p>
-          </div>
-
-          <Input
-            type="password"
-            value={currentPassword}
-            onChange={event => setCurrentPassword(event.target.value)}
-            placeholder="Aktuelles Passwort"
-            autoComplete="current-password"
-          />
-
-          <Input
-            type="password"
-            value={newPassword}
-            onChange={event => setNewPassword(event.target.value)}
-            placeholder="Neues Passwort optional"
-            autoComplete="new-password"
-          />
-        </div>
-
-        <Button
-          type="button"
-          onClick={saveAccount}
-          disabled={saving}
-          className="w-full"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          Account speichern
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSelect, selecting }) {
-  const home = teamsMap.get(game.homeTeamId);
-  const away = teamsMap.get(game.awayTeamId);
-  const league = leaguesMap.get(game.leagueId);
-
-  return (
-    <Card className={`p-4 border ${selected ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
-      <div className="flex items-start justify-between gap-3 mb-3">
+    <div className="rounded-xl border border-border/50 bg-background/45 px-2.5 py-2">
+      <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] text-muted-foreground truncate">
-            {league?.shortName || league?.name || 'Keine Liga'}
+          <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground truncate">
+            {label}
           </p>
 
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            {formatDate(game.date)} · {game.time || game.kickoffTime || 'ohne Uhrzeit'}
+          <p className={`text-xl font-black leading-none mt-1 ${tone}`}>
+            {value}
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-end gap-1.5 flex-shrink-0">
-          {selected && (
-            <Badge className="text-[10px] bg-primary text-primary-foreground border-0">
-              Game of the Week
-            </Badge>
-          )}
-
-          <Badge
-            className={`text-[10px] border-0 ${
-              game.status === 'live'
-                ? 'bg-red-500/15 text-red-400'
-                : game.status === 'final'
-                ? 'bg-green-500/15 text-green-400'
-                : game.status === 'cancelled'
-                ? 'bg-orange-500/15 text-orange-400'
-                : 'bg-secondary text-muted-foreground'
-            }`}
-          >
-            {getStatusLabel(game.status)}
-          </Badge>
+        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Icon className="w-3.5 h-3.5 text-primary" />
         </div>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-        <p className="text-sm font-bold truncate">
-          {getTeamName(home, game.homeTeamPlaceholder)}
+      {hint && (
+        <p className="hidden sm:block text-[10px] text-muted-foreground mt-2 leading-relaxed">
+          {hint}
         </p>
-
-        <div className="text-center min-w-[72px]">
-          {game.status === 'live' || game.status === 'final' ? (
-            <p className="text-lg font-black">
-              {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
-            </p>
-          ) : (
-            <p className="text-xs font-bold text-muted-foreground">
-              VS
-            </p>
-          )}
-        </div>
-
-        <p className="text-sm font-bold truncate text-right">
-          {getTeamName(away, game.awayTeamPlaceholder)}
-        </p>
-      </div>
-
-      {(game.venue || game.city || game.roundName || selected) && (
-        <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-muted-foreground">
-          {(game.venue || game.city) && (
-            <span className="flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              {[game.venue, game.city].filter(Boolean).join(', ')}
-            </span>
-          )}
-
-          {game.roundName && (
-            <span>
-              {game.roundName}
-            </span>
-          )}
-
-          {selected && (
-            <span className="text-primary font-bold">
-              {game.gameOfTheWeekLabel || creditLabel}
-            </span>
-          )}
-        </div>
       )}
-
-      <div className="mt-4">
-        <Button
-          type="button"
-          onClick={() => onSelect(game)}
-          disabled={selecting || game.status === 'cancelled'}
-          variant={selected ? 'outline' : 'default'}
-          className="w-full"
-        >
-          {selecting ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <Star className="w-4 h-4 mr-2" />
-          )}
-          {selected ? 'Auswahl entfernen' : 'Als Game of the Week setzen'}
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function MediaDashboard({ games, isLoading, teamsMap, leaguesMap, invalidate }) {
-  useSetHeader({
-    mode: 'dashboard',
-    title: 'Media',
-  });
-
-  const { appUserSnapshot, refreshAuth } = useAuth();
-  const [tab, setTab] = useState('weekend');
-  const [creditLabel, setCreditLabel] = useState('by EuroFBShow');
-  const [selectingId, setSelectingId] = useState(null);
-
-  const { data: selectedGameOfWeekRows = [] } = useQuery({
-    queryKey: ['game-of-week-selected'],
-    queryFn: async () => {
-      try {
-        return await base44.entities.Game.filter({ isGameOfTheWeek: true });
-      } catch (error) {
-        console.warn('GAME OF THE WEEK FILTER FALLBACK:', error);
-        return games.filter(item => item.isGameOfTheWeek === true);
-      }
-    },
-    enabled: games.length > 0,
-  });
-
-  const upcomingWeekend = useMemo(() => getUpcomingWeekendWindow(), []);
-  const nextSevenDays = useMemo(() => getNextSevenDaysWindow(), []);
-
-  const sortedGames = useMemo(() => {
-    return [...games].sort((a, b) => {
-      const dateA = getGameDate(a)?.getTime() || 0;
-      const dateB = getGameDate(b)?.getTime() || 0;
-
-      return dateB - dateA;
-    });
-  }, [games]);
-
-  const selectedGameOfWeekList = selectedGameOfWeekRows.length > 0
-    ? selectedGameOfWeekRows
-    : sortedGames.filter(game => game.isGameOfTheWeek === true);
-
-  const currentSelection = selectedGameOfWeekList[0] || null;
-
-  const mediaLeagueGames = sortedGames.filter(game => {
-    const league = leaguesMap.get(game.leagueId);
-    return isAllowedMediaLeague(league);
-  });
-
-  const weekendGames = mediaLeagueGames
-    .filter(game => isGameInWindow(game, upcomingWeekend))
-    .filter(game => game.status !== 'cancelled')
-    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
-
-  const upcomingGames = mediaLeagueGames
-    .filter(game => isGameInWindow(game, nextSevenDays))
-    .filter(game => game.status !== 'cancelled')
-    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
-
-  const allSelectableGames = mediaLeagueGames
-    .filter(game => game.status !== 'cancelled')
-    .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
-
-  const clearGameOfTheWeek = async () => {
-    const selectedGames = selectedGameOfWeekList.filter(item => item?.id);
-
-    if (selectedGames.length === 0) {
-      toast.info('Es ist aktuell kein Game of the Week ausgewählt');
-      return;
-    }
-
-    setSelectingId('clear');
-
-    try {
-      await Promise.all(
-        selectedGames.map(item =>
-          base44.entities.Game.update(item.id, {
-            isGameOfTheWeek: false,
-            gameOfTheWeekLabel: '',
-            gameOfTheWeekSelectedBy: '',
-            gameOfTheWeekSelectedAtUtc: '',
-            updatedAtUtc: new Date().toISOString(),
-          })
-        )
-      );
-
-      invalidate();
-      toast.success('Game of the Week entfernt');
-    } catch (error) {
-      console.error('CLEAR GAME OF THE WEEK ERROR:', error);
-      toast.error(error.message || 'Game of the Week konnte nicht entfernt werden');
-    } finally {
-      setSelectingId(null);
-    }
-  };
-
-  const selectGameOfTheWeek = async game => {
-    if (!game?.id) return;
-
-    const label = creditLabel.trim() || 'by Media';
-
-    setSelectingId(game.id);
-
-    try {
-      let selectedGames = selectedGameOfWeekList.filter(item => item?.id);
-
-      if (selectedGames.length === 0) {
-        try {
-          selectedGames = await base44.entities.Game.filter({ isGameOfTheWeek: true });
-        } catch (error) {
-          console.warn('GAME OF THE WEEK SELECTED FILTER FALLBACK:', error);
-          selectedGames = games.filter(item => item.isGameOfTheWeek === true);
-        }
-      }
-
-      const selectedIds = new Set(selectedGames.map(item => item.id));
-      const isAlreadySelected = selectedIds.has(game.id) && game.isGameOfTheWeek === true;
-
-      if (isAlreadySelected) {
-        await base44.entities.Game.update(game.id, {
-          isGameOfTheWeek: false,
-          gameOfTheWeekLabel: '',
-          gameOfTheWeekSelectedBy: '',
-          gameOfTheWeekSelectedAtUtc: '',
-          updatedAtUtc: new Date().toISOString(),
-        });
-
-        invalidate();
-        toast.success('Game of the Week abgewählt');
-        return;
-      }
-
-      const oldSelections = selectedGames.filter(item => item.id !== game.id);
-
-      await Promise.all(
-        oldSelections.map(item =>
-          base44.entities.Game.update(item.id, {
-            isGameOfTheWeek: false,
-            gameOfTheWeekLabel: '',
-            gameOfTheWeekSelectedBy: '',
-            gameOfTheWeekSelectedAtUtc: '',
-            updatedAtUtc: new Date().toISOString(),
-          })
-        )
-      );
-
-      await base44.entities.Game.update(game.id, {
-        isGameOfTheWeek: true,
-        gameOfTheWeekLabel: label,
-        gameOfTheWeekSelectedBy: appUserSnapshot?.id || '',
-        gameOfTheWeekSelectedAtUtc: new Date().toISOString(),
-        updatedAtUtc: new Date().toISOString(),
-      });
-
-      invalidate();
-      toast.success('Neues Game of the Week gesetzt. Alte Auswahl wurde automatisch entfernt.');
-    } catch (error) {
-      console.error('MEDIA GAME OF THE WEEK ERROR:', error);
-      toast.error(error.message || 'Game of the Week konnte nicht gespeichert werden');
-    } finally {
-      setSelectingId(null);
-    }
-  };
-
-  const renderMediaGames = list => {
-    if (isLoading) {
-      return (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        </div>
-      );
-    }
-
-    if (list.length === 0) {
-      return (
-        <div className="text-center py-10 text-muted-foreground text-sm">
-          Keine EFA- oder AFLE-Spiele in diesem Zeitraum gefunden.
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        {list.map(game => (
-          <MediaGameCard
-            key={game.id}
-            game={game}
-            teamsMap={teamsMap}
-            leaguesMap={leaguesMap}
-            selected={game.isGameOfTheWeek === true}
-            creditLabel={creditLabel}
-            onSelect={selectGameOfTheWeek}
-            selecting={selectingId === game.id}
-          />
-        ))}
-      </div>
-    );
-  };
-
-  return (
-    <div className="w-full max-w-3xl mx-auto px-3 sm:px-4 py-6 pb-24">
-      <div className="mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-          Game of the Week
-        </p>
-
-        <h1 className="text-xl font-black mt-1">
-          Media Auswahl
-        </h1>
-
-        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-          Wähle vor dem Wochenende ein EFA- oder AFLE-Spiel aus. Die automatische Berechnung wird nicht mehr genutzt.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2 mb-5">
-        <StatTile
-          icon={Calendar}
-          label="Wochenende"
-          value={weekendGames.length}
-        />
-
-        <StatTile
-          icon={CheckCircle2}
-          label="Geplant"
-          value={weekendGames.filter(game => game.status === 'scheduled').length}
-          tone="text-green-400"
-          bg="bg-green-500/10"
-        />
-
-        <StatTile
-          icon={Swords}
-          label="Alle"
-          value={allSelectableGames.length}
-          tone="text-blue-400"
-          bg="bg-blue-500/10"
-        />
-
-        <StatTile
-          icon={Star}
-          label="Auswahl"
-          value={currentSelection ? 1 : 0}
-          tone="text-yellow-400"
-          bg="bg-yellow-500/10"
-        />
-      </div>
-
-      <Card className="p-4 mb-4">
-        <div className="flex items-start gap-3 mb-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Newspaper className="w-5 h-5 text-primary" />
-          </div>
-
-          <div>
-            <h2 className="text-sm font-bold">
-              Anzeige-Text
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Dieser Text steht auf der Startseite am Game of the Week.
-            </p>
-          </div>
-        </div>
-
-        <Input
-          value={creditLabel}
-          onChange={event => setCreditLabel(event.target.value)}
-          placeholder="z.B. by EuroFBShow"
-        />
-
-        {currentSelection && (
-          <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-              Aktuell ausgewählt
-            </p>
-            <p className="text-sm font-bold mt-1">
-              {getTeamName(teamsMap.get(currentSelection.homeTeamId), currentSelection.homeTeamPlaceholder)}
-              {' vs '}
-              {getTeamName(teamsMap.get(currentSelection.awayTeamId), currentSelection.awayTeamPlaceholder)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {currentSelection.gameOfTheWeekLabel || 'by Media'}
-            </p>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="mt-3 h-8 text-xs"
-              onClick={clearGameOfTheWeek}
-              disabled={selectingId === 'clear'}
-            >
-              {selectingId === 'clear' ? (
-                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-              ) : (
-                <X className="w-3 h-3 mr-1" />
-              )}
-              Aktuelle Auswahl entfernen
-            </Button>
-          </div>
-        )}
-      </Card>
-
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full mb-4">
-          <TabsTrigger value="weekend" className="flex-1 text-xs">
-            Wochenende
-          </TabsTrigger>
-
-          <TabsTrigger value="upcoming" className="flex-1 text-xs">
-            7 Tage
-          </TabsTrigger>
-
-          <TabsTrigger value="all" className="flex-1 text-xs">
-            Alle
-          </TabsTrigger>
-
-          <TabsTrigger value="account" className="flex-1 text-xs">
-            Konto
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="weekend">
-          <p className="text-xs text-muted-foreground mb-3">
-            EFA- und AFLE-Spiele für das kommende Wochenende: {formatWeekRange(upcomingWeekend.start, upcomingWeekend.end)}
-          </p>
-
-          {renderMediaGames(weekendGames)}
-        </TabsContent>
-
-        <TabsContent value="upcoming">
-          <p className="text-xs text-muted-foreground mb-3">
-            EFA- und AFLE-Spiele der nächsten 7 Tage.
-          </p>
-
-          {renderMediaGames(upcomingGames)}
-        </TabsContent>
-
-        <TabsContent value="all">
-          <p className="text-xs text-muted-foreground mb-3">
-            Alle auswählbaren EFA- und AFLE-Spiele. Wenn du hier ein neues Spiel auswählst, wird die alte Auswahl automatisch entfernt.
-          </p>
-
-          {renderMediaGames(allSelectableGames)}
-        </TabsContent>
-
-        <TabsContent value="account">
-          <MediaAccountSettings
-            appUser={appUserSnapshot}
-            onSaved={refreshAuth}
-          />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }
 
-export default function DataEditorDashboard() {
-  const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
-  const { teams = [], leagues = [] } = useGlobalData();
-  const { appUserSnapshot } = useAuth();
+function AnalyticsList({ title, items, formatter = value => formatNumber(value) }) {
+  const max = Math.max(...items.map(item => item.value), 1);
 
-  const roleSlug = normalizeRole(appUserSnapshot?.roleSlug || appUserSnapshot?.role);
-  const isAdmin = roleSlug === 'admin';
-  const isMediaPartner = roleSlug === 'media_partner';
-  const shouldOpenGameOfTheWeek = searchParams.get('gameOfTheWeek') === '1';
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/35 p-2.5">
+      <h3 className="text-[11px] font-black mb-2">
+        {title}
+      </h3>
 
-  useSetHeader({
-    mode: 'back',
-    title: isMediaPartner ? 'Media' : 'Daten bearbeiten',
-  });
+      <div className="space-y-1.5">
+        {items.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Noch keine Daten</p>
+        ) : items.map(item => (
+          <div key={item.label}>
+            <div className="flex items-center justify-between gap-2 text-[10px] mb-1">
+              <span className="font-semibold truncate">{item.label}</span>
+              <span className="text-muted-foreground flex-shrink-0">{formatter(item.value)}</span>
+            </div>
 
-  const [tab, setTab] = useState('overview');
-  const [editingGameId, setEditingGameId] = useState(null);
-  const [editForm, setEditForm] = useState(EMPTY_GAME);
-  const [createForm, setCreateForm] = useState(EMPTY_GAME);
-  const [saving, setSaving] = useState(false);
+            <div className="h-1 rounded-full bg-secondary overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.max(6, (item.value / max) * 100)}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-  const teamsMap = useMemo(() => {
-    return new Map(teams.map(team => [team.id, team]));
-  }, [teams]);
+function AnalyticsDashboard({ stats }) {
+  const maxDaily = Math.max(...stats.daily.map(day => day.views), 1);
 
-  const leaguesMap = useMemo(() => {
-    return new Map(leagues.map(league => [league.id, league]));
-  }, [leagues]);
+  return (
+    <section className="rounded-2xl border border-primary/20 bg-card p-3 mb-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+            App Analytics
+          </p>
 
-  const { data: games = [], isLoading } = useQuery({
-    queryKey: ['editor-games'],
-    queryFn: () => base44.entities.Game.list('-date', 250),
-  });
+          <h2 className="text-sm font-black mt-0.5">
+            Reichweite & Werbewert
+          </h2>
 
-  const sortedGames = useMemo(() => {
-    return [...games].sort((a, b) => {
-      const dateA = `${a.date || ''} ${a.time || a.kickoffTime || ''}`;
-      const dateB = `${b.date || ''} ${b.time || b.kickoffTime || ''}`;
+          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+            Doppelte Refreshes werden herausgerechnet. Besucher sind eindeutige Geraete, Sessions laufen nach 30 Minuten Inaktivitaet aus.
+          </p>
+        </div>
+      </div>
 
-      return dateB.localeCompare(dateA);
-    });
-  }, [games]);
+      <div className="grid grid-cols-4 gap-1.5 mb-3">
+        <AnalyticsMetricCard icon={Users} label="Besucher" value={formatNumber(stats.active7d)} hint="7 Tage" />
+        <AnalyticsMetricCard icon={Activity} label="Sessions" value={formatNumber(stats.sessions7d)} hint="7 Tage" />
+        <AnalyticsMetricCard icon={Eye} label="Views" value={formatNumber(stats.views7d)} hint="7 Tage" />
+        <AnalyticsMetricCard icon={TrendingUp} label="Seiten/S." value={formatDecimal(stats.pagesPerSession7d)} hint="Engagement" />
+      </div>
 
-  const todayGames = sortedGames.filter(game => isTodayGame(game));
-  const liveGames = sortedGames.filter(game => game.status === 'live');
-  const openGames = sortedGames.filter(game => game.status === 'scheduled' || game.status === 'live');
-  const finalGames = sortedGames.filter(game => game.status === 'final');
-  const streamGames = sortedGames.filter(game => game.streamUrl || game.streamEnabled || game.streamLinks?.length > 0);
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
+        {[
+          { label: '24h Besucher', value: stats.active24h },
+          { label: '30 Tage Besucher', value: stats.active30d },
+          { label: '30 Tage Views', value: stats.views30d },
+        ].map(item => (
+          <div key={item.label} className="rounded-lg border border-border/40 bg-background/35 p-2 text-center">
+            <p className="text-base font-black text-primary">{formatNumber(item.value)}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{item.label}</p>
+          </div>
+        ))}
+      </div>
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['editor-games'] });
-    queryClient.invalidateQueries({ queryKey: ['games'] });
-    queryClient.invalidateQueries({ queryKey: ['game-of-week-selected'] });
-    queryClient.invalidateQueries({ queryKey: ['standingsConfigs'] });
+      <div className="rounded-xl border border-border/50 bg-background/35 p-2.5 mb-2.5">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <h3 className="text-xs font-black">Letzte 14 Tage</h3>
+          <span className="text-[10px] text-muted-foreground">Views / Besucher</span>
+        </div>
+
+        <div className="flex items-end gap-1 h-16">
+          {stats.daily.map(day => (
+            <div key={day.date} className="flex-1 min-w-0 flex flex-col items-center justify-end gap-1">
+              <div
+                className="w-full rounded-t bg-primary/80 min-h-[4px]"
+                style={{ height: `${Math.max(4, (day.views / maxDaily) * 48)}px` }}
+                title={`${day.date}: ${day.views} Views, ${day.visitors} Besucher`}
+              />
+              <span className="text-[8px] text-muted-foreground">
+                {day.date.slice(8, 10)}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <AnalyticsList title="Top Seiten 7 Tage" items={stats.topPages} />
+        <AnalyticsList title="Bereiche 7 Tage" items={stats.routeGroups} />
+        <AnalyticsList title="Geraete" items={stats.devices} />
+        <AnalyticsList title="Traffic Quellen" items={stats.referrers} />
+      </div>
+
+      <div className="mt-2 rounded-xl border border-primary/15 bg-primary/5 px-3 py-2">
+        <div className="flex items-start gap-2">
+          <MousePointer className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Fuer Sponsoren spaeter wichtig: Unique Visitors, Sessions, Pageviews, Top-Seiten und Geraete. Die Zahlen sind besser fuer Werbepreise als rohe Klicks, weil Reloads und schnelle Doppelaufrufe reduziert werden.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+function normalizeAdBanner(item) {
+  const meta = parseMessage(item.message);
+
+  return {
+    ...item,
+    title: item.title || meta.title || '',
+    image_url: meta.image_url || item.imageUrl || '',
+    link_url: meta.link_url || '',
+    position: meta.position || 'after_highlights',
+    active: item.isActive !== false && meta.active !== false,
+    start_date: meta.start_date || '',
+    end_date: meta.end_date || '',
+    sort_order: Number(meta.sort_order || 0),
+  };
+}
+
+function normalizeBranding(item) {
+  const meta = parseMessage(item?.message);
+
+  return {
+    id: item?.id || '',
+    header_icon_url: meta.header_icon_url || item?.imageUrl || '',
+    app_name_top: meta.app_name_top || 'THE',
+    app_name_bottom: meta.app_name_bottom || 'YARDLINE',
+  };
+}
+
+function getDateStatus(item) {
+  if (!item.active) return 'Inaktiv';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = item.start_date ? new Date(`${item.start_date}T00:00:00`) : null;
+  const end = item.end_date ? new Date(`${item.end_date}T23:59:59`) : null;
+
+  if (start && today < start) return 'Geplant';
+  if (end && today > end) return 'Abgelaufen';
+
+  return 'Aktiv';
+}
+
+
+
+const EMPTY_BANNER_FORM = {
+  title: '',
+  image_url: '',
+  link_url: '',
+  position: 'after_highlights',
+  start_date: toInputDate(new Date()),
+  end_date: '',
+  sort_order: '0',
+  active: true,
+};
+
+const EMPTY_BRANDING_FORM = {
+  header_icon_url: '',
+  app_name_top: 'THE',
+  app_name_bottom: 'YARDLINE',
+};
+
+function ToggleButton({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`w-11 h-6 rounded-full p-0.5 transition-colors ${
+        checked ? 'bg-primary' : 'bg-muted'
+      }`}
+    >
+      <span
+        className={`block w-5 h-5 rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-5' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  );
+}
+
+
+function AdBannerPlanner({
+  banners,
+  editingId,
+  setEditingId,
+  formData,
+  setFormData,
+  onClose,
+  onCreate,
+  onUpdate,
+  onDelete,
+  isSaving,
+  isDeleting,
+}) {
+  const resetToCreate = () => {
+    setEditingId(null);
+    setFormData(EMPTY_BANNER_FORM);
   };
 
-  if (isMediaPartner || (isAdmin && shouldOpenGameOfTheWeek)) {
-    return (
-      <MediaDashboard
-        games={games}
-        isLoading={isLoading}
-        teamsMap={teamsMap}
-        leaguesMap={leaguesMap}
-        invalidate={invalidate}
-      />
-    );
-  }
+  const handleEdit = banner => {
+    setEditingId(banner.id);
+    setFormData({
+      title: banner.title || '',
+      image_url: banner.image_url || '',
+      link_url: banner.link_url || '',
+      position: banner.position || 'after_highlights',
+      start_date: banner.start_date || toInputDate(new Date()),
+      end_date: banner.end_date || '',
+      sort_order: String(banner.sort_order || 0),
+      active: banner.active !== false,
+    });
+  };
 
-  const makePayload = form => {
-    const streamLinks = buildStreamLinks(form);
-    const streamUrl = form.streamUrl?.trim() || '';
+  return (
+    <section className="rounded-2xl border border-primary/20 bg-card p-4 mb-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+            Home
+          </p>
+
+          <h2 className="text-lg font-black mt-0.5">
+            Werbe-Banner
+          </h2>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Erstelle dezente Banner nur fÃ¼r die Home-Seite.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs font-bold text-muted-foreground hover:text-foreground"
+        >
+          SchlieÃŸen
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-border/50 bg-background/40 p-3 mb-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Titel optional
+            </span>
+
+            <input
+              value={formData.title}
+              onChange={event => setFormData(current => ({ ...current, title: event.target.value }))}
+              placeholder="z.B. Werbung / Kampagnenname"
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Position
+            </span>
+
+            <select
+              value={formData.position}
+              onChange={event => setFormData(current => ({ ...current, position: event.target.value }))}
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            >
+              <option value="after_highlights">Nach Highlights</option>
+              <option value="after_upcoming">Nach Kommende Spiele</option>
+            </select>
+          </label>
+
+          <div className="space-y-2 sm:col-span-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Bild / Logo
+            </span>
+
+            <ImageUploadField
+              label="Werbebanner vom GerÃ¤t hochladen"
+              value={formData.image_url}
+              onChange={value => setFormData(current => ({ ...current, image_url: value }))}
+            />
+
+            <input
+              value={formData.image_url}
+              onChange={event => setFormData(current => ({ ...current, image_url: event.target.value }))}
+              placeholder="Oder Bild-URL einfÃ¼gen"
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            />
+
+            <p className="text-[10px] text-muted-foreground">
+              Du kannst ein Bild direkt vom GerÃ¤t hochladen oder eine bestehende Bild-URL nutzen.
+            </p>
+          </div>
+
+          <label className="space-y-1.5 sm:col-span-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Kunden-Link / Zielseite
+            </span>
+
+            <input
+              value={formData.link_url}
+              onChange={event => setFormData(current => ({ ...current, link_url: event.target.value }))}
+              placeholder="https://www.kundenseite.de"
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            />
+
+            <p className="text-[10px] text-muted-foreground">
+              Wenn ein Link eingetragen ist, Ã¶ffnet sich diese Seite beim Klick auf die Werbung.
+            </p>
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Startdatum
+            </span>
+
+            <input
+              type="date"
+              value={formData.start_date}
+              onChange={event => setFormData(current => ({ ...current, start_date: event.target.value }))}
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Enddatum optional
+            </span>
+
+            <input
+              type="date"
+              value={formData.end_date}
+              onChange={event => setFormData(current => ({ ...current, end_date: event.target.value }))}
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Sortierung
+            </span>
+
+            <input
+              type="number"
+              value={formData.sort_order}
+              onChange={event => setFormData(current => ({ ...current, sort_order: event.target.value }))}
+              className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
+            />
+          </label>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-secondary/30 px-3 py-3">
+          <div>
+            <p className="text-sm font-semibold">Aktiv</p>
+            <p className="text-xs text-muted-foreground">
+              Sichtbar, wenn der Zeitraum passt
+            </p>
+          </div>
+
+          <ToggleButton
+            checked={formData.active}
+            onChange={value => setFormData(current => ({ ...current, active: value }))}
+          />
+        </div>
+
+        {(formData.title || formData.image_url) && (
+          <div className="rounded-2xl border border-white/10 bg-background/60 px-3 py-2.5">
+            <div className="flex items-center gap-3 min-h-[54px]">
+              {formData.image_url && (
+                <div className="w-16 h-10 rounded-xl bg-black/25 border border-white/10 overflow-hidden flex items-center justify-center p-1.5 flex-shrink-0">
+                  <img
+                    src={getImageUrl(formData.image_url)}
+                    alt=""
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )}
+
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-wider text-primary">
+                  Werbung
+                </p>
+
+                <p className="text-xs font-black truncate mt-0.5">
+                  {formData.title || 'Werbe-Banner'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          <button
+            type="button"
+            onClick={editingId ? onUpdate : onCreate}
+            disabled={isSaving}
+            className="col-span-2 h-10 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-60 flex items-center justify-center"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : editingId ? (
+              'Speichern'
+            ) : (
+              'Erstellen'
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={resetToCreate}
+            className="h-10 rounded-xl bg-secondary text-sm font-bold"
+          >
+            Neu
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {banners.length === 0 ? (
+          <div className="rounded-xl border border-border/50 bg-background/40 py-8 text-center">
+            <p className="text-sm font-semibold text-muted-foreground">
+              Noch keine Banner erstellt
+            </p>
+          </div>
+        ) : (
+          banners.map(banner => {
+            const status = getDateStatus(banner);
+
+            return (
+              <article
+                key={banner.id}
+                className="rounded-xl border border-border/50 bg-background/40 p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold truncate">
+                        {banner.title || 'Werbe-Banner'}
+                      </p>
+
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          status === 'Aktiv'
+                            ? 'bg-green-500/15 text-green-400'
+                            : status === 'Abgelaufen'
+                            ? 'bg-muted text-muted-foreground'
+                            : status === 'Geplant'
+                            ? 'bg-primary/15 text-primary'
+                            : 'bg-orange-500/15 text-orange-400'
+                        }`}
+                      >
+                        {status}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {banner.position} Â· {banner.start_date || 'sofort'} bis {banner.end_date || 'offen'}
+                    </p>
+
+                    {banner.link_url && (
+                      <p className="text-xs text-muted-foreground mt-1 truncate">
+                        {banner.link_url}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleEdit(banner)}
+                    className="h-8 px-3 rounded-lg border border-border bg-background hover:bg-secondary text-xs font-bold flex-1 inline-flex items-center justify-center"
+                  >
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Bearbeiten
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onDelete(banner.id)}
+                    disabled={isDeleting}
+                    className="h-8 px-3 rounded-lg border border-border bg-background hover:bg-secondary text-xs font-bold text-red-400 inline-flex items-center justify-center disabled:opacity-60"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
+}
+
+function AppBrandingPlanner({
+  branding,
+  formData,
+  setFormData,
+  onClose,
+  onSave,
+  isSaving,
+}) {
+  return (
+    <section className="rounded-2xl border border-primary/20 bg-card p-4 mb-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+            App Design
+          </p>
+
+          <h2 className="text-lg font-black mt-0.5">
+            Header Logo
+          </h2>
+
+          <p className="text-xs text-muted-foreground mt-1">
+            Lade hier dein fertiges breites Header-Logo hoch. Es wird mittig im Header angezeigt.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-xs font-bold text-muted-foreground hover:text-foreground"
+        >
+          Schliessen
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-border/50 bg-background/40 p-3 mb-4 space-y-3">
+        <ImageUploadField
+          label="Header-Logo vom Geraet hochladen"
+          value={formData.header_icon_url}
+          onChange={value => setFormData(current => ({ ...current, header_icon_url: value }))}
+        />
+
+        <div className="rounded-2xl border border-border/50 bg-white px-3 py-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Vorschau
+          </p>
+
+          <div className="relative h-16 rounded-xl bg-[#c20f1a] border border-red-900/20 overflow-hidden">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex h-12 w-24 items-center justify-start">
+              {formData.header_icon_url ? (
+                <img
+                  src={getImageUrl(formData.header_icon_url)}
+                  alt="The Yardline"
+                  className="h-12 max-w-[96px] w-auto object-contain"
+                />
+              ) : (
+                <span className="text-base font-black tracking-wide uppercase text-white">
+                  Yardline
+                </span>
+              )}
+            </div>
+
+            <div className="absolute inset-0 flex items-center justify-center px-28">
+              <span
+                className="whitespace-nowrap text-lg leading-none text-white"
+                style={{
+                  fontFamily: "var(--font-script)",
+                  textShadow: "0 2px 0 rgba(0,0,0,0.22)",
+                }}
+              >
+                Where Football Lives
+              </span>
+            </div>
+
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center">
+              <Menu className="w-6 h-6 text-black" strokeWidth={2.5} />
+            </div>
+          </div>
+
+          <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed">
+            Am besten ein transparentes PNG oder WebP verwenden, breit zugeschnitten, ohne Hintergrundkasten.
+          </p>
+        </div>
+
+        {branding?.id && (
+          <p className="text-[10px] text-muted-foreground">
+            Aktuelles Branding wird beim Speichern ueberschrieben.
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={isSaving}
+          className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-60 flex items-center justify-center"
+        >
+          {isSaving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            'Logo speichern'
+          )}
+        </button>
+      </div>
+    </section>
+  );
+}
+export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [showBannerPlanner, setShowBannerPlanner] = useState(false);
+  const [editingBannerId, setEditingBannerId] = useState(null);
+  const [bannerForm, setBannerForm] = useState(EMPTY_BANNER_FORM);
+
+  const [showBrandingPlanner, setShowBrandingPlanner] = useState(false);
+  const [brandingForm, setBrandingForm] = useState(EMPTY_BRANDING_FORM);
+
+  useSetHeader({
+    mode: 'dashboard',
+    title: 'Admin Dashboard',
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['admin-count-users'],
+    queryFn: () => base44.entities.AppUser.list(),
+  });
+
+  const { data: leagues = [] } = useQuery({
+    queryKey: ['admin-count-leagues'],
+    queryFn: () => base44.entities.League.list(),
+  });
+
+  const { data: teams = [] } = useQuery({
+    queryKey: ['admin-count-teams'],
+    queryFn: () => base44.entities.Team.list(),
+  });
+
+  const { data: games = [] } = useQuery({
+    queryKey: ['admin-count-games'],
+    queryFn: () => base44.entities.Game.list(),
+  });
+
+  const { data: partners = [] } = useQuery({
+    queryKey: ['admin-count-partners'],
+    queryFn: () => base44.entities.Partner.list(),
+  });
+
+  const { data: competitions = [] } = useQuery({
+    queryKey: ['admin-count-competitions'],
+    queryFn: () => base44.entities.Tournament.list(),
+  });
+
+  const { data: highlights = [] } = useQuery({
+    queryKey: ['admin-count-highlights'],
+    queryFn: async () => {
+      const all = await base44.entities.AppUpdate.list('-created_date');
+      return all.filter(item => item.version === 'game_highlight');
+    },
+  });
+
+  const { data: analyticsEvents = [] } = useQuery({
+    queryKey: ['admin-analytics-events'],
+    queryFn: async () => {
+      const all = await base44.entities.AppUpdate.list('-created_date', 10000);
+      return all.filter(item => item.version === ANALYTICS_VERSION);
+    },
+  });
+
+  const { data: communityClipItems = [] } = useQuery({
+    queryKey: ['admin-count-community-clips'],
+    queryFn: async () => {
+      const all = await base44.entities.AppUpdate.list('-created_date');
+
+      return all.filter(item =>
+        item.version === COMMUNITY_CLIP_VERSION ||
+        item.version === COMMUNITY_CLIP_SUBMISSION_VERSION
+      );
+    },
+  });
+
+
+  const { data: gameDayShots = [] } = useQuery({
+    queryKey: ['admin-count-gameday-shots'],
+    queryFn: async () => {
+      const all = await base44.entities.AppUpdate.list('-created_date');
+      return all.filter(item => item.version === GAMEDAY_SHOT_VERSION && item.isActive !== false);
+    },
+  });
+
+
+
+  const { data: adBanners = [] } = useQuery({
+    queryKey: ['admin-ad-banners'],
+    queryFn: async () => {
+      const all = await base44.entities.AppUpdate.list('-created_date');
+      return all
+        .filter(item => item.version === AD_BANNER_VERSION)
+        .map(normalizeAdBanner);
+    },
+  });
+
+  const { data: appBranding = null } = useQuery({
+    queryKey: ['admin-app-branding'],
+    queryFn: async () => {
+      const all = await base44.entities.AppUpdate.list('-created_date');
+      const item = all.find(entry => entry.version === APP_BRANDING_VERSION);
+
+      return item ? normalizeBranding(item) : null;
+    },
+  });
+
+  useEffect(() => {
+    if (!appBranding) return;
+
+    setBrandingForm({
+      header_icon_url: appBranding.header_icon_url || '',
+      app_name_top: appBranding.app_name_top || 'THE',
+      app_name_bottom: appBranding.app_name_bottom || 'YARDLINE',
+    });
+  }, [appBranding]);
+
+  const { data: supportTickets = [] } = useQuery({
+    queryKey: ['admin-count-support'],
+    queryFn: () => base44.entities.SupportTicket.list('-created_date'),
+  });
+
+  const { data: streamRequests = [] } = useQuery({
+    queryKey: ['admin-count-streams'],
+    queryFn: () => base44.entities.SupportRequest.list(),
+  });
+
+  const invalidateAdBanners = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-ad-banners'] });
+    queryClient.invalidateQueries({ queryKey: ['home-ad-banners'] });
+    queryClient.invalidateQueries({ queryKey: ['appUpdates'] });
+  };
+
+  const invalidateBranding = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-app-branding'] });
+    queryClient.invalidateQueries({ queryKey: ['app-branding'] });
+    queryClient.invalidateQueries({ queryKey: ['appUpdates'] });
+  };
+
+  const buildBannerPayload = () => {
+    const title = bannerForm.title.trim();
+    const imageUrl = bannerForm.image_url.trim();
+
+    const meta = {
+      title,
+      image_url: imageUrl,
+      link_url: bannerForm.link_url.trim(),
+      position: bannerForm.position,
+      active: bannerForm.active,
+      start_date: bannerForm.start_date,
+      end_date: bannerForm.end_date,
+      sort_order: Number(bannerForm.sort_order || 0),
+    };
 
     return {
-      leagueId: form.leagueId || '',
-      homeTeamId: form.homeTeamId || '',
-      awayTeamId: form.awayTeamId || '',
-      homeTeamPlaceholder: form.homeTeamPlaceholder || '',
-      awayTeamPlaceholder: form.awayTeamPlaceholder || '',
-      teamsResolved: !!form.homeTeamId && !!form.awayTeamId,
-
-      date: form.date || '',
-      time: form.time || '',
-      kickoffTime: form.time || '',
-      kickoffAt: buildKickoffAt(form.date, form.time),
-
-      venue: form.venue || '',
-      city: form.city || '',
-      status: form.status || 'scheduled',
-      scoreHome: Number(form.scoreHome || 0),
-      scoreAway: Number(form.scoreAway || 0),
-
-      predictionEnabled: form.predictionEnabled !== false,
-
-      streamUrl,
-      streamEnabled: !!streamUrl && !!form.streamEnabled,
-      streamStatus: form.streamStatus || 'approved',
-      streamLinks,
-      streamUpdatedAt: streamUrl ? new Date().toISOString() : '',
-
-      roundName: form.roundName || '',
-      notes: form.notes || '',
+      title: title || 'Werbe-Banner',
+      message: JSON.stringify(meta),
+      imageUrl: imageUrl || null,
+      version: AD_BANNER_VERSION,
+      isActive: bannerForm.active,
+      showAsPopup: false,
       updatedAtUtc: new Date().toISOString(),
     };
   };
 
-  const startEdit = game => {
-    setEditingGameId(game.id);
-    setEditForm({
-      ...EMPTY_GAME,
-      ...game,
-      time: game.time || game.kickoffTime || '',
-      scoreHome: game.scoreHome ?? 0,
-      scoreAway: game.scoreAway ?? 0,
-      streamUrl: game.streamUrl || game.streamLinks?.[0]?.url || '',
-      streamEnabled: !!game.streamEnabled || !!game.streamUrl,
-      predictionEnabled: game.predictionEnabled !== false,
-    });
+  const buildBrandingPayload = () => {
+    const meta = {
+      header_icon_url: brandingForm.header_icon_url.trim(),
+      app_name_top: brandingForm.app_name_top.trim() || 'THE',
+      app_name_bottom: brandingForm.app_name_bottom.trim() || 'YARDLINE',
+    };
+
+    return {
+      title: 'App Branding',
+      message: JSON.stringify(meta),
+      imageUrl: meta.header_icon_url || null,
+      version: APP_BRANDING_VERSION,
+      isActive: false,
+      showAsPopup: false,
+      updatedAtUtc: new Date().toISOString(),
+    };
   };
 
-  const cancelEdit = () => {
-    setEditingGameId(null);
-    setEditForm(EMPTY_GAME);
-  };
-
-  const validateGameForm = form => {
-    const hasHome = form.homeTeamId || form.homeTeamPlaceholder.trim();
-    const hasAway = form.awayTeamId || form.awayTeamPlaceholder.trim();
-
-    if (!form.leagueId) {
-      toast.error('Bitte Liga auswählen');
+  const validateBannerForm = () => {
+    if (!bannerForm.title.trim() && !bannerForm.image_url.trim()) {
+      toast.error('Bitte Titel oder Bild/Logo URL eintragen');
       return false;
     }
 
-    if (!hasHome) {
-      toast.error('Bitte Heimteam auswählen oder Heimteam-Name eintragen');
-      return false;
-    }
-
-    if (!hasAway) {
-      toast.error('Bitte Gastteam auswählen oder Gastteam-Name eintragen');
-      return false;
-    }
-
-    if (form.homeTeamId && form.awayTeamId && form.homeTeamId === form.awayTeamId) {
-      toast.error('Heimteam und Gastteam dürfen nicht gleich sein');
+    if (bannerForm.end_date && new Date(bannerForm.end_date) < new Date(bannerForm.start_date)) {
+      toast.error('Enddatum darf nicht vor Startdatum liegen');
       return false;
     }
 
     return true;
   };
 
-  const saveExistingGame = async () => {
-    if (!editingGameId) return;
-    if (!validateGameForm(editForm)) return;
-
-    setSaving(true);
-
-    try {
-      await base44.entities.Game.update(editingGameId, makePayload(editForm));
-      invalidate();
-      cancelEdit();
-      toast.success('Spiel gespeichert');
-    } catch (error) {
-      console.error('DATA EDITOR UPDATE GAME ERROR:', error);
-      toast.error(error.message || 'Spiel konnte nicht gespeichert werden');
-    } finally {
-      setSaving(false);
-    }
+  const resetBannerForm = () => {
+    setBannerForm(EMPTY_BANNER_FORM);
+    setEditingBannerId(null);
   };
 
-  const createGame = async () => {
-    if (!validateGameForm(createForm)) return;
+  const createBannerMutation = useMutation({
+    mutationFn: data => base44.entities.AppUpdate.create({
+      ...data,
+      createdAtUtc: new Date().toISOString(),
+    }),
+    onSuccess: () => {
+      invalidateAdBanners();
+      toast.success('Werbe-Banner erstellt');
+      resetBannerForm();
+    },
+    onError: error => {
+      toast.error(error.message || 'Werbe-Banner konnte nicht erstellt werden');
+    },
+  });
 
-    setSaving(true);
+  const updateBannerMutation = useMutation({
+    mutationFn: data => base44.entities.AppUpdate.update(editingBannerId, data),
+    onSuccess: () => {
+      invalidateAdBanners();
+      toast.success('Werbe-Banner gespeichert');
+      resetBannerForm();
+    },
+    onError: error => {
+      toast.error(error.message || 'Werbe-Banner konnte nicht gespeichert werden');
+    },
+  });
 
-    try {
-      await base44.entities.Game.create({
-        ...makePayload(createForm),
+  const deleteBannerMutation = useMutation({
+    mutationFn: id => base44.entities.AppUpdate.delete(id),
+    onSuccess: () => {
+      invalidateAdBanners();
+      toast.success('Werbe-Banner gelÃ¶scht');
+      resetBannerForm();
+    },
+    onError: error => {
+      toast.error(error.message || 'Werbe-Banner konnte nicht gelÃ¶scht werden');
+    },
+  });
+
+  const saveBrandingMutation = useMutation({
+    mutationFn: async data => {
+      if (appBranding?.id) {
+        return base44.entities.AppUpdate.update(appBranding.id, data);
+      }
+
+      return base44.entities.AppUpdate.create({
+        ...data,
         createdAtUtc: new Date().toISOString(),
       });
+    },
+    onSuccess: () => {
+      invalidateBranding();
+      toast.success('Branding gespeichert');
+    },
+    onError: error => {
+      toast.error(error.message || 'Branding konnte nicht gespeichert werden');
+    },
+  });
 
-      invalidate();
-      setCreateForm(EMPTY_GAME);
-      setTab('games');
-      toast.success('Spiel erstellt');
-    } catch (error) {
-      console.error('DATA EDITOR CREATE GAME ERROR:', error);
-      toast.error(error.message || 'Spiel konnte nicht erstellt werden');
-    } finally {
-      setSaving(false);
-    }
+  const handleCreateBanner = () => {
+    if (!validateBannerForm()) return;
+    createBannerMutation.mutate(buildBannerPayload());
   };
 
-  const quickUpdateGame = async (game, payload) => {
-    await base44.entities.Game.update(game.id, {
-      ...payload,
-      updatedAtUtc: new Date().toISOString(),
-    });
-
-    invalidate();
+  const handleUpdateBanner = () => {
+    if (!validateBannerForm()) return;
+    updateBannerMutation.mutate(buildBannerPayload());
   };
 
-  const GameCard = ({ game }) => {
-    const home = teamsMap.get(game.homeTeamId);
-    const away = teamsMap.get(game.awayTeamId);
-    const league = leaguesMap.get(game.leagueId);
-    const isEditing = editingGameId === game.id;
-    const hasStream = !!game.streamUrl || game.streamLinks?.some(link => link?.url && link?.enabled !== false);
-
-    if (isEditing) {
-      return (
-        <GameForm
-          title="Spiel bearbeiten"
-          form={editForm}
-          teams={teams}
-          leagues={leagues}
-          onChange={setEditForm}
-          onSave={saveExistingGame}
-          onCancel={cancelEdit}
-          saving={saving}
-        />
-      );
-    }
-
-    return (
-      <Card className="p-3">
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <div className="min-w-0">
-            <p className="text-[10px] text-muted-foreground truncate">
-              {league?.shortName || league?.name || 'Keine Liga'}
-            </p>
-
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {formatDate(game.date)} · {game.time || game.kickoffTime || 'ohne Uhrzeit'}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {game.isGameOfTheWeek && (
-              <Badge className="text-[10px] bg-primary text-primary-foreground border-0">
-                GOTW
-              </Badge>
-            )}
-
-            {hasStream && (
-              <Badge className="text-[10px] bg-blue-500/15 text-blue-400 border-0">
-                Stream
-              </Badge>
-            )}
-
-            {game.predictionEnabled === false && (
-              <Badge className="text-[10px] bg-yellow-500/15 text-yellow-400 border-0">
-                Tippspiel aus
-              </Badge>
-            )}
-
-            <Badge
-              className={`text-[10px] border-0 ${
-                game.status === 'live'
-                  ? 'bg-red-500/15 text-red-400'
-                  : game.status === 'final'
-                  ? 'bg-green-500/15 text-green-400'
-                  : 'bg-secondary text-muted-foreground'
-              }`}
-            >
-              {getStatusLabel(game.status)}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-          <div className="min-w-0">
-            <p className="text-sm font-bold truncate">
-              {getTeamName(home, game.homeTeamPlaceholder)}
-            </p>
-          </div>
-
-          <div className="text-center min-w-[72px]">
-            {game.status === 'live' || game.status === 'final' ? (
-              <p className="text-lg font-black">
-                {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
-              </p>
-            ) : (
-              <p className="text-xs font-bold text-muted-foreground">
-                VS
-              </p>
-            )}
-          </div>
-
-          <div className="min-w-0 text-right">
-            <p className="text-sm font-bold truncate">
-              {getTeamName(away, game.awayTeamPlaceholder)}
-            </p>
-          </div>
-        </div>
-
-        {(game.venue || game.city || game.roundName) && (
-          <div className="flex flex-wrap gap-3 mt-3 text-[11px] text-muted-foreground">
-            {(game.venue || game.city) && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {[game.venue, game.city].filter(Boolean).join(', ')}
-              </span>
-            )}
-
-            {game.roundName && (
-              <span>
-                {game.roundName}
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-1.5 mt-3 justify-end">
-          {game.status === 'scheduled' && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs px-2"
-              onClick={() => quickUpdateGame(game, { status: 'live' })}
-            >
-              <Clock className="w-3 h-3 mr-1" />
-              Live
-            </Button>
-          )}
-
-          {game.status === 'live' && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs px-2"
-              onClick={() => quickUpdateGame(game, { status: 'scheduled' })}
-            >
-              Zurück
-            </Button>
-          )}
-
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 text-xs px-2"
-            onClick={() => startEdit(game)}
-          >
-            <Swords className="w-3 h-3 mr-1" />
-            Bearbeiten
-          </Button>
-
-          {game.status !== 'final' && (
-            <Button
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => startEdit({ ...game, status: 'final' })}
-            >
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              Ergebnis
-            </Button>
-          )}
-        </div>
-      </Card>
-    );
+  const handleSaveBranding = () => {
+    saveBrandingMutation.mutate(buildBrandingPayload());
   };
 
-  const renderGameList = list => {
-    if (isLoading) {
-      return (
-        <div className="flex justify-center py-10">
-          <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        </div>
-      );
+  const managedUsers = users.filter(user => user.status !== 'deleted');
+
+  const streamProviders = streamRequests.filter(item =>
+    item.type === 'streaming_provider' &&
+    item.status === 'approved' &&
+    item.providerIsActive !== false
+  );
+
+  const openStreamRequests = streamRequests.filter(item =>
+    item.type === 'streaming_provider_request' &&
+    item.status === 'open'
+  );
+
+  const openSupportTickets = supportTickets.filter(ticket =>
+    ticket.status === 'open' ||
+    ticket.status === 'in_progress' ||
+    !ticket.status
+  );
+
+  const activeHighlights = highlights.filter(item => item.isActive !== false);
+  const activeBanners = adBanners.filter(item => getDateStatus(item) === 'Aktiv');
+  const analyticsStats = buildAnalyticsStats(analyticsEvents);
+  const onboardingLeagueCount = leagues.filter(league => league.showInOnboarding).length;
+
+  const pendingCommunitySubmissions = communityClipItems.filter(item =>
+    item.version === COMMUNITY_CLIP_SUBMISSION_VERSION
+  );
+
+  const activeCommunityClips = communityClipItems.filter(item =>
+    item.version === COMMUNITY_CLIP_VERSION &&
+    item.isActive !== false
+  );
+
+  const sections = [
+    {
+      icon: UserCog,
+      title: 'Nutzer & Logins',
+      description: 'Logins fÃ¼r Dateneditoren erstellen und verwalten',
+      route: '/admin/users',
+      count: managedUsers.length,
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
+    },
+    {
+      icon: Image,
+      title: 'App Branding',
+      description: 'Header-Icon und App-Schriftzug verwalten',
+      route: '__app_branding__',
+      color: 'text-blue-400',
+      bg: 'bg-blue-400/10',
+    },
+    {
+      icon: Image,
+      title: 'Werbe-Banner',
+      description: 'Dezente Home-Banner planen und verwalten',
+      route: '__ad_banners__',
+      count: activeBanners.length,
+      color: 'text-lime-400',
+      bg: 'bg-lime-400/10',
+    },
+    {
+      icon: PlaySquare,
+      title: 'Game Highlights',
+      description: 'Hochformat-Highlights per URL posten',
+      route: '/admin/highlights',
+      count: activeHighlights.length,
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-400/10',
+    },
+    {
+      icon: Trophy,
+      title: 'Ligen',
+      description: 'Ligen, Logos, Farben, Gruppen und Intro-Ligen verwalten',
+      route: '/admin/leagues',
+      count: leagues.length,
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-400/10',
+    },
+    {
+      icon: Image,
+      title: 'Einleitung',
+      description: '4 Liga-Slots und Intro-Bilder fuer neue Nutzer pflegen',
+      route: '/admin/leagues?intro=1',
+      count: onboardingLeagueCount,
+      badge: `${Math.min(onboardingLeagueCount, 4)}/4`,
+      color: 'text-red-400',
+      bg: 'bg-red-400/10',
+    },
+    {
+      icon: Building2,
+      title: 'Teams',
+      description: 'Teams, Logos, Farben und Stadien verwalten',
+      route: '/admin/teams',
+      count: teams.length,
+      color: 'text-purple-400',
+      bg: 'bg-purple-400/10',
+    },
+    {
+      icon: Swords,
+      title: 'Spiele',
+      description: 'Spielplan, Ergebnisse, Streams und Highlights',
+      route: '/admin/games',
+      count: games.length,
+      color: 'text-red-400',
+      bg: 'bg-red-400/10',
+    },
+    {
+      icon: Star,
+      title: 'Game of the Week',
+      description: 'Startseiten-Spiel manuell auswählen und alte Auswahl automatisch ersetzen',
+      route: '/admin/game-of-the-week',
+      count: games.filter(game => game.isGameOfTheWeek === true).length,
+      color: 'text-yellow-400',
+      bg: 'bg-yellow-400/10',
+    },
+    {
+      icon: Camera,
+      title: 'GameDay Shots',
+      description: 'Spielbilder, Credits und Captions verwalten',
+      route: '/admin/gameday-shots',
+      count: gameDayShots.length,
+      color: 'text-purple-400',
+      bg: 'bg-purple-400/10',
+    },
+    {
+      icon: BarChart3,
+      title: 'Game Statistics',
+      description: 'After Game Stats, Game Leaders und Team-Vergleiche pflegen',
+      route: '/user/statistics',
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-400/10',
+    },
+    {
+      icon: Radio,
+      title: 'Streams',
+      description: 'Streaming-Anbieter und Stream-Links verwalten',
+      route: '/admin/streams',
+      count: streamProviders.length,
+      badge: openStreamRequests.length > 0 ? `${openStreamRequests.length} neu` : null,
+      color: 'text-sky-400',
+      bg: 'bg-sky-400/10',
+    },
+    {
+      icon: ListOrdered,
+      title: 'Tabellen',
+      description: 'Tabellen, Platzierungen und Zonen konfigurieren',
+      route: '/admin/standings',
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-400/10',
+    },
+    {
+      icon: BarChart3,
+      title: 'Wettbewerbe',
+      description: 'Cups, Playoffs, Turniere und Brackets verwalten',
+      route: '/admin/competitions',
+      count: competitions.length,
+      color: 'text-pink-400',
+      bg: 'bg-pink-400/10',
+    },
+    {
+      icon: Handshake,
+      title: 'Partner',
+      description: 'Footer-Partner, Logos und Links verwalten',
+      route: '/admin/partners',
+      count: partners.length,
+      color: 'text-teal-400',
+      bg: 'bg-teal-400/10',
+    },
+    {
+      icon: FileText,
+      title: 'Rechtliches',
+      description: 'Impressum, Datenschutz und Nutzungsbedingungen',
+      route: '/admin/legal',
+      color: 'text-slate-400',
+      bg: 'bg-slate-400/10',
+    },
+    {
+      icon: Zap,
+      title: 'App Updates',
+      description: 'Changelogs und Update-Hinweise erstellen',
+      route: '/admin/updates',
+      color: 'text-amber-400',
+      bg: 'bg-amber-400/10',
+    },
+    {
+      icon: HeadphonesIcon,
+      title: 'Support',
+      description: 'Fehlerberichte, Datenhinweise und Tickets bearbeiten',
+      route: '/admin/support',
+      badge: openSupportTickets.length > 0 ? `${openSupportTickets.length} offen` : null,
+      color: 'text-rose-400',
+      bg: 'bg-rose-400/10',
+    },  ];
+
+  const dashboardStats = [
+    { label: 'Nutzer', value: managedUsers.length, tone: 'from-[#2f7dff]/28 to-transparent' },
+    { label: 'Spiele', value: games.length, tone: 'from-[#c20f1a]/28 to-transparent' },
+    { label: 'Offene Tickets', value: openSupportTickets.length, tone: 'from-[#ff2338]/24 to-transparent' },
+    { label: 'Live Inhalte', value: activeHighlights.length + gameDayShots.length + activeBanners.length, tone: 'from-white/16 to-transparent' },
+  ];
+
+  const sectionGroups = [
+    {
+      title: 'System',
+      subtitle: 'Konten, Branding, Updates und Support',
+      items: sections.filter(section => [
+        '/admin/users',
+        '__app_branding__',
+        '/admin/updates',
+        '/admin/support',
+        '/admin/legal',
+      ].includes(section.route)),
+    },
+    {
+      title: 'Football Daten',
+      subtitle: 'Ligen, Teams, Spielplan, Tabellen und Streams',
+      items: sections.filter(section => [
+        '/admin/leagues',
+        '/admin/teams',
+        '/admin/games',
+        '/admin/game-of-the-week',
+        '/admin/standings',
+        '/admin/competitions',
+        '/admin/streams',
+        '/user/statistics',
+      ].includes(section.route)),
+    },
+    {
+      title: 'Content & Partner',
+      subtitle: 'Highlights, Shots, Banner und Partnerflächen',
+      items: sections.filter(section => [
+        '/admin/highlights',
+        '/admin/gameday-shots',
+        '/admin/leagues?intro=1',
+        '__ad_banners__',
+        '/admin/partners',
+      ].includes(section.route)),
+    },
+  ];
+
+  const handleSectionClick = (section) => {
+    if (section.route === '__app_branding__') {
+      setShowBrandingPlanner(current => !current);
+      setShowBannerPlanner(false);
+      return;
     }
 
-    if (list.length === 0) {
-      return (
-        <div className="text-center py-10 text-muted-foreground text-sm">
-          Keine Spiele gefunden.
-        </div>
-      );
+    if (section.route === '__ad_banners__') {
+      setShowBannerPlanner(current => !current);
+      setShowBrandingPlanner(false);
+      return;
     }
 
-    return (
-      <div className="space-y-2">
-        {list.map(game => (
-          <GameCard key={game.id} game={game} />
-        ))}
-      </div>
-    );
+    navigate(section.route);
   };
 
   return (
     <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 py-6 pb-24">
-      <p className="text-sm text-muted-foreground mb-5">
-        Spiele erstellen, Ergebnisse eintragen, Streams pflegen und Tippspiele aktivieren oder deaktivieren.
+      <p className="sr-only">
+        Admin-Zentrale fÃ¼r Daten, Logins und App-Inhalte.
       </p>
 
-      <div className="grid grid-cols-4 gap-2 mb-5">
-        <StatTile
-          icon={Calendar}
-          label="Heute"
-          value={todayGames.length}
-        />
-
-        <StatTile
-          icon={Clock}
-          label="Live"
-          value={liveGames.length}
-          tone="text-red-400"
-          bg="bg-red-500/10"
-        />
-
-        <StatTile
-          icon={Swords}
-          label="Offen"
-          value={openGames.length}
-          tone="text-yellow-400"
-          bg="bg-yellow-500/10"
-        />
-
-        <StatTile
-          icon={Radio}
-          label="Streams"
-          value={streamGames.length}
-          tone="text-blue-400"
-          bg="bg-blue-500/10"
-        />
+      <div className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <div className="relative p-5 sm:p-6">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(194,15,26,0.28),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(47,125,255,0.28),transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_18px)] opacity-80" />
+          <div className="relative">
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-red-500">
+              The Yardline Admin
+            </p>
+            <h1 className="mt-2 text-2xl font-black italic leading-none sm:text-3xl">
+              Command Center
+            </h1>
+            <p className="mt-2 max-w-2xl text-xs font-semibold leading-relaxed text-white/58">
+              Alles fuer Konten, Football-Daten, Content, Updates und Support an einem Ort.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full mb-4">
-          <TabsTrigger value="overview" className="flex-1 text-xs">
-            Übersicht
-          </TabsTrigger>
+      <TodaysGamesReminder />
 
-          <TabsTrigger value="games" className="flex-1 text-xs">
-            Spiele
-          </TabsTrigger>
+      <AnalyticsDashboard stats={analyticsStats} />
 
-          <TabsTrigger value="create" className="flex-1 text-xs">
-            Erstellen
-          </TabsTrigger>
+      <div className="hidden rounded-2xl border border-primary/20 bg-card p-4 mb-6">
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+              App Analytics
+            </p>
 
-          <TabsTrigger value="more" className="flex-1 text-xs">
-            Mehr
-          </TabsTrigger>
-        </TabsList>
+            <h2 className="text-base font-black mt-0.5">
+              Nutzer & Seitenaufrufe
+            </h2>
 
-        <TabsContent value="overview">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-sm font-bold mb-2">
-                Heute & Live
-              </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Interne Richtwerte fÃ¼r Reichweite, AktivitÃ¤t und spÃ¤tere Werbepreise.
+            </p>
+          </div>
+        </div>
 
-              {renderGameList([...liveGames, ...todayGames].slice(0, 8))}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          {[
+            { label: 'Aktiv 24h', value: analyticsStats.active24h },
+            { label: 'Aktiv 7 Tage', value: analyticsStats.active7d },
+            { label: 'Aktiv 30 Tage', value: analyticsStats.active30d },
+          ].map(stat => (
+            <div
+              key={stat.label}
+              className="bg-background/50 border border-border/50 rounded-xl p-2.5 text-center"
+            >
+              <div className="text-lg font-black text-primary">
+                {stat.value}
+              </div>
+
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: 'Views 24h', value: analyticsStats.views24h },
+            { label: 'Views 7 Tage', value: analyticsStats.views7d },
+            { label: 'Views 30 Tage', value: analyticsStats.views30d },
+          ].map(stat => (
+            <div
+              key={stat.label}
+              className="bg-background/40 border border-border/40 rounded-xl p-2.5 text-center"
+            >
+              <div className="text-base font-bold text-foreground">
+                {stat.value}
+              </div>
+
+              <div className="text-[10px] text-muted-foreground mt-0.5">
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {dashboardStats.map(stat => (
+          <div
+            key={stat.label}
+            className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/72 p-3 text-center text-white shadow-[0_14px_30px_rgba(0,0,0,0.24)]"
+          >
+            <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${stat.tone}`} />
+            <div className="relative text-xl font-black text-white">
+              {stat.value}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <DataAreaCard
-                icon={Swords}
-                title="Games"
-                description="Spiele erstellen, Kickoff-Zeiten pflegen, Live-Status setzen und Ergebnisse eintragen."
-                badge="aktiv"
-              />
-
-              <DataAreaCard
-                icon={Radio}
-                title="Streams"
-                description="Stream-Links direkt am Spiel speichern und sichtbar schalten."
-                badge="aktiv"
-              />
-
-              <DataAreaCard
-                icon={Trophy}
-                title="Tippspiel"
-                description="Tippspiel pro Spiel aktivieren oder deaktivieren. Tipps löschen bleibt Admins vorbehalten."
-                badge="aktiv"
-              />
-
-              <DataAreaCard
-                icon={BarChart3}
-                title="Statistiken"
-                description="Team- und Spielerstatistiken werden später ergänzt."
-                badge="geplant"
-              />
+            <div className="relative mt-1 text-[10px] font-black uppercase tracking-wide text-white/52">
+              {stat.label}
             </div>
           </div>
-        </TabsContent>
+        ))}
+      </div>
 
-        <TabsContent value="games">
-          <Tabs defaultValue="open">
-            <TabsList className="w-full mb-4">
-              <TabsTrigger value="open" className="flex-1 text-xs">
-                Offen
-              </TabsTrigger>
+      {showBrandingPlanner && (
+        <AppBrandingPlanner
+          branding={appBranding}
+          formData={brandingForm}
+          setFormData={setBrandingForm}
+          onClose={() => setShowBrandingPlanner(false)}
+          onSave={handleSaveBranding}
+          isSaving={saveBrandingMutation.isPending}
+        />
+      )}
 
-              <TabsTrigger value="final" className="flex-1 text-xs">
-                Final
-              </TabsTrigger>
+      {showBannerPlanner && (
+        <AdBannerPlanner
+          banners={adBanners}
+          editingId={editingBannerId}
+          setEditingId={setEditingBannerId}
+          formData={bannerForm}
+          setFormData={setBannerForm}
+          onClose={() => setShowBannerPlanner(false)}
+          onCreate={handleCreateBanner}
+          onUpdate={handleUpdateBanner}
+          onDelete={id => deleteBannerMutation.mutate(id)}
+          isSaving={createBannerMutation.isPending || updateBannerMutation.isPending}
+          isDeleting={deleteBannerMutation.isPending}
+        />
+      )}
 
-              <TabsTrigger value="streams" className="flex-1 text-xs">
-                Streams
-              </TabsTrigger>
-
-              <TabsTrigger value="all" className="flex-1 text-xs">
-                Alle
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="open">
-              {renderGameList(openGames)}
-            </TabsContent>
-
-            <TabsContent value="final">
-              {renderGameList(finalGames)}
-            </TabsContent>
-
-            <TabsContent value="streams">
-              {renderGameList(streamGames)}
-            </TabsContent>
-
-            <TabsContent value="all">
-              {renderGameList(sortedGames)}
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        <TabsContent value="create">
-          <GameForm
-            title="Neues Spiel erstellen"
-            form={createForm}
-            teams={teams}
-            leagues={leagues}
-            onChange={setCreateForm}
-            onSave={createGame}
-            saving={saving}
-          />
-
-          <div className="mt-3 rounded-xl border border-border/50 bg-card p-3 text-xs text-muted-foreground leading-relaxed">
-            <div className="flex items-start gap-2">
-              <Plus className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-              <p>
-                Für ein neues Spiel brauchst du mindestens Liga, Heimteam und Gastteam.
-              </p>
+      <div className="space-y-5">
+        {sectionGroups.map(group => (
+          <section key={group.title} className="overflow-hidden rounded-[26px] border border-white/10 bg-black/64 p-3 text-white shadow-[0_18px_42px_rgba(0,0,0,0.28)]">
+            <div className="mb-3 flex items-end justify-between gap-3 px-1">
+              <div>
+                <h2 className="text-lg font-black italic leading-tight text-white">
+                  {group.title}
+                </h2>
+                <p className="mt-1 text-[11px] font-semibold text-white/48">
+                  {group.subtitle}
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-black text-white/60">
+                {group.items.length}
+              </span>
             </div>
-          </div>
-        </TabsContent>
 
-        <TabsContent value="more">
-          <div className="space-y-2">
-            <DataAreaCard
-              icon={Database}
-              title="Datenpflege"
-              description="Zentraler Arbeitsbereich für wichtige Sportdaten."
-              badge="Basis"
-            />
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {group.items.map(section => {
+                const Icon = section.icon;
 
-            <DataAreaCard
-              icon={Trophy}
-              title="Tippspiel"
-              description="Dateneditoren dürfen Tippspiele an oder aus schalten. Tipps löschen oder zurücksetzen ist nur für Admins vorgesehen."
-              badge="aktiv"
-            />
+                return (
+                  <button
+                    key={section.route}
+                    type="button"
+                    onClick={() => handleSectionClick(section)}
+                    className="group flex min-h-[92px] w-full items-center gap-3 rounded-[20px] border border-white/10 bg-white/[0.055] p-3 text-left transition-all hover:border-red-500/45 hover:bg-white/[0.09] active:scale-[0.98]"
+                  >
+                    <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${section.bg} ring-1 ring-white/10`}>
+                      <Icon className={`h-6 w-6 ${section.color}`} />
+                    </div>
 
-            <DataAreaCard
-              icon={FileText}
-              title="Transfers"
-              description="Transfers werden als eigener Datenbereich vorbereitet."
-              badge="nächster Schritt"
-            />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-black leading-tight text-white">
+                          {section.title}
+                        </span>
 
-            <DataAreaCard
-              icon={BarChart3}
-              title="Statistiken"
-              description="Team-, Game- und Spielerstatistiken bekommen ein eigenes Datenmodell."
-              badge="geplant"
-            />
-          </div>
-        </TabsContent>
-      </Tabs>
+                        {section.count != null && <StatBadge count={section.count} />}
+
+                        {section.badge && (
+                          <span className="ml-auto rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-black text-red-300">
+                            {section.badge}
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-1 line-clamp-2 text-[11px] font-semibold leading-snug text-white/48">
+                        {section.description}
+                      </p>
+                    </div>
+
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/35 transition-transform group-hover:translate-x-0.5 group-hover:text-white" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }
