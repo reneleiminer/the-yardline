@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CalendarDays, LockKeyhole } from "lucide-react";
-import { Link } from "react-router-dom";
+import { CalendarDays } from "lucide-react";
 
 function getTimeLeft(targetDate) {
   const now = new Date();
@@ -105,15 +104,7 @@ export default function MaintenancePage() {
           </div>
         )}
 
-        <div className="mx-auto mb-8 h-px max-w-md bg-gradient-to-r from-transparent via-red-500/55 to-transparent" />
-
-        <Link
-          to="/settings?login=internal"
-          className="inline-flex items-center justify-center gap-2 text-sm text-white/35 hover:text-red-400 transition"
-        >
-          <LockKeyhole className="h-4 w-4" />
-          Admin Login
-        </Link>
+        <div className="mx-auto h-px max-w-md bg-gradient-to-r from-transparent via-red-500/55 to-transparent" />
       </section>
     </main>
   );
