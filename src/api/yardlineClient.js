@@ -451,6 +451,17 @@ const OMIT_FIELDS = {
   Post: new Set(['authorId']),
 };
 
+const GAME_OF_THE_WEEK_LEGACY_FIELDS = new Set([
+  'isGameOfTheWeek',
+  'gameOfTheWeekLabel',
+  'gameOfTheWeekSelectedBy',
+  'gameOfTheWeekSelectedAtUtc',
+]);
+
+function shouldStoreInLegacyData(entityName, field) {
+  return entityName === 'Game' && GAME_OF_THE_WEEK_LEGACY_FIELDS.has(field);
+}
+
 const FIELD_TO_COLUMN = {
   AppUser: {
     internalUsername: 'internal_username',
@@ -760,6 +771,11 @@ function toDbPayload(entityName, data = {}) {
   Object.entries(data).forEach(([field, value]) => {
     if (value === undefined || OMIT_FIELDS[entityName]?.has(field)) return;
 
+    if (shouldStoreInLegacyData(entityName, field)) {
+      legacyData[field] = value;
+      return;
+    }
+
     const column = toColumn(entityName, field);
     const normalizedValue = value === '' && nullableForeignKeys.has(column)
       ? null
@@ -808,7 +824,7 @@ function fromDbRow(entityName, row) {
 
   if (row.legacy_data && typeof row.legacy_data === 'object') {
     Object.entries(row.legacy_data).forEach(([field, value]) => {
-      if (item[field] === undefined) {
+      if (item[field] === undefined || shouldStoreInLegacyData(entityName, field)) {
         item[field] = value;
       }
     });
@@ -904,9 +920,30 @@ function createEntityApi(entityName) {
     },
 
     async update(id, data) {
+      const payload = toDbPayload(entityName, data);
+
+      if (
+        payload.legacy_data &&
+        typeof payload.legacy_data === 'object' &&
+        ENTITY_COLUMNS[entityName]?.has('legacy_data')
+      ) {
+        const { data: existing, error: existingError } = await supabase
+          .from(table)
+          .select('legacy_data')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (existingError) throw existingError;
+
+        payload.legacy_data = {
+          ...(existing?.legacy_data && typeof existing.legacy_data === 'object' ? existing.legacy_data : {}),
+          ...payload.legacy_data,
+        };
+      }
+
       const { data: updated, error } = await supabase
         .from(table)
-        .update(toDbPayload(entityName, data))
+        .update(payload)
         .eq('id', id)
         .select()
         .single();
