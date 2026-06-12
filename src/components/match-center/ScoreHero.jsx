@@ -10,7 +10,7 @@ function TeamLogo({ logo, name }) {
       <img
         src={getImageUrl(logo)}
         alt={name || ''}
-        className="w-10 h-10 object-contain rounded-xl bg-black/20 border border-white/10 p-1"
+        className="h-16 w-16 object-contain rounded-2xl bg-black/22 border border-white/12 p-1.5 drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
         onError={event => {
           event.currentTarget.style.display = 'none';
         }}
@@ -19,9 +19,20 @@ function TeamLogo({ logo, name }) {
   }
 
   return (
-    <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center border border-white/10">
-      <Shield className="w-5 h-5 text-muted-foreground" />
+    <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/12 bg-black/24">
+      <Shield className="h-7 w-7 text-white/56" />
     </div>
+  );
+}
+
+function hasScoreValue(game) {
+  return (
+    game?.scoreHome !== null &&
+    game?.scoreHome !== undefined &&
+    game?.scoreAway !== null &&
+    game?.scoreAway !== undefined &&
+    Number.isFinite(Number(game.scoreHome)) &&
+    Number.isFinite(Number(game.scoreAway))
   );
 }
 
@@ -30,13 +41,13 @@ export default function ScoreHero({ game, home, away, league }) {
   const navigate = useNavigate();
 
   const isLive = game.status === 'live';
-  const isFinal = game.status === 'final';
+  const isFinal = game.status === 'final' || hasScoreValue(game);
   const hasScore = isLive || isFinal;
 
-  const homeColor = home?.primaryColor || home?.colorPrimary || '#2563eb';
-  const awayColor = away?.primaryColor || away?.colorPrimary || '#ef4444';
+  const homeColor = home?.primaryColor || home?.colorPrimary || '#013369';
+  const awayColor = away?.primaryColor || away?.colorPrimary || '#c20f1a';
 
-  const leagueName = league?.name ? `${league.name}${game.groupId ? ` · ${game.groupId}` : ''}` : '';
+  const leagueName = league?.name ? `${league.name}${game.groupId ? ` - ${game.groupId}` : ''}` : '';
   const weekLabel = game.week ? `Spieltag ${game.week}` : '';
   const roundLabel = game.roundName || '';
 
@@ -46,15 +57,13 @@ export default function ScoreHero({ game, home, away, league }) {
   const homeScore = game.scoreHome ?? 0;
   const awayScore = game.scoreAway ?? 0;
 
-  const homeWins = hasScore && homeScore > awayScore;
-  const awayWins = hasScore && awayScore > homeScore;
-  const isDraw = hasScore && homeScore === awayScore;
+  const homeWins = hasScore && Number(homeScore) > Number(awayScore);
+  const awayWins = hasScore && Number(awayScore) > Number(homeScore);
+  const isDraw = hasScore && Number(homeScore) === Number(awayScore);
   const hasWinner = isFinal && !isDraw && (homeWins || awayWins);
 
   useEffect(() => {
-    if (hasWinner) {
-      setAnimateWinner(true);
-    }
+    if (hasWinner) setAnimateWinner(true);
   }, [hasWinner]);
 
   const homeDimmed = isFinal && awayWins;
@@ -62,18 +71,18 @@ export default function ScoreHero({ game, home, away, league }) {
 
   return (
     <div className="px-4 pt-4 pb-2">
-      <div
-        className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#101722] px-4 py-4"
-        style={{
-          boxShadow: `inset 6px 0 0 ${homeColor}, inset -6px 0 0 ${awayColor}, 0 16px 36px rgba(0,0,0,0.28)`,
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.055] via-transparent to-black/25 pointer-events-none" />
+      <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.36)]">
+        <div className="absolute inset-0 grid grid-cols-2">
+          <div style={{ background: homeColor }} />
+          <div style={{ background: awayColor }} />
+        </div>
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_0_1px,transparent_1px_18px)] opacity-25" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white/12 via-black/8 to-black/28" />
 
-        <div className="relative">
+        <div className="relative px-4 py-4">
           {(leagueName || weekLabel || roundLabel) && (
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-4 whitespace-normal break-words">
-              {[leagueName, weekLabel, roundLabel].filter(Boolean).join(' · ')}
+            <div className="mb-4 text-center text-[10px] font-black uppercase tracking-wider text-white/78 whitespace-normal break-words">
+              {[leagueName, weekLabel, roundLabel].filter(Boolean).join(' - ')}
             </div>
           )}
 
@@ -90,20 +99,20 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={home?.logo} name={home?.name} />
               </div>
 
-              <span className="text-sm font-black text-center leading-tight whitespace-normal break-words w-full max-w-[112px] hover:text-primary transition-colors">
+              <span className="w-full max-w-[118px] whitespace-normal break-words text-center text-sm font-black leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.58)]">
                 {homeName}
               </span>
             </button>
 
-            <div className="flex flex-col items-center flex-shrink-0 gap-1.5 min-w-[88px]">
+            <div className="flex min-w-[108px] flex-shrink-0 flex-col items-center gap-1.5 rounded-[22px] border border-white/22 bg-black/78 px-3 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.54)] backdrop-blur">
               {hasScore ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-white">
                   <ScorePill score={homeScore} size="lg" />
-                  <span className="text-xl font-light text-muted-foreground">:</span>
+                  <span className="text-xl font-light text-white/42">:</span>
                   <ScorePill score={awayScore} size="lg" />
                 </div>
               ) : (
-                <span className="text-2xl font-black text-primary tabular-nums">
+                <span className="text-2xl font-black text-[#ff2338] tabular-nums">
                   {game.time || game.kickoffTime || '--:--'}
                 </span>
               )}
@@ -111,14 +120,16 @@ export default function ScoreHero({ game, home, away, league }) {
               {isLive ? (
                 <div className="flex items-center gap-1.5">
                   <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
                   </span>
-                  <span className="text-[10px] font-bold text-red-400 tracking-widest">LIVE</span>
+                  <span className="text-[10px] font-black tracking-widest text-red-400">LIVE</span>
                 </div>
               ) : isFinal ? (
-                <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">FINAL</span>
-              ) : null}
+                <span className="text-[10px] font-black tracking-wider text-white/68">FINAL</span>
+              ) : (
+                <span className="text-[10px] font-black tracking-wider text-white/58">KICKOFF</span>
+              )}
             </div>
 
             <button
@@ -133,7 +144,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={away?.logo} name={away?.name} />
               </div>
 
-              <span className="text-sm font-black text-center leading-tight whitespace-normal break-words w-full max-w-[112px] hover:text-primary transition-colors">
+              <span className="w-full max-w-[118px] whitespace-normal break-words text-center text-sm font-black leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.58)]">
                 {awayName}
               </span>
             </button>

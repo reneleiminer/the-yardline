@@ -58,11 +58,11 @@ function DonutChart({ homeWins, awayWins, draws, homeColor, awayColor }) {
       className="relative w-28 h-28 rounded-full flex items-center justify-center mx-auto"
       style={{ background: gradient }}
     >
-      <div className="w-20 h-20 rounded-full bg-card border border-border/40 flex flex-col items-center justify-center">
+      <div className="w-20 h-20 rounded-full bg-black border border-white/10 flex flex-col items-center justify-center text-white">
         <p className="text-2xl font-black tabular-nums">
           {total}
         </p>
-        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">
+        <p className="text-[9px] text-white/48 font-bold uppercase tracking-wider">
           Spiele
         </p>
       </div>
@@ -78,12 +78,12 @@ function LegendDot({ color, label, value }) {
           className="w-2 h-2 rounded-full flex-shrink-0"
           style={{ backgroundColor: color }}
         />
-        <span className="text-[10px] text-muted-foreground font-medium truncate">
+        <span className="text-[10px] text-white/48 font-medium truncate">
           {label}
         </span>
       </div>
 
-      <span className="text-xs font-black tabular-nums">
+      <span className="text-xs font-black tabular-nums text-white">
         {value}
       </span>
     </div>
@@ -128,11 +128,11 @@ export default function HeadToHead({ game, teams, allGames }) {
 
   return (
     <div className="px-4 pt-4 pb-2">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-3">
+      <p className="yardline-heading mb-3 text-[20px]">
         Direkter Vergleich
       </p>
 
-      <div className="bg-card border border-border/50 rounded-2xl px-4 py-4 mb-3">
+      <div className="bg-black/72 border border-white/10 rounded-[24px] px-4 py-4 mb-3 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
           <div className="min-w-0 flex flex-col items-center">
             <TeamLogo team={homeTeam} />
@@ -160,7 +160,7 @@ export default function HeadToHead({ game, teams, allGames }) {
         </div>
 
         {stats.draws > 0 && (
-          <div className="mt-4 pt-3 border-t border-border/40">
+          <div className="mt-4 pt-3 border-t border-white/10">
             <LegendDot color="#6b7280" label="Unentschieden" value={stats.draws} />
           </div>
         )}
@@ -176,9 +176,9 @@ export default function HeadToHead({ game, teams, allGames }) {
             <Link
               key={g.id}
               to={`/game/${g.id}`}
-              className="flex items-center justify-between gap-3 text-xs bg-secondary/30 rounded-xl px-3 py-2 hover:bg-secondary/50 transition-colors"
+              className="flex items-center justify-between gap-3 text-xs rounded-xl border border-white/10 bg-black/58 px-3 py-2 text-white hover:bg-white/8 transition-colors"
             >
-              <span className="text-muted-foreground flex-shrink-0">
+              <span className="text-white/48 flex-shrink-0">
                 {format(new Date(g.date), 'dd.MM.yy', { locale: de })}
               </span>
 

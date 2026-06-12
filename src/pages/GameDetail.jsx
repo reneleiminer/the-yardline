@@ -110,7 +110,7 @@ function InstagramCreditButton({ instagram }) {
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/15 px-2 py-1 text-[10px] font-bold text-pink-100 hover:bg-pink-500/25 transition-colors"
-      aria-label={`Instagram ${label} öffnen`}
+      aria-label={`Instagram ${label} Ã¶ffnen`}
     >
       <Instagram className="w-3 h-3" />
       <span className="truncate max-w-[96px]">{label}</span>
@@ -174,6 +174,21 @@ function isPredictionOpen(game) {
   if (!kickoff) return true;
 
   return new Date().getTime() < kickoff.getTime();
+}
+
+function hasFinalScore(game) {
+  return (
+    game?.scoreHome !== null &&
+    game?.scoreHome !== undefined &&
+    game?.scoreAway !== null &&
+    game?.scoreAway !== undefined &&
+    Number.isFinite(Number(game.scoreHome)) &&
+    Number.isFinite(Number(game.scoreAway))
+  );
+}
+
+function isFinalGame(game) {
+  return game?.status === 'final' || hasFinalScore(game);
 }
 
 function buildPredictionStats(predictions, homeTeamId, awayTeamId) {
@@ -284,7 +299,7 @@ function getLeaderLine(leader) {
   if (leader.tackles) parts.push(`${leader.tackles} TKL`);
   if (leader.sacks) parts.push(`${leader.sacks} SACK`);
 
-  return leader.line || parts.join(' · ');
+  return leader.line || parts.join(' Â· ');
 }
 
 function normalizeStreamLinks(game) {
@@ -386,7 +401,7 @@ function getVisibleStreamLinks(game) {
 }
 
 function getStreamName(stream) {
-  return stream.providerName || stream.platform || stream.label || 'Stream öffnen';
+  return stream.providerName || stream.platform || stream.label || 'Stream Ã¶ffnen';
 }
 
 function StreamProviderLogo({ stream, size = 'w-10 h-10' }) {
@@ -425,7 +440,7 @@ function CancelledGameNotice({ game }) {
             </h2>
 
             <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-              Das Spiel wird nicht live geschaltet, nicht gewertet und zählt nicht für Tabellen oder Statistiken.
+              Das Spiel wird nicht live geschaltet, nicht gewertet und zÃ¤hlt nicht fÃ¼r Tabellen oder Statistiken.
             </p>
 
             {game.notes && (
@@ -447,7 +462,7 @@ function PlaceholderScoreHero({ game, home, away, league }) {
   const hasScore = isLive || isFinal;
 
   const leagueName = league?.name
-    ? `${league.name}${game.groupId ? ` · ${game.groupId}` : ''}`
+    ? `${league.name}${game.groupId ? ` Â· ${game.groupId}` : ''}`
     : '';
 
   const weekLabel = game.week ? `Spieltag ${game.week}` : '';
@@ -459,7 +474,7 @@ const awayName = away?.name || away?.shortName || game.awayTeamPlaceholder || 'T
       <div className="bg-card rounded-2xl px-4 py-4 border border-border/60">
         {(leagueName || weekLabel || game.roundName) && (
           <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-3">
-            {[leagueName, weekLabel, game.roundName].filter(Boolean).join(' · ')}
+            {[leagueName, weekLabel, game.roundName].filter(Boolean).join(' Â· ')}
           </div>
         )}
 
@@ -590,7 +605,7 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
   const canPredict = predictionWindowOpen && !userAlreadyPredicted;
 
   const homeName = home?.shortName || home?.name || 'Heimteam';
-  const awayName = away?.shortName || away?.name || 'Auswärtsteam';
+  const awayName = away?.shortName || away?.name || 'AuswÃ¤rtsteam';
 
   const homeTeamId = game?.homeTeamId || 'home';
   const awayTeamId = game?.awayTeamId || 'away';
@@ -607,7 +622,7 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
 
   const handleSubmit = selectedTeamId => {
     if (!canPredict) {
-      toast.error('Du hast für dieses Spiel bereits getippt oder die Tippabgabe ist geschlossen.');
+      toast.error('Du hast fÃ¼r dieses Spiel bereits getippt oder die Tippabgabe ist geschlossen.');
       return;
     }
 
@@ -628,11 +643,11 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
 
             <p className="text-xs text-muted-foreground mt-1">
   {predictionDisabled
-    ? 'Das Tippspiel ist für dieses Spiel deaktiviert.'
+    ? 'Das Tippspiel ist fÃ¼r dieses Spiel deaktiviert.'
     : canPredict
-    ? 'Wähle vor Kickoff, wer das Spiel gewinnt.'
+    ? 'WÃ¤hle vor Kickoff, wer das Spiel gewinnt.'
     : userAlreadyPredicted
-    ? 'Dein Tipp ist gespeichert und kann nicht mehr geändert werden.'
+    ? 'Dein Tipp ist gespeichert und kann nicht mehr geÃ¤ndert werden.'
     : 'Tippabgabe geschlossen.'}
 </p>
           </div>
@@ -738,33 +753,33 @@ function GameLeaderRow({ title, homeLeader, awayLeader }) {
   if (homeName === '-' && awayName === '-' && !homeLine && !awayLine) return null;
 
   return (
-    <div className="border-t border-border/40 first:border-t-0 py-4">
+    <div className="border-t border-white/10 first:border-t-0 py-4">
       <div className="text-center mb-3">
-        <p className="text-[10px] font-black uppercase tracking-wider text-yellow-500">
+        <p className="text-[10px] font-black uppercase tracking-wider text-red-500">
           {title}
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-black truncate">
+          <p className="text-sm font-black truncate text-white">
             {homeName}
           </p>
 
           {homeLine && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            <p className="text-xs text-white/52 mt-0.5 truncate">
               {homeLine}
             </p>
           )}
         </div>
 
         <div className="min-w-0 text-right">
-          <p className="text-sm font-black truncate">
+          <p className="text-sm font-black truncate text-white">
             {awayName}
           </p>
 
           {awayLine && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+            <p className="text-xs text-white/52 mt-0.5 truncate">
               {awayLine}
             </p>
           )}
@@ -791,30 +806,30 @@ function TeamStatCompareRow({ label, homeValue, awayValue, homeColor = '#2563eb'
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-1.5">
-        <span className="text-xs font-black tabular-nums min-w-10">
+        <span className="text-xs font-black tabular-nums min-w-10 text-white">
           {formatStatDisplay(homeValue)}
         </span>
 
-        <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground text-center">
+        <span className="text-[10px] font-black uppercase tracking-wider text-white/48 text-center">
           {label}
         </span>
 
-        <span className="text-xs font-black tabular-nums min-w-10 text-right">
+        <span className="text-xs font-black tabular-nums min-w-10 text-right text-white">
           {formatStatDisplay(awayValue)}
         </span>
       </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-        <div className="h-2 rounded-full bg-secondary overflow-hidden flex justify-end">
+        <div className="h-2 rounded-full bg-white/10 overflow-hidden flex justify-end">
           <div
             className="h-full rounded-full"
             style={{ width: homeWidth, backgroundColor: homeColor }}
           />
         </div>
 
-        <div className="w-px h-4 bg-border" />
+        <div className="w-px h-4 bg-white/16" />
 
-        <div className="h-2 rounded-full bg-secondary overflow-hidden">
+        <div className="h-2 rounded-full bg-white/10 overflow-hidden">
           <div
             className="h-full rounded-full"
             style={{ width: awayWidth, backgroundColor: awayColor }}
@@ -829,29 +844,29 @@ function TimeOfPossessionBlock({ homeName, awayName, homeTime, awayTime }) {
   if (!homeTime && !awayTime) return null;
 
   return (
-    <div className="rounded-2xl border border-border/50 bg-card p-4">
+    <div className="rounded-[24px] border border-white/10 bg-black/72 p-4 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
       <div className="flex items-center gap-2 mb-4">
-        <Users className="w-4 h-4 text-primary" />
-        <h2 className="text-sm font-bold">
+        <Users className="w-4 h-4 text-red-500" />
+        <h2 className="text-sm font-black">
           Time of Possession
         </h2>
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-bold truncate">
+          <span className="text-xs font-bold truncate text-white/62">
             {homeName}
           </span>
-          <span className="text-sm font-black tabular-nums">
+          <span className="text-sm font-black tabular-nums text-white">
             {homeTime || '-'}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-bold truncate">
+          <span className="text-xs font-bold truncate text-white/62">
             {awayName}
           </span>
-          <span className="text-sm font-black tabular-nums">
+          <span className="text-sm font-black tabular-nums text-white">
             {awayTime || '-'}
           </span>
         </div>
@@ -861,7 +876,7 @@ function TimeOfPossessionBlock({ homeName, awayName, homeTime, awayTime }) {
 }
 
 function AfterGameStatisticsBlock({ game, stat, home, away }) {
-  if (game?.status !== 'final') return null;
+  if (!isFinalGame(game)) return null;
   if (!hasGameStats(stat)) return null;
 
   const homeName = home?.shortName || home?.name || 'Home';
@@ -875,26 +890,27 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
   
   return (
     <div className="px-4 pt-4 pb-2 space-y-3">
-      <div className="rounded-2xl border border-border/50 bg-card p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-4 h-4 text-primary" />
+      <div className="relative overflow-hidden rounded-[26px] border border-white/10 bg-black/76 p-4 text-white shadow-[0_18px_42px_rgba(0,0,0,0.32)]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(194,15,26,0.24),transparent_34%),radial-gradient(circle_at_88%_0%,rgba(47,125,255,0.20),transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_18px)] opacity-70" />
+        <div className="relative flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-red-500" />
           <div>
-            <h2 className="text-sm font-bold">
+            <h2 className="text-lg font-black italic leading-tight">
               After Game Statistics
             </h2>
 
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Game Leaders und Team Stats nach dem Spiel.
+            <p className="text-xs text-white/56 mt-0.5">
+              Team Stats und Spieler-Statistiken aus der App.
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_260px] gap-3">
-        <div className="rounded-2xl border border-border/50 bg-card p-4">
+        <div className="rounded-[24px] border border-white/10 bg-black/72 p-4 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-bold">
+            <BarChart3 className="w-4 h-4 text-red-500" />
+            <h2 className="text-sm font-black">
               Team Stats
             </h2>
           </div>
@@ -958,21 +974,21 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
         />
       </div>
             {hasMeaningfulObjectValues(leaders) && (
-        <div className="rounded-2xl border border-border/50 bg-card p-4">
+        <div className="rounded-[24px] border border-white/10 bg-black/72 p-4 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-bold">
-              Game Leaders
+            <Trophy className="w-4 h-4 text-red-500" />
+            <h2 className="text-sm font-black">
+              Spieler Statistiken
             </h2>
           </div>
 
-          <div className="rounded-2xl border border-border/40 bg-background/30 px-3 py-2">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2">
             <div className="grid grid-cols-2 gap-3 mb-2">
-              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate">
+              <p className="text-[10px] font-black uppercase tracking-wider text-white/48 truncate">
                 {homeName}
               </p>
 
-              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground truncate text-right">
+              <p className="text-[10px] font-black uppercase tracking-wider text-white/48 truncate text-right">
                 {awayName}
               </p>
             </div>
@@ -1027,7 +1043,7 @@ function GameDayShotsBlock({ photos }) {
               </h2>
 
               <p className="text-xs text-muted-foreground mt-0.5">
-                Bilder, Eindrücke und Momente rund um dieses Spiel.
+                Bilder, EindrÃ¼cke und Momente rund um dieses Spiel.
               </p>
             </div>
           </div>
@@ -1048,7 +1064,7 @@ function GameDayShotsBlock({ photos }) {
             </p>
 
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Sobald Bilder zum Spiel verfügbar sind, erscheinen sie hier.
+              Sobald Bilder zum Spiel verfÃ¼gbar sind, erscheinen sie hier.
             </p>
           </div>
         ) : (
@@ -1255,7 +1271,7 @@ export default function GameDetail() {
       .filter(item => item.version === GAME_PREDICTION_VERSION && item.isActive !== false);
   }, [gameContentItems]);
 
-  const showStatisticsTab = game?.status === 'final' && hasGameStats(gameStatistic);
+  const showStatisticsTab = isFinalGame(game) && hasGameStats(gameStatistic);
   const selectedDetailTab = activeDetailTab === 'statistics' && !showStatisticsTab
     ? 'overview'
     : activeDetailTab;
@@ -1284,7 +1300,7 @@ export default function GameDetail() {
   const savePredictionMutation = useMutation({
     mutationFn: async ({ selected_team_id }) => {
       if (currentPrediction?.id) {
-        throw new Error('Du hast für dieses Spiel bereits getippt.');
+        throw new Error('Du hast fÃ¼r dieses Spiel bereits getippt.');
       }
 
       if (!isPredictionOpen(game)) {
@@ -1330,7 +1346,7 @@ export default function GameDetail() {
       <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center">
         <p className="text-muted-foreground">Spiel nicht gefunden.</p>
         <Button variant="ghost" className="mt-4" onClick={() => navigate('/match-center')}>
-          Zurück
+          ZurÃ¼ck
         </Button>
       </div>
     );
@@ -1349,17 +1365,17 @@ export default function GameDetail() {
       {!isCancelled && <StreamLinksBlock game={game} />}
 
       <div className="px-4 pt-4">
-        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border/50 bg-card p-1">
+        <div className={`grid gap-2 rounded-[22px] border border-white/10 bg-black/72 p-1 shadow-[0_14px_30px_rgba(0,0,0,0.26)] ${showStatisticsTab ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <button
             type="button"
             onClick={() => setActiveDetailTab('overview')}
             className={`h-10 rounded-xl text-xs font-black transition-colors ${
               selectedDetailTab === 'overview'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.28)]'
+                : 'text-white/52 hover:text-white'
             }`}
           >
-            Übersicht
+            Ãœbersicht
           </button>
 
           {showStatisticsTab && (
@@ -1368,8 +1384,8 @@ export default function GameDetail() {
               onClick={() => setActiveDetailTab('statistics')}
               className={`h-10 rounded-xl text-xs font-black transition-colors ${
                 selectedDetailTab === 'statistics'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.28)]'
+                  : 'text-white/52 hover:text-white'
               }`}
             >
               Statistiken
@@ -1381,8 +1397,8 @@ export default function GameDetail() {
             onClick={() => setActiveDetailTab('info')}
             className={`h-10 rounded-xl text-xs font-black transition-colors ${
               selectedDetailTab === 'info'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+                ? 'bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.28)]'
+                : 'text-white/52 hover:text-white'
             } ${showStatisticsTab ? '' : 'col-span-1'}`}
           >
             Infos

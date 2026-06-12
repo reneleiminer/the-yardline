@@ -30,7 +30,7 @@ function LegendDot({ className, label }) {
   return (
     <div className="flex items-center gap-1.5">
       <span className={`w-2 h-2 rounded-full ${className}`} />
-      <span className="text-[10px] text-muted-foreground font-medium">
+        <span className="text-[10px] text-white/48 font-medium">
         {label}
       </span>
     </div>
@@ -40,7 +40,7 @@ function LegendDot({ className, label }) {
 function TeamFormRow({ team, results }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <p className="text-sm font-bold text-foreground leading-tight truncate min-w-0">
+      <p className="text-sm font-black text-white leading-tight truncate min-w-0">
         {team?.shortName || team?.name || 'Team'}
       </p>
 
@@ -51,7 +51,7 @@ function TeamFormRow({ team, results }) {
           ))}
         </div>
       ) : (
-        <span className="text-[10px] text-muted-foreground flex-shrink-0">
+        <span className="text-[10px] text-white/42 flex-shrink-0">
           Keine Daten
         </span>
       )}
@@ -122,20 +122,20 @@ export default function TeamForm({ game, teams, allGames }) {
 
   return (
     <div className="px-4 pt-4 pb-2">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-3">
+      <p className="yardline-heading mb-3 text-[20px]">
         Form
       </p>
 
-      <div className="bg-card border border-border/50 rounded-2xl px-4 py-4">
+      <div className="bg-black/72 border border-white/10 rounded-[24px] px-4 py-4 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
         <div className="space-y-4">
           <TeamFormRow team={homeTeam} results={homeResults} />
 
-          <div className="h-px bg-border/40" />
+          <div className="h-px bg-white/10" />
 
           <TeamFormRow team={awayTeam} results={awayResults} />
         </div>
 
-        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/40">
+        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-white/10">
           <LegendDot className="bg-green-500" label="Sieg" />
           <LegendDot className="bg-red-500" label="Niederlage" />
           <LegendDot className="bg-muted-foreground" label="Unentschieden" />
