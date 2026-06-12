@@ -25,23 +25,13 @@ function TeamLogo({ logo, name }) {
   );
 }
 
-function hasScoreValue(game) {
-  return (
-    game?.scoreHome !== null &&
-    game?.scoreHome !== undefined &&
-    game?.scoreAway !== null &&
-    game?.scoreAway !== undefined &&
-    Number.isFinite(Number(game.scoreHome)) &&
-    Number.isFinite(Number(game.scoreAway))
-  );
-}
-
 export default function ScoreHero({ game, home, away, league }) {
   const [animateWinner, setAnimateWinner] = useState(false);
   const navigate = useNavigate();
 
-  const isLive = game.status === 'live';
-  const isFinal = game.status === 'final' || hasScoreValue(game);
+  const status = String(game.status || 'scheduled').toLowerCase();
+  const isLive = status === 'live';
+  const isFinal = status === 'final';
   const hasScore = isLive || isFinal;
 
   const homeColor = home?.primaryColor || home?.colorPrimary || '#013369';
