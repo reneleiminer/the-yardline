@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Newspaper, PlaySquare } from "lucide-react";
+import { Menu, Newspaper, PlaySquare, Trophy } from "lucide-react";
 
 function FootballIcon({ className }) {
   return (
@@ -33,6 +33,7 @@ const navItems = [
   { path: "/", icon: FootballIcon, label: "Home" },
   { path: "/feed", icon: Newspaper, label: "News" },
   { path: "/match-center", icon: FieldIcon, label: "Match Center" },
+  { path: "/playoffs", icon: Trophy, label: "Playoffs" },
   { path: "/highlights", icon: PlaySquare, label: "Game Highlights" },
   { path: "/settings", icon: Menu, label: "Einstellungen" },
 ];
@@ -59,7 +60,7 @@ export default function BottomNav() {
     >
       <div className="absolute inset-0 pointer-events-none border-t border-white/12 bg-black" />
 
-      <div className="relative mx-auto grid h-[72px] w-full max-w-[520px] grid-cols-5 gap-2 px-1 pointer-events-auto">
+      <div className="relative mx-auto grid h-[72px] w-full max-w-[560px] grid-cols-6 gap-1.5 px-1 pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -82,13 +83,13 @@ export default function BottomNav() {
               className="flex min-w-0 items-center justify-center text-white"
             >
               <span
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all ${
+                className={`flex h-11 w-11 items-center justify-center rounded-2xl transition-all ${
                   isActive
                     ? "bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.16)]"
                     : "text-white/64 active:bg-white/10"
                 }`}
               >
-                <Icon className="h-7 w-7" />
+                <Icon className="h-6 w-6" />
               </span>
             </Link>
           );

@@ -568,8 +568,12 @@ function AdBannerPlanner({
               onChange={event => setFormData(current => ({ ...current, position: event.target.value }))}
               className="w-full h-11 rounded-xl bg-secondary/50 border border-border/60 px-3 text-sm outline-none focus:border-primary/50"
             >
+              <option value="after_news">Nach News</option>
+              <option value="after_gotw">Nach Game of the Week</option>
               <option value="after_highlights">Nach Highlights</option>
-              <option value="after_upcoming">Nach Kommende Spiele</option>
+              <option value="after_podcast">Nach Podcast</option>
+              <option value="after_shots">Nach GameDay Shots</option>
+              <option value="after_upcoming">Alt: Nach Kommende Spiele</option>
             </select>
           </label>
 

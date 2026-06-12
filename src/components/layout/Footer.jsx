@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useGlobalData } from '@/lib/GlobalDataContext';
 import { getImageUrl } from '@/lib/imageUtils';
+import { APP_VERSION } from '@/lib/appVersion';
 
 function PartnerLogoLink({ partner }) {
   const logo = partner.logoUrl || partner.logo;
@@ -135,6 +136,10 @@ export default function Footer() {
             © 2026 Alle Rechte vorbehalten.
           </p>
         </div>
+
+        <p className="mt-1 text-center text-[10px] font-bold uppercase tracking-wide text-white/45">
+          Version {APP_VERSION}
+        </p>
 
         <div className="relative mx-auto mt-8 h-[58px] max-w-5xl overflow-hidden rounded-[10px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.006))]">
           <div className="absolute inset-x-0 top-[10px] h-px bg-white/52" />

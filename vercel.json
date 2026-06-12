@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/push/check?reason=cron_today_games",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

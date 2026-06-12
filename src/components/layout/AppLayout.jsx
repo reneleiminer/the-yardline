@@ -19,6 +19,7 @@ const MAIN_TABS = [
   { path: "/", label: "Home" },
   { path: "/feed", label: "News" },
   { path: "/match-center", label: "Match Center" },
+  { path: "/playoffs", label: "Playoffs" },
   { path: "/highlights", label: "Game Highlights" },
   { path: "/settings", label: "Einstellungen" },
 ];
@@ -398,6 +399,14 @@ const ONBOARDING_SLIDES = [
     image: "/onboarding/intro-touchdown.jpg",
   },
   {
+    kind: "favorite",
+    eyebrow: "Dein Team",
+    title: "Team wählen",
+    accent: "wählen",
+    text: "Wähle ein Favoritenteam für schnelle Spielinfos und Team-Benachrichtigungen. Du kannst das später im Profil ändern.",
+    image: "/onboarding/intro-touchdown.jpg",
+  },
+  {
     eyebrow: "Community",
     title: "Stay Updated",
     accent: "Updated",
@@ -435,15 +444,38 @@ function getIntroLeagues(leagues = []) {
 }
 
 function OnboardingScreen() {
-  const { completeOnboarding, isLoadingAuth } = useAuth();
+  const { completeOnboarding, isLoadingAuth, updatePublicUser } = useAuth();
   const [index, setIndex] = useState(0);
+  const [teamSearch, setTeamSearch] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState("");
   const { data: leagues = [] } = useQuery({
     queryKey: ["onboarding-leagues"],
     queryFn: () => base44.entities.League.list(),
     staleTime: 1000 * 60 * 10,
     retry: 1,
   });
+  const { data: teams = [] } = useQuery({
+    queryKey: ["onboarding-teams"],
+    queryFn: () => base44.entities.Team.list("name"),
+    staleTime: 1000 * 60 * 10,
+    retry: 1,
+  });
   const introLeagues = useMemo(() => getIntroLeagues(leagues), [leagues]);
+  const filteredTeams = useMemo(() => {
+    const query = teamSearch.trim().toLowerCase();
+
+    return [...teams]
+      .filter(team => {
+        if (!query) return true;
+        return [team.name, team.shortName, team.city]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "de"))
+      .slice(0, 8);
+  }, [teamSearch, teams]);
   const slides = useMemo(() => {
     return ONBOARDING_SLIDES.map((item, itemIndex) => {
       if (itemIndex !== 0) return item;
@@ -460,6 +492,10 @@ function OnboardingScreen() {
     if (!lastSlide) {
       setIndex(current => current + 1);
       return;
+    }
+
+    if (selectedTeamId) {
+      await updatePublicUser({ favoriteTeamId: selectedTeamId });
     }
 
     await completeOnboarding();
@@ -541,6 +577,50 @@ function OnboardingScreen() {
                     ))}
                   </div>
                 )}
+
+                {slide.kind === "favorite" && (
+                  <div className="mt-5 space-y-3">
+                    <Input
+                      value={teamSearch}
+                      onChange={event => setTeamSearch(event.target.value)}
+                      placeholder="Liga oder Team suchen"
+                      className="h-12 rounded-2xl border-white/15 bg-black/58 text-white placeholder:text-white/40"
+                    />
+
+                    <div className="max-h-[260px] space-y-2 overflow-y-auto pr-1">
+                      {filteredTeams.map(team => {
+                        const active = team.id === selectedTeamId;
+
+                        return (
+                          <button
+                            key={team.id}
+                            type="button"
+                            onClick={() => setSelectedTeamId(team.id)}
+                            className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left backdrop-blur transition-colors ${
+                              active
+                                ? "border-[#c20f1a] bg-[#c20f1a]/24"
+                                : "border-white/12 bg-black/52"
+                            }`}
+                          >
+                            <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
+                              {team.logo ? (
+                                <img src={getImageUrl(team.logo)} alt="" className="h-full w-full object-contain" />
+                              ) : (
+                                <span className="text-xs font-black text-black">
+                                  {(team.shortName || team.name || "T").slice(0, 2)}
+                                </span>
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-black text-white">{team.name || team.shortName}</span>
+                              <span className="block truncate text-[9px] font-bold uppercase text-white/48">{team.city || "Team"}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
 
@@ -562,7 +642,7 @@ function OnboardingScreen() {
             disabled={isLoadingAuth}
             className="h-[52px] rounded-2xl bg-[#c20f1a] px-6 font-black uppercase tracking-wide text-white shadow-[0_12px_34px_rgba(194,15,26,0.35)] hover:bg-[#a90d16]"
           >
-            {lastSlide ? "Get Started" : "Weiter"}
+            {lastSlide ? "Get Started" : slide.kind === "favorite" && !selectedTeamId ? "Überspringen" : "Weiter"}
             {!lastSlide && <ChevronRight className="ml-1 h-4 w-4" />}
           </Button>
             </div>

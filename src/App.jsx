@@ -33,6 +33,7 @@ const Nutzungsbedingungen = lazy(() => import("@/pages/legal/Nutzungsbedingungen
 const CommunityGuidelines = lazy(() => import("@/pages/legal/CommunityGuidelines"));
 
 const Applications = lazy(() => import("@/pages/Applications"));
+const Competitions = lazy(() => import("@/pages/Competitions"));
 const ClubDetail = lazy(() => import("@/pages/ClubDetail"));
 const TeamDetail = lazy(() => import("@/pages/TeamDetail"));
 const LeagueDetail = lazy(() => import("@/pages/LeagueDetail"));
@@ -133,7 +134,8 @@ function AppRoutes() {
             <Route path="/tabellen" element={<Navigate to="/match-center" replace />} />
             <Route path="/tabellen/:leagueId" element={<LeagueStandings />} />
 
-            <Route path="/wettbewerbe" element={<Navigate to="/match-center" replace />} />
+            <Route path="/playoffs" element={<Competitions />} />
+            <Route path="/wettbewerbe" element={<Navigate to="/playoffs" replace />} />
             <Route path="/wettbewerbe/:competitionId" element={<CompetitionDetail />} />
 
             <Route path="/club/:clubId" element={<ClubDetail />} />

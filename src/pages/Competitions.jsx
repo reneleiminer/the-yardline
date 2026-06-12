@@ -43,11 +43,16 @@ function getCompetitionTypeLabel(type) {
   return labels[normalized] || type || "Cup";
 }
 
+function isPlayoffCompetition(competition) {
+  const type = String(competition?.type || competition?.competitionType || "").trim().toLowerCase();
+  return type === "playoffs" || type === "playoff";
+}
+
 function CompetitionLogo({ competition }) {
   const logoUrl = competition.logo ? getImageUrl(competition.logo) : "";
 
   return (
-    <div className="w-12 h-12 rounded-xl bg-secondary/60 border border-border/50 flex items-center justify-center overflow-hidden flex-shrink-0 p-2">
+    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/12 bg-black p-2 shadow-[0_10px_22px_rgba(0,0,0,0.32)]">
       {logoUrl ? (
         <img
           src={logoUrl}
@@ -56,7 +61,7 @@ function CompetitionLogo({ competition }) {
           loading="lazy"
         />
       ) : (
-        <Trophy className="w-6 h-6 text-primary" />
+        <Trophy className="h-6 w-6 text-red-500" />
       )}
     </div>
   );
@@ -68,27 +73,28 @@ function CompetitionRow({ competition }) {
   return (
     <Link
       to={`/wettbewerbe/${competition.id}`}
-      className="flex items-center gap-3 rounded-2xl border border-border/50 bg-card px-4 py-3 active:scale-[0.99] hover:border-primary/30 transition-all"
+      className="group relative flex items-center gap-3 overflow-hidden rounded-[24px] border border-white/10 bg-black/78 px-4 py-4 text-white shadow-[0_16px_36px_rgba(0,0,0,0.26)] backdrop-blur transition-all active:scale-[0.99] hover:border-red-500/35"
     >
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(194,15,26,0.20),transparent_34%),radial-gradient(circle_at_90%_0%,rgba(47,125,255,0.16),transparent_36%),linear-gradient(135deg,rgba(255,255,255,0.06)_0_1px,transparent_1px_18px)]" />
       <CompetitionLogo competition={competition} />
 
-      <div className="min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1">
         <div className="flex items-center gap-2 min-w-0">
-          <h2 className="text-sm font-black truncate">
+          <h2 className="truncate text-base font-black uppercase italic leading-tight text-white">
             {competition.name || "Wettbewerb"}
           </h2>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+        <p className="mt-1 truncate text-[11px] font-bold text-white/54">
             {[getCompetitionTypeLabel(competition.type), competition.season].filter(Boolean).join(" · ")}
         </p>
       </div>
 
-      <Badge variant="outline" className={`text-[10px] flex-shrink-0 ${getStatusStyle(status)}`}>
+      <Badge variant="outline" className={`relative flex-shrink-0 text-[10px] ${getStatusStyle(status)}`}>
         {getStatusLabel(status)}
       </Badge>
 
-      <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <ChevronRight className="relative h-4 w-4 flex-shrink-0 text-white/38 transition-transform group-hover:translate-x-0.5" />
     </Link>
   );
 }
@@ -99,11 +105,11 @@ function Section({ title, competitions }) {
   return (
     <section>
       <div className="flex items-center justify-between gap-3 mb-2 px-1">
-        <h2 className="text-sm font-black">
+        <h2 className="yardline-heading text-[22px]">
           {title}
         </h2>
 
-        <span className="text-[11px] font-bold text-muted-foreground">
+        <span className="text-[11px] font-black text-white/45">
           {competitions.length}
         </span>
       </div>
@@ -121,7 +127,7 @@ function CompactEmptyState() {
   return (
     <div className="rounded-2xl border border-border/50 bg-card px-4 py-8 text-center">
       <p className="text-sm font-semibold text-muted-foreground">
-        Keine Wettbewerbe gefunden
+        Keine Playoffs gefunden
       </p>
     </div>
   );
@@ -138,6 +144,7 @@ export default function Competitions() {
   const competitions = useMemo(() => {
     return tournaments
       .filter((competition) => {
+        if (!isPlayoffCompetition(competition)) return false;
         if (competition.isPublished === false) return false;
         if (competition.isActive === false && competition.status !== "completed") return false;
         return true;

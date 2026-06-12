@@ -15,6 +15,7 @@ import { toast } from "sonner";
 
 import useSetHeader from "@/hooks/useSetHeader";
 import { useAuth } from "@/lib/AuthContext";
+import { useGlobalData } from "@/lib/GlobalDataContext";
 import { useI18n } from "@/lib/i18n";
 import {
   disablePushNotifications,
@@ -26,11 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { getRoleSlug } from "@/lib/roleDefinitions";
-
-const APP_VERSION =
-  import.meta.env.VITE_APP_VERSION ||
-  import.meta.env.VITE_VERSION ||
-  "0.0.0";
+import { APP_VERSION } from "@/lib/appVersion";
+import { getImageUrl } from "@/lib/imageUtils";
 
 function normalizeRole(value) {
   return getRoleSlug(value || "fan");
@@ -265,6 +263,113 @@ function AccountSettings() {
   );
 }
 
+function FavoriteTeamSettings() {
+  const { appUserSnapshot, updatePublicUser } = useAuth();
+  const { teams = [], leaguesById } = useGlobalData();
+  const [search, setSearch] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const favoriteTeamId = appUserSnapshot?.favoriteTeamId || "";
+  const favoriteTeam = teams.find(team => team.id === favoriteTeamId) || null;
+  const query = search.trim().toLowerCase();
+
+  const filteredTeams = React.useMemo(() => {
+    return [...teams]
+      .filter(team => {
+        if (!query) return true;
+        const league = leaguesById?.get?.(team.leagueId);
+        return [team.name, team.shortName, team.city, league?.name, league?.shortName]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      })
+      .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "de"))
+      .slice(0, 18);
+  }, [leaguesById, query, teams]);
+
+  const chooseTeam = async (teamId) => {
+    setSaving(true);
+
+    try {
+      await updatePublicUser({ favoriteTeamId: teamId || "" });
+      toast.success(teamId ? "Favoritenteam gespeichert" : "Favoritenteam entfernt");
+    } catch (error) {
+      toast.error(error.message || "Favoritenteam konnte nicht gespeichert werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/50 bg-card">
+      <div className="flex items-center gap-3 border-b border-border/30 px-4 py-4">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10">
+          {favoriteTeam?.logo ? (
+            <img src={getImageUrl(favoriteTeam.logo)} alt="" className="h-8 w-8 object-contain" />
+          ) : (
+            <Sparkles className="h-5 w-5 text-primary" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-bold">Favoritenteam</h2>
+          <p className="truncate text-xs text-muted-foreground">
+            {favoriteTeam ? favoriteTeam.name : "Ein Team wählen und Team-Pushs vorbereiten"}
+          </p>
+        </div>
+        {favoriteTeam && (
+          <Button type="button" size="sm" variant="outline" onClick={() => chooseTeam("")} disabled={saving}>
+            Entfernen
+          </Button>
+        )}
+      </div>
+
+      <div className="space-y-3 p-3">
+        <Input
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          placeholder="Team oder Liga suchen"
+        />
+
+        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+          {filteredTeams.map(team => {
+            const active = team.id === favoriteTeamId;
+            const league = leaguesById?.get?.(team.leagueId);
+
+            return (
+              <button
+                key={team.id}
+                type="button"
+                onClick={() => chooseTeam(team.id)}
+                disabled={saving}
+                className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                  active
+                    ? "border-primary/40 bg-primary/10"
+                    : "border-border/40 bg-secondary/20 hover:bg-secondary/50"
+                }`}
+              >
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-black p-1.5">
+                  {team.logo ? (
+                    <img src={getImageUrl(team.logo)} alt="" className="h-full w-full object-contain" />
+                  ) : (
+                    <span className="text-xs font-black text-white">{(team.shortName || team.name || "T").slice(0, 2)}</span>
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-black">{team.name || team.shortName}</span>
+                  <span className="block truncate text-[11px] font-semibold text-muted-foreground">
+                    {league?.shortName || league?.name || "Ohne Liga"}
+                  </span>
+                </span>
+                {active && <Check className="h-4 w-4 flex-shrink-0 text-primary" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PushNotificationSettings() {
   const [state, setState] = React.useState({
     supported: false,
@@ -376,6 +481,7 @@ export default function Settings() {
     <div className="min-h-[calc(100dvh-68px)] w-full max-w-full overflow-x-hidden px-4 pt-4 pb-24 flex flex-col">
       <div className="space-y-3">
         <AccountSettings />
+        <FavoriteTeamSettings />
         <PushNotificationSettings />
         <LanguageSettings />
         <AppInfoSettings />

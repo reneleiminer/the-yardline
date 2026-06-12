@@ -8,10 +8,12 @@ import { ChevronRight, ExternalLink, Play, Radio } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
+import { useAuth } from "@/lib/AuthContext";
 
 const HIGHLIGHT_VERSION = "game_highlight";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
 const PODCAST_VERSION = "podcast_feature";
+const AD_BANNER_VERSION = "ad_banner";
 
 function parseJsonMessage(message) {
   if (!message) return {};
@@ -202,6 +204,46 @@ function SmallGameCard({ game, teamsById, leaguesById }) {
   return <ColorGameCard game={game} teamsById={teamsById} leaguesById={leaguesById} compact />;
 }
 
+function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
+  if (!game || !favoriteTeam) return null;
+
+  const home = teamsById.get(game.homeTeamId);
+  const away = teamsById.get(game.awayTeamId);
+  const league = leaguesById.get(game.leagueId);
+  const kickoff = getGameDate(game);
+
+  return (
+    <Link
+      to={`/game/${game.id}`}
+      className="block overflow-hidden rounded-[22px] border border-white/10 bg-black/78 p-3 text-white shadow-[0_16px_36px_rgba(0,0,0,0.28)] backdrop-blur"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white p-2">
+          {favoriteTeam.logo ? (
+            <img src={getImageUrl(favoriteTeam.logo)} alt="" className="h-full w-full object-contain" />
+          ) : (
+            <span className="text-xs font-black text-black">{(favoriteTeam.shortName || favoriteTeam.name || "T").slice(0, 2)}</span>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#ff2338]">
+            Dein Team
+          </p>
+          <p className="mt-1 truncate text-sm font-black">
+            {getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder)}
+            {" vs "}
+            {getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder)}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] font-bold text-white/54">
+            {[league?.shortName || league?.name, kickoff ? format(kickoff, "dd.MM. HH:mm", { locale: de }) : "Termin offen"].filter(Boolean).join(" · ")}
+          </p>
+        </div>
+        <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/36" />
+      </div>
+    </Link>
+  );
+}
+
 function SectionTitle({ title, to }) {
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
@@ -264,6 +306,105 @@ function normalizeHighlight(item) {
 function isFreshContent(item, minDate) {
   const createdAt = new Date(item.createdAt || 0);
   return Number.isNaN(createdAt.getTime()) || !isBefore(createdAt, minDate);
+}
+
+function normalizeAdBanner(item) {
+  const meta = parseJsonMessage(item.message);
+
+  return {
+    id: item.id,
+    title: meta.title || item.title || "Werbung",
+    imageUrl: meta.image_url || meta.imageUrl || item.imageUrl || "",
+    linkUrl: meta.link_url || meta.linkUrl || "",
+    position: meta.position || "after_highlights",
+    active: item.isActive !== false && meta.active !== false,
+    startDate: meta.start_date || meta.startDate || "",
+    endDate: meta.end_date || meta.endDate || "",
+    sortOrder: Number(meta.sort_order ?? meta.sortOrder ?? 0),
+  };
+}
+
+function isBannerInWindow(banner, now = new Date()) {
+  if (!banner.active) return false;
+
+  if (banner.startDate) {
+    const start = new Date(`${banner.startDate}T00:00:00`);
+    if (!Number.isNaN(start.getTime()) && start > now) return false;
+  }
+
+  if (banner.endDate) {
+    const end = new Date(`${banner.endDate}T23:59:59`);
+    if (!Number.isNaN(end.getTime()) && end < now) return false;
+  }
+
+  return true;
+}
+
+function normalizeBannerPosition(position) {
+  if (position === "after_upcoming") return "after_gotw";
+  return position || "after_highlights";
+}
+
+function AdBannerCard({ banner }) {
+  if (!banner?.imageUrl && !banner?.title) return null;
+
+  const content = (
+    <div className="group relative overflow-hidden rounded-[24px] border border-white/10 bg-black/72 p-3 text-white shadow-[0_16px_34px_rgba(0,0,0,0.28)] backdrop-blur">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(194,15,26,0.18),transparent_32%),radial-gradient(circle_at_92%_0%,rgba(47,125,255,0.18),transparent_34%)]" />
+      <div className="relative flex min-h-[82px] items-center gap-3">
+        {banner.imageUrl && (
+          <div className="flex h-16 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-2">
+            <img
+              src={getImageUrl(banner.imageUrl)}
+              alt={banner.title || ""}
+              className="max-h-full max-w-full object-contain"
+              loading="lazy"
+            />
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#ff2338]">
+            Werbung
+          </p>
+          <p className="mt-1 line-clamp-2 text-base font-black leading-tight text-white">
+            {banner.title || "Partner"}
+          </p>
+        </div>
+
+        {banner.linkUrl && (
+          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-white text-red-700 transition-transform group-hover:scale-105">
+            <ExternalLink className="h-4 w-4" />
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  if (banner.linkUrl) {
+    return (
+      <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="block">
+        {content}
+      </a>
+    );
+  }
+
+  return content;
+}
+
+function AdBannerSlot({ banners, position }) {
+  const slotBanners = banners.filter((banner) => normalizeBannerPosition(banner.position) === position);
+  if (slotBanners.length === 0) return null;
+
+  return (
+    <section>
+      <div className="space-y-3">
+        {slotBanners.map((banner) => (
+          <AdBannerCard key={banner.id} banner={banner} />
+        ))}
+      </div>
+    </section>
+  );
 }
 
 function HighlightCard({ item }) {
@@ -527,6 +668,7 @@ function GameOfWeekTitle({ label }) {
 
 export default function Home() {
   const { games, teams, leagues } = useGlobalData();
+  const { appUserSnapshot } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: appUpdates = [] } = useQuery({
@@ -566,6 +708,21 @@ export default function Home() {
   }, [games]);
 
   const gameOfTheWeekLabel = gameOfTheWeek?.gameOfTheWeekLabel || gameOfTheWeek?.gameOfTheWeekPresentedBy || "EuroFBShow";
+  const favoriteTeam = useMemo(() => {
+    return teamsById.get(appUserSnapshot?.favoriteTeamId || "") || null;
+  }, [appUserSnapshot?.favoriteTeamId, teamsById]);
+
+  const favoriteNextGame = useMemo(() => {
+    if (!favoriteTeam?.id) return null;
+    const now = new Date();
+
+    return games
+      .filter((game) => game.status !== "final" && game.status !== "cancelled")
+      .filter((game) => game.homeTeamId === favoriteTeam.id || game.awayTeamId === favoriteTeam.id)
+      .map((game) => ({ game, date: getGameDate(game) }))
+      .filter((item) => item.date && item.date >= now)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())[0]?.game || null;
+  }, [favoriteTeam?.id, games]);
 
   const highlights = useMemo(() => {
     return appUpdates
@@ -607,6 +764,19 @@ export default function Home() {
       .slice(0, 4);
   }, [appUpdates, sevenDaysAgo]);
 
+  const adBanners = useMemo(() => {
+    const now = new Date();
+
+    return appUpdates
+      .filter((item) => item.version === AD_BANNER_VERSION)
+      .map(normalizeAdBanner)
+      .filter((banner) => isBannerInWindow(banner, now))
+      .sort((a, b) => {
+        if (a.sortOrder !== b.sortOrder) return a.sortOrder - b.sortOrder;
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      });
+  }, [appUpdates]);
+
   useEffect(() => {
     const staleShots = appUpdates
       .filter((item) => item.version === GAMEDAY_SHOT_VERSION)
@@ -641,6 +811,15 @@ export default function Home() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
       <div className="space-y-7">
+        {favoriteNextGame && (
+          <FavoriteNextGameCard
+            game={favoriteNextGame}
+            favoriteTeam={favoriteTeam}
+            teamsById={teamsById}
+            leaguesById={leaguesById}
+          />
+        )}
+
         <section>
           <SectionTitle title="News" to="/feed" />
           {news.length > 0 ? (
@@ -652,12 +831,16 @@ export default function Home() {
           )}
         </section>
 
+        <AdBannerSlot banners={adBanners} position="after_news" />
+
         {gameOfTheWeek && (
           <section>
             <GameOfWeekTitle label={gameOfTheWeekLabel} />
             <SmallGameCard game={gameOfTheWeek} teamsById={teamsById} leaguesById={leaguesById} />
           </section>
         )}
+
+        <AdBannerSlot banners={adBanners} position="after_gotw" />
 
         <section>
           <SectionTitle title="Game Highlights" to="/highlights" />
@@ -670,12 +853,16 @@ export default function Home() {
           )}
         </section>
 
+        <AdBannerSlot banners={adBanners} position="after_highlights" />
+
         {podcast && (
           <section>
             <SectionTitle title="Podcast" />
             <PodcastCard podcast={podcast} />
           </section>
         )}
+
+        <AdBannerSlot banners={adBanners} position="after_podcast" />
 
         <section>
           <SectionTitle title="GameDay Shots" />
@@ -687,6 +874,8 @@ export default function Home() {
             <EmptyCard label="Noch keine GameDay Shots" />
           )}
         </section>
+
+        <AdBannerSlot banners={adBanners} position="after_shots" />
 
         {undefeatedTeams.length > 0 && (
           <section>

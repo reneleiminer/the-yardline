@@ -8,6 +8,7 @@ import {
   enablePushNotifications,
   getCurrentPushSubscription,
   isPushSupported,
+  requestPushEventCheck,
   syncExistingPushSubscription,
   wasPushPromptDismissed,
 } from "@/lib/pushNotifications";
@@ -28,6 +29,7 @@ export default function PushPermissionPrompt() {
       if (Notification.permission === "granted") {
         try {
           await syncExistingPushSubscription();
+          requestPushEventCheck("push_prompt_sync");
           return;
         } catch (error) {
           console.warn("PUSH SYNC ERROR:", error);
@@ -61,6 +63,7 @@ export default function PushPermissionPrompt() {
 
     try {
       await enablePushNotifications();
+      requestPushEventCheck("push_enabled");
       dismissPushPrompt();
       setVisible(false);
       toast.success("Benachrichtigungen aktiviert");

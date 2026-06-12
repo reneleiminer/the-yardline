@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ChevronRight,
+  LayoutDashboard,
   FileText,
   Headphones,
   Home,
@@ -219,6 +220,15 @@ function BackContent({ title, onBack, backTo }) {
 function DashboardContent({ title }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const dashboardHome = location.pathname.startsWith("/admin")
+    ? "/admin"
+    : location.pathname.startsWith("/photographer")
+    ? "/photographer"
+    : location.pathname.startsWith("/podcast")
+    ? "/podcast"
+    : "/gotw";
+  const showDashboardButton = location.pathname !== dashboardHome;
 
   return (
     <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
@@ -226,6 +236,16 @@ function DashboardContent({ title }) {
         {title || "Dashboard"}
       </span>
       <div className="flex flex-shrink-0 items-center gap-2">
+        {showDashboardButton && (
+          <button
+            type="button"
+            onClick={() => navigate(dashboardHome, { replace: true })}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/78 transition-colors hover:bg-white/14 hover:text-white"
+          >
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Dashboard
+          </button>
+        )}
         <button
           type="button"
           onClick={() => navigate("/")}
@@ -405,7 +425,7 @@ export default function Header() {
   }, [location.pathname]);
 
   const requestedMode = config?.mode || "default";
-  const defaultHeaderRoutes = ["/", "/feed", "/match-center", "/highlights", "/settings"];
+  const defaultHeaderRoutes = ["/", "/feed", "/match-center", "/playoffs", "/highlights", "/settings"];
   const mode = defaultHeaderRoutes.includes(location.pathname) ? "default" : requestedMode;
 
   const hideMenuButton = [
@@ -423,7 +443,7 @@ export default function Header() {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300"
+        className="fixed top-0 left-0 right-0 z-[90] w-full transition-all duration-300"
         style={{
           height: "calc(68px + env(safe-area-inset-top))",
           paddingTop: "env(safe-area-inset-top)",

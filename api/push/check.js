@@ -18,6 +18,22 @@ function getUpdateTimestamp(update) {
   return update.updated_at || update.published_at_utc || update.created_at || "";
 }
 
+function getBerlinDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function formatGameTime(game) {
+  return String(game.kickoff_time || game.time || "").slice(0, 5) || "offen";
+}
+
 async function buildLiveGameEvents(supabase) {
   const { data: games, error } = await supabase
     .from("games")
@@ -75,6 +91,42 @@ async function buildGameOfTheWeekEvents(supabase) {
       },
     };
   });
+}
+
+async function buildTodaysGameEvents(supabase) {
+  const today = getBerlinDateKey();
+  const { data: games, error } = await supabase
+    .from("games")
+    .select("id,date,kickoff_time,home_team_id,away_team_id,home_team_placeholder,away_team_placeholder,status")
+    .eq("date", today)
+    .neq("status", "cancelled")
+    .order("kickoff_time", { ascending: true })
+    .limit(30);
+
+  if (error) throw error;
+  if (!games?.length) return [];
+
+  const teamsById = await fetchTeamMap(supabase, games);
+  const lines = games.slice(0, 3).map((game) => {
+    const teams = getGameTeams(game, teamsById);
+    return `${teams.homeName} vs ${teams.awayName} (${formatGameTime(game)})`;
+  });
+
+  const extra = games.length > 3 ? ` +${games.length - 3} weitere` : "";
+  const firstGame = games[0];
+  const firstTeams = getGameTeams(firstGame, teamsById);
+
+  return [{
+    key: `today_games:${today}:${games.map((game) => game.id).join(",")}`,
+    type: "today_games",
+    payload: {
+      title: games.length === 1 ? "Heute steht ein Spiel an" : `Heute stehen ${games.length} Spiele an`,
+      body: `${lines.join(" · ")}${extra}`,
+      url: games.length === 1 ? `/game/${firstGame.id}` : "/match-center",
+      tag: `today_games:${today}`,
+      icon: firstTeams.homeLogo || firstTeams.awayLogo || "/yardline-icon-192.png",
+    },
+  }];
 }
 
 async function buildPodcastEvents(supabase) {
@@ -143,6 +195,7 @@ export default async function handler(req, res) {
     const groups = await Promise.all([
       buildLiveGameEvents(supabase),
       buildGameOfTheWeekEvents(supabase),
+      buildTodaysGameEvents(supabase),
       buildPodcastEvents(supabase),
       buildHighlightEvents(supabase),
     ]);
