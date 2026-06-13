@@ -95,6 +95,25 @@ function getStatusClass(status) {
   return "bg-green-500/15 text-green-300 border-green-500/20";
 }
 
+function isAutoGameReport(post) {
+  const meta = parseJsonMessage(post?.message);
+  const authorUsername = String(post?.authorUsername || "").toLowerCase();
+  const authorRole = String(post?.authorRoleSlug || post?.authorRole || "").toLowerCase();
+
+  return (
+    post?.isGameReport === true ||
+    meta.is_game_report === true ||
+    meta.isGameReport === true ||
+    authorUsername === "yardline-system" ||
+    authorUsername === "yardline_system" ||
+    authorRole === "system"
+  );
+}
+
+function isAdminManagedPost(post) {
+  return !isAutoGameReport(post);
+}
+
 function getAuthorName(post, usersById) {
   const author = post?.authorId ? usersById.get(post.authorId) : null;
   const meta = parseJsonMessage(post?.message);
@@ -292,10 +311,35 @@ export default function AdminContent() {
     },
   });
 
+  const deleteAutoGameReportsMutation = useMutation({
+    mutationFn: async () => {
+      const autoReports = posts.filter(isAutoGameReport);
+      const results = await Promise.allSettled(
+        autoReports.map(post => base44.entities.Post.delete(post.id))
+      );
+
+      const failed = results.filter(result => result.status === "rejected");
+
+      if (failed.length > 0) {
+        throw new Error(`${failed.length} automatische Game Reports konnten nicht gelöscht werden.`);
+      }
+
+      return autoReports.length;
+    },
+    onSuccess: count => {
+      invalidate();
+      toast.success(`${count} automatische Game Reports gelöscht`);
+    },
+    onError: error => {
+      toast.error(error.message || "Automatische Game Reports konnten nicht gelöscht werden");
+    },
+  });
+
   const filteredPosts = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return posts
+      .filter(isAdminManagedPost)
       .filter(post => {
         if (typeFilter !== "all" && getPostType(post) !== typeFilter) return false;
         if (statusFilter !== "all" && getStatus(post) !== statusFilter) return false;
@@ -326,15 +370,22 @@ export default function AdminContent() {
   }, [posts, search, statusFilter, typeFilter, usersById]);
 
   const counts = useMemo(() => {
+    const managedPosts = posts.filter(isAdminManagedPost);
+    const autoReports = posts.filter(isAutoGameReport);
+
     return {
-      total: posts.length,
-      visible: posts.filter(post => getStatus(post) === "visible").length,
-      hidden: posts.filter(post => getStatus(post) === "hidden").length,
-      deleted: posts.filter(post => getStatus(post) === "deleted").length,
+      total: managedPosts.length,
+      visible: managedPosts.filter(post => getStatus(post) === "visible").length,
+      hidden: managedPosts.filter(post => getStatus(post) === "hidden").length,
+      deleted: managedPosts.filter(post => getStatus(post) === "deleted").length,
+      autoReports: autoReports.length,
     };
   }, [posts]);
 
-  const isWorking = updatePostMutation.isPending || hardDeleteMutation.isPending;
+  const isWorking =
+    updatePostMutation.isPending ||
+    hardDeleteMutation.isPending ||
+    deleteAutoGameReportsMutation.isPending;
 
   const handleHardDelete = post => {
     const confirmed = window.confirm(
@@ -358,6 +409,30 @@ export default function AdminContent() {
         <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
           Hier kannst du News, Transfers und andere Beiträge ausblenden, wiederherstellen oder endgültig löschen.
         </p>
+
+        {counts.autoReports > 0 && (
+          <div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3">
+            <p className="text-sm font-black text-red-200">
+              {counts.autoReports} alte automatische Game Reports gefunden
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-red-100/62">
+              Diese alten System-Beiträge werden nicht mehr genutzt und können gesammelt entfernt werden.
+            </p>
+            <Button
+              type="button"
+              variant="destructive"
+              className="mt-3"
+              disabled={isWorking}
+              onClick={() => {
+                const confirmed = window.confirm("Alle alten automatischen Game Reports endgültig löschen?");
+                if (confirmed) deleteAutoGameReportsMutation.mutate();
+              }}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              Alte Auto Game Reports löschen
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="mb-4 grid grid-cols-4 gap-2">
