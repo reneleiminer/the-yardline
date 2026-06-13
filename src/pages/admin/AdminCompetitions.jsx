@@ -303,19 +303,28 @@ function buildCompetitionGamePayload({ competition, round, matchup, index }) {
 async function createGamesForCompetition(competition) {
   const bracket = getCompetitionBracket(competition);
   const createdIds = [];
+  const failed = [];
 
   for (const round of bracket) {
     for (const [index, matchup] of (round.matchups || []).entries()) {
-      const created = await base44.entities.Game.create(
-        buildCompetitionGamePayload({
-          competition,
-          round,
-          matchup,
-          index,
-        })
-      );
+      try {
+        const created = await base44.entities.Game.create(
+          buildCompetitionGamePayload({
+            competition,
+            round,
+            matchup,
+            index,
+          })
+        );
 
-      if (created?.id) createdIds.push(created.id);
+        if (created?.id) createdIds.push(created.id);
+      } catch (error) {
+        failed.push({
+          round: round.round || 1,
+          matchupIndex: matchup.matchupIndex ?? index,
+          message: error?.message || 'Spiel konnte nicht erstellt werden',
+        });
+      }
     }
   }
 
@@ -326,7 +335,10 @@ async function createGamesForCompetition(competition) {
     });
   }
 
-  return createdIds;
+  return {
+    createdIds,
+    failed,
+  };
 }
 
 export default function AdminCompetitions() {
@@ -368,8 +380,22 @@ export default function AdminCompetitions() {
   const createMutation = useMutation({
     mutationFn: async formData => {
       const payload = buildTournamentPayload(formData);
+
+      if (!payload.name?.trim()) {
+        throw new Error('Bitte internen Namen eintragen.');
+      }
+
+      if (!payload.leagueId) {
+        throw new Error('Bitte eine Liga auswählen.');
+      }
+
       const created = await base44.entities.Tournament.create(payload);
-      const createdGameIds = await createGamesForCompetition({
+
+      if (!created?.id) {
+        throw new Error('Playoffs wurden nicht korrekt gespeichert.');
+      }
+
+      const gameCreation = await createGamesForCompetition({
         ...payload,
         ...created,
         id: created.id,
@@ -377,16 +403,35 @@ export default function AdminCompetitions() {
 
       return {
         ...created,
-        createdGameIds,
+        createdGameIds: gameCreation.createdIds,
+        failedGameCreations: gameCreation.failed,
       };
     },
-    onSuccess: result => {
-      invalidate();
+    onSuccess: async result => {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['adminCompetitions'] }),
+        queryClient.invalidateQueries({ queryKey: ['competitions'] }),
+        queryClient.invalidateQueries({ queryKey: ['tournaments'] }),
+        queryClient.invalidateQueries({ queryKey: ['games'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin-count-competitions'] }),
+      ]);
+
       const count = result?.createdGameIds?.length || 0;
-      toast.success(count > 0
-        ? `Playoffs erstellt und ${count} Spiel${count === 1 ? '' : 'e'} angelegt`
-        : 'Playoffs erstellt');
+      const failedCount = result?.failedGameCreations?.length || 0;
+
+      if (failedCount > 0) {
+        toast.warning(`Playoffs gespeichert. ${failedCount} Spiel${failedCount === 1 ? '' : 'e'} konnten nicht automatisch angelegt werden.`);
+      } else {
+        toast.success(count > 0
+          ? `Playoffs erstellt und ${count} Spiel${count === 1 ? '' : 'e'} angelegt`
+          : 'Playoffs erstellt');
+      }
+
       setShowWizard(false);
+
+      if (result?.id) {
+        navigate(`/admin/competitions/${result.id}`);
+      }
     },
     onError: error => {
       console.error('CREATE COMPETITION ERROR:', error);
@@ -459,8 +504,11 @@ export default function AdminCompetitions() {
 
       {showWizard && (
         <CompetitionWizard
-          onClose={() => setShowWizard(false)}
+          onClose={() => {
+            if (!createMutation.isPending) setShowWizard(false);
+          }}
           onSuccess={handleWizardSuccess}
+          isSaving={createMutation.isPending}
         />
       )}
 
