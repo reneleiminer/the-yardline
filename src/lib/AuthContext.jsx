@@ -584,8 +584,15 @@ export const AuthProvider = ({ children }) => {
       updatedAtUtc: new Date().toISOString(),
     });
 
-    setPublicSession(updated);
-    return updated;
+    const normalizedUpdated = normalizeSessionAppUser(updated);
+
+    if (isInternalRole(normalizedUpdated) || normalizedUpdated?.isInternalUser === true) {
+      setInternalSession(normalizedUpdated);
+    } else {
+      setPublicSession(normalizedUpdated);
+    }
+
+    return normalizedUpdated;
   };
 
   const resolveAppUserForAuth = async (base44User) => {
