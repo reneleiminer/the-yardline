@@ -29,21 +29,11 @@ const STATUS_LABELS = {
 
 const COMPETITION_TYPE_LABELS = {
   playoffs: 'Playoffs',
-  relegation: 'Relegation',
-  playdowns: 'Playdowns',
-  bowl: 'Bowl / Finale',
-  cup: 'Cup',
-  promotion: 'Aufstiegsspiele',
-  tournament: 'Turnier',
-  other: 'Sonstiger Wettbewerb',
   Playoffs: 'Playoffs',
 };
 
 const COMPETITION_FORMAT_LABELS = {
   bracket: 'Bracket',
-  single_game: 'Einzelspiel',
-  two_leg: 'Hin- & Rückspiel',
-  series: 'Serie',
   custom: 'Freies Format',
 };
 
@@ -61,6 +51,11 @@ function getCompetitionFormatLabel(format) {
 
 function getCompetitionPublicName(comp) {
   return comp.publicName || comp.displayName || comp.name || 'Wettbewerb';
+}
+
+function isPlayoffCompetition(comp) {
+  const type = String(comp?.competitionType || comp?.type || 'playoffs').toLowerCase();
+  return type === 'playoffs' || type === 'playoff';
 }
 
 function getSourceLabel(source) {
@@ -337,6 +332,7 @@ export default function AdminCompetitions() {
   });
 
   const leagueMap = Object.fromEntries(leagues.map(league => [league.id, league]));
+  const playoffCompetitions = competitions.filter(isPlayoffCompetition);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['adminCompetitions'] });
@@ -422,7 +418,7 @@ export default function AdminCompetitions() {
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 pb-24">
       <p className="text-xs text-muted-foreground mb-4">
-        Erstelle Wettbewerbe wie Playoffs, German Bowl, Relegation, Playdowns oder Aufstiegsspiele. Der German Bowl kann als Finalrunde innerhalb der Playoffs geführt werden.
+        Erstelle und verwalte nur Playoffs. Finale, Bowl oder Championship sind die letzte Runde des Playoff-Baums.
       </p>
 
       <Button
@@ -435,7 +431,7 @@ export default function AdminCompetitions() {
         ) : (
           <Plus className="w-4 h-4 mr-2" />
         )}
-        Neuer Wettbewerb
+        Neue Playoffs
       </Button>
 
       {showWizard && (
@@ -446,12 +442,12 @@ export default function AdminCompetitions() {
       )}
 
       <div className="space-y-3">
-        {competitions.length === 0 ? (
+        {playoffCompetitions.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">
             Keine Wettbewerbe erstellt.
           </p>
         ) : (
-          competitions.map(comp => {
+          playoffCompetitions.map(comp => {
             const league = leagueMap[comp.leagueId];
             const bracket = comp.bracket || comp.brackets || [];
             const sourceCount = getBracketSourceCount(bracket);

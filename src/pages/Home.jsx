@@ -350,15 +350,15 @@ function AdBannerCard({ banner }) {
   if (!banner?.imageUrl && !banner?.title) return null;
 
   const content = (
-    <div className="group relative overflow-hidden rounded-[24px] border border-white/10 bg-black/72 p-3 text-white shadow-[0_16px_34px_rgba(0,0,0,0.28)] backdrop-blur">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(194,15,26,0.18),transparent_32%),radial-gradient(circle_at_92%_0%,rgba(47,125,255,0.18),transparent_34%)]" />
-      <div className="relative flex min-h-[82px] items-center gap-3">
+    <div className="group relative overflow-hidden rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.34)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(194,15,26,0.28),rgba(0,0,0,0.65)_46%,rgba(47,125,255,0.24)),repeating-linear-gradient(105deg,rgba(255,255,255,0.06)_0_1px,transparent_1px_18px)]" />
+      <div className="relative grid min-h-[132px] grid-cols-[132px_1fr] items-center gap-4 p-4 sm:grid-cols-[180px_1fr]">
         {banner.imageUrl && (
-          <div className="flex h-16 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-2">
+          <div className="flex aspect-[16/9] w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-2">
             <img
               src={getImageUrl(banner.imageUrl)}
               alt={banner.title || ""}
-              className="max-h-full max-w-full object-contain"
+              className="h-full w-full object-cover"
               loading="lazy"
             />
           </div>
@@ -368,13 +368,13 @@ function AdBannerCard({ banner }) {
           <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#ff2338]">
             Werbung
           </p>
-          <p className="mt-1 line-clamp-2 text-base font-black leading-tight text-white">
+          <p className="mt-1 line-clamp-2 text-2xl font-black italic leading-tight text-white">
             {banner.title || "Partner"}
           </p>
         </div>
 
         {banner.linkUrl && (
-          <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-white text-red-700 transition-transform group-hover:scale-105">
+          <span className="absolute right-4 top-4 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-red-700 transition-transform group-hover:scale-105">
             <ExternalLink className="h-4 w-4" />
           </span>
         )}
@@ -498,6 +498,34 @@ function NewsCard({ post }) {
             Presented by {authorName}
           </p>
         )}
+      </div>
+    </Link>
+  );
+}
+
+function TransferCard({ post }) {
+  const imageUrl = post.imageUrl || post.coverImageUrl || post.thumbnailUrl || "";
+  const meta = parseJsonMessage(post.message);
+  const player = meta.transfer_player || meta.transferPlayer || post.title || "Transfer";
+  const authorName = meta.author_name || meta.authorName || post.authorUsername || "";
+
+  return (
+    <Link to={`/post/${post.id}`} className="group block min-w-[72vw] max-w-[72vw] overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_38px_rgba(0,0,0,0.34)] sm:min-w-[330px] sm:max-w-[330px]">
+      <div className="relative min-h-[150px] overflow-hidden p-4">
+        {imageUrl ? (
+          <img src={getImageUrl(imageUrl)} alt="" className="absolute inset-0 h-full w-full object-cover opacity-42 transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+        ) : null}
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(194,15,26,0.84),rgba(0,0,0,0.82)_48%,rgba(47,125,255,0.62))]" />
+        <div className="relative z-10 flex min-h-[118px] flex-col justify-between">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/68">Transfer Wire</p>
+            <h3 className="mt-2 line-clamp-2 text-2xl font-black italic leading-none">{player}</h3>
+          </div>
+          <div>
+            <p className="line-clamp-2 text-sm font-black leading-tight">{post.title || "Neuer Transfer"}</p>
+            {authorName && <p className="mt-2 text-[10px] font-bold uppercase text-white/48">Presented by {authorName}</p>}
+          </div>
+        </div>
       </div>
     </Link>
   );
@@ -855,19 +883,6 @@ export default function Home() {
 
         <AdBannerSlot banners={adBanners} position="after_news" />
 
-        {transfers.length > 0 && (
-          <section>
-            <SectionTitle title="Transfers" to="/feed" />
-            <HorizontalRail>
-              {transfers.map((post) => (
-                <div key={post.id} className="min-w-[58vw] max-w-[58vw] sm:min-w-[240px] sm:max-w-[240px]">
-                  <NewsCard post={post} />
-                </div>
-              ))}
-            </HorizontalRail>
-          </section>
-        )}
-
         {gameOfTheWeek && (
           <section>
             <GameOfWeekTitle label={gameOfTheWeekLabel} />
@@ -877,19 +892,6 @@ export default function Home() {
 
         <AdBannerSlot banners={adBanners} position="after_gotw" />
 
-        <section>
-          <SectionTitle title="Game Highlights" to="/highlights" />
-          {highlights.length > 0 ? (
-            <HorizontalRail>
-              {highlights.map((item) => <HighlightCard key={item.id} item={item} />)}
-            </HorizontalRail>
-          ) : (
-            <EmptyCard label="Keine Highlights" />
-          )}
-        </section>
-
-        <AdBannerSlot banners={adBanners} position="after_highlights" />
-
         {podcast && (
           <section>
             <SectionTitle title="Podcast" />
@@ -898,6 +900,26 @@ export default function Home() {
         )}
 
         <AdBannerSlot banners={adBanners} position="after_podcast" />
+
+        <section>
+          <SectionTitle title="Transfers" to="/feed" />
+          {transfers.length > 0 ? (
+            <HorizontalRail>
+              {transfers.map((post) => <TransferCard key={post.id} post={post} />)}
+            </HorizontalRail>
+          ) : (
+            <EmptyCard label="Keine Transfers" />
+          )}
+        </section>
+
+        {undefeatedTeams.length > 0 && (
+          <section>
+            <SectionTitle title="Siegesserien" />
+            <HorizontalRail>
+              {undefeatedTeams.map((item) => <StreakCard key={item.team.id} item={item} />)}
+            </HorizontalRail>
+          </section>
+        )}
 
         <section>
           <SectionTitle title="GameDay Shots" />
@@ -912,14 +934,18 @@ export default function Home() {
 
         <AdBannerSlot banners={adBanners} position="after_shots" />
 
-        {undefeatedTeams.length > 0 && (
-          <section>
-            <SectionTitle title="Siegesserien" />
+        <section>
+          <SectionTitle title="Game Highlights" to="/highlights" />
+          {highlights.length > 0 ? (
             <HorizontalRail>
-              {undefeatedTeams.map((item) => <StreakCard key={item.team.id} item={item} />)}
+              {highlights.map((item) => <HighlightCard key={item.id} item={item} />)}
             </HorizontalRail>
-          </section>
-        )}
+          ) : (
+            <EmptyCard label="Keine Highlights" />
+          )}
+        </section>
+
+        <AdBannerSlot banners={adBanners} position="after_highlights" />
       </div>
     </div>
   );

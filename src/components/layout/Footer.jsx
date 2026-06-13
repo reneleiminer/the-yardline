@@ -141,32 +141,6 @@ export default function Footer() {
           Version {APP_VERSION}
         </p>
 
-        <div className="relative mx-auto mt-8 h-[78px] max-w-5xl overflow-hidden rounded-t-[10px] border-x border-t border-white/35 bg-[linear-gradient(180deg,#245b27_0%,#173f1b_58%,#0d2b12_100%)] shadow-[inset_0_16px_38px_rgba(255,255,255,0.08)]">
-          <div className="absolute inset-0 opacity-45 bg-[repeating-linear-gradient(100deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_7px)]" />
-          <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/95" />
-          <div className="absolute inset-x-0 bottom-[22px] h-px bg-white/70" />
-
-          {Array.from({ length: 11 }).map((_, index) => {
-            const left = `${index * 10}%`;
-            const number = index <= 5 ? 50 - index * 10 : (index - 5) * 10;
-
-            return (
-              <span key={index} className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center" style={{ left }}>
-                <span className="mb-1 text-[13px] font-black text-white/75 drop-shadow">{number}</span>
-                <span className="h-[44px] w-px bg-white/78" />
-              </span>
-            );
-          })}
-
-          <div className="absolute inset-x-[1.5%] bottom-0 flex justify-between">
-            {Array.from({ length: 51 }).map((_, index) => (
-              <span
-                key={index}
-                className={`${index % 5 === 0 ? 'h-[20px]' : 'h-[10px]'} w-px bg-white/72`}
-              />
-            ))}
-          </div>
-        </div>
       </div>
     </footer>
   );

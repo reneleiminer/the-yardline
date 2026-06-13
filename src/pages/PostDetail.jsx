@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import useSetHeader from '@/hooks/useSetHeader';
 import { useGlobalData } from '@/lib/GlobalDataContext';
 import { getImageUrl } from '@/lib/imageUtils';
@@ -64,8 +66,19 @@ export default function PostDetail() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [realCommentCount, setRealCommentCount] = useState(null);
 
-  const post = useMemo(() => postsById?.get(id), [postsById, id]);
-  const isLoading = postsLoading;
+  const cachedPost = useMemo(() => postsById?.get(id), [postsById, id]);
+  const { data: fetchedPost = null, isLoading: fetchedPostLoading } = useQuery({
+    queryKey: ['post-detail', id],
+    queryFn: async () => {
+      const rows = await base44.entities.Post.filter({ id });
+      return rows?.[0] || null;
+    },
+    enabled: !!id && !cachedPost,
+    staleTime: 1000 * 60,
+    retry: 1,
+  });
+  const post = cachedPost || fetchedPost;
+  const isLoading = postsLoading || fetchedPostLoading;
   const isLiked = appUser ? hasLikedPost(appUser.id, id, likes) : false;
 
   const typeLabel = post ? (POST_TYPE_CONFIG[post.type]?.label || 'Beitrag') : 'Beitrag';
@@ -221,6 +234,19 @@ function isClubNews(post) {
                 </div>
               </div>
             );
+          }
+
+          if (block.type === 'image') {
+            return block.imageUrl ? (
+              <figure key={block.id || index} className="overflow-hidden rounded-[22px] border border-white/10 bg-black/72 text-white">
+                <img src={getImageUrl(block.imageUrl)} alt="" className="w-full object-cover" />
+                {(block.title || block.text) && (
+                  <figcaption className="p-3 text-xs font-semibold text-white/58">
+                    {block.title || block.text}
+                  </figcaption>
+                )}
+              </figure>
+            ) : null;
           }
 
           return (

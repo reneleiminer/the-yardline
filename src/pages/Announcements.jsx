@@ -20,6 +20,16 @@ function getPostDate(post) {
   return post?.publishedAtUtc || post?.createdAtUtc || post?.created_date || post?.createdAt || "";
 }
 
+function parseJsonMessage(message) {
+  if (!message) return {};
+  try {
+    const parsed = JSON.parse(message);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function isVisibleNews(post) {
   if (!post) return false;
   if (post.isHidden || post.isDeleted) return false;
@@ -31,13 +41,7 @@ function NewsCard({ post, featured = false }) {
   const image = getPostImages(post)[0];
   const date = getPostDate(post);
   const timeAgo = date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: de }) : "";
-  const meta = (() => {
-    try {
-      return post.message ? JSON.parse(post.message) : {};
-    } catch {
-      return {};
-    }
-  })();
+  const meta = parseJsonMessage(post.message);
   const category = post.type === "transfer"
     ? "Transfer"
     : post.category || (post.sourceType === "club_news" ? "Vereinsnews" : "News");
@@ -45,10 +49,10 @@ function NewsCard({ post, featured = false }) {
 
   if (!featured) {
     return (
-      <Link to={`/post/${post.id}`} className="grid min-h-[122px] grid-cols-[1fr_132px] overflow-hidden rounded-[24px] border border-white/10 bg-black/80 text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
+      <Link to={`/post/${post.id}`} className="grid min-h-[132px] grid-cols-[1fr_132px] overflow-hidden rounded-[26px] border border-white/10 bg-black/82 text-white shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
         <div className="min-w-0 p-4">
           <p className="text-[10px] font-black uppercase tracking-wide text-[#ff2338]">{category}</p>
-          <h2 className="mt-1 line-clamp-2 text-base font-black leading-tight">
+          <h2 className="mt-1 line-clamp-2 text-lg font-black italic leading-tight">
             {post.title || "News"}
           </h2>
           {(post.teaser || post.text) && (
@@ -76,7 +80,7 @@ function NewsCard({ post, featured = false }) {
   }
 
   return (
-    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[28px] border border-white/10 bg-black/80 text-white shadow-[0_16px_40px_rgba(0,0,0,0.30)]">
+    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[30px] border border-white/10 bg-black/84 text-white shadow-[0_20px_44px_rgba(0,0,0,0.34)]">
       {image && (
         <div className="aspect-[16/9] bg-black/60">
           <img src={getImageUrl(image)} alt="" className="h-full w-full object-cover" loading="lazy" />
@@ -85,7 +89,7 @@ function NewsCard({ post, featured = false }) {
 
       <div className="p-4">
         <p className="text-[10px] font-black uppercase tracking-wide text-[#ff2338]">{category}</p>
-        <h2 className="mt-1 line-clamp-2 text-2xl font-black leading-tight">
+        <h2 className="mt-1 line-clamp-2 text-3xl font-black italic leading-tight">
           {post.title || "News"}
         </h2>
         {(post.teaser || post.text) && (
@@ -117,6 +121,29 @@ export default function Announcements() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: appUpdates = [] } = useQuery({
+    queryKey: ["news-page-banners"],
+    queryFn: () => base44.entities.AppUpdate.list("-created_date", 200),
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  });
+
+  const adBanners = useMemo(() => {
+    return appUpdates
+      .filter((item) => item.version === "ad_banner" && item.isActive !== false)
+      .map((item) => {
+        const meta = parseJsonMessage(item.message);
+        return {
+          id: item.id,
+          title: meta.title || item.title || "Werbung",
+          imageUrl: meta.image_url || meta.imageUrl || item.imageUrl || "",
+          linkUrl: meta.link_url || meta.linkUrl || "",
+          active: meta.active !== false,
+        };
+      })
+      .filter((item) => item.active && (item.title || item.imageUrl));
+  }, [appUpdates]);
+
   const visiblePosts = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -139,6 +166,7 @@ export default function Announcements() {
 
   const featured = visiblePosts[0] || null;
   const rest = featured ? visiblePosts.slice(1) : visiblePosts;
+  const banner = adBanners[0] || null;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
@@ -160,8 +188,26 @@ export default function Announcements() {
 
           {rest.length > 0 && (
             <div className="space-y-3">
-              {rest.map((post) => (
-                <NewsCard key={post.id} post={post} />
+              {rest.map((post, index) => (
+                <React.Fragment key={post.id}>
+                  <NewsCard post={post} />
+                  {banner && (index + 1) % 4 === 0 && (
+                    <a
+                      href={banner.linkUrl || undefined}
+                      target={banner.linkUrl ? "_blank" : undefined}
+                      rel="noreferrer"
+                      className="block overflow-hidden rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_38px_rgba(0,0,0,0.32)]"
+                    >
+                      {banner.imageUrl && (
+                        <img src={getImageUrl(banner.imageUrl)} alt="" className="aspect-[16/5] w-full object-cover" loading="lazy" />
+                      )}
+                      <div className="p-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#ff2338]">Werbung</p>
+                        <p className="mt-1 text-xl font-black italic">{banner.title}</p>
+                      </div>
+                    </a>
+                  )}
+                </React.Fragment>
               ))}
             </div>
           )}

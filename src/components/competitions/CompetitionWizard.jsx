@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ImageUploadField from '@/components/common/ImageUploadField';
-import { CalendarDays, Flag, MapPin, Plus, Save, ShieldCheck, Trash2, Trophy, X } from 'lucide-react';
+import { MapPin, Plus, Save, Trash2, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DEFAULT_DISPLAY_SETTINGS = {
@@ -25,38 +25,11 @@ const COMPETITION_TYPES = [
   {
     value: 'playoffs',
     label: 'Playoffs',
-    description: 'Turnierbaum mit Finalrunde, z.B. German Bowl oder Gold Bowl.',
+    description: 'Turnierbaum mit Finalrunde, Bowl oder Championship als letzter Runde.',
     color: 'from-blue-500/20 to-yellow-500/10 border-blue-400/30',
     icon: Trophy,
     displayMode: 'bracket',
     allowsFinalHighlight: true,
-  },
-  {
-    value: 'cup',
-    label: 'Cup / Sonderturnier',
-    description: 'Freier KO-Wettbewerb oder Sonderturnier mit Turnierbaum.',
-    color: 'from-emerald-500/20 to-cyan-500/10 border-emerald-400/30',
-    icon: Flag,
-    displayMode: 'bracket',
-    allowsFinalHighlight: true,
-  },
-  {
-    value: 'playdowns',
-    label: 'Playdowns',
-    description: 'Entscheidungsspiele ohne Champion-Show und ohne Turnierbaum-Look.',
-    color: 'from-orange-500/20 to-red-500/10 border-orange-400/30',
-    icon: ShieldCheck,
-    displayMode: 'games',
-    allowsFinalHighlight: false,
-  },
-  {
-    value: 'relegation',
-    label: 'Relegation / Aufstieg',
-    description: 'Aufstiegs- oder Relegationsspiele als klare Spielkarten.',
-    color: 'from-purple-500/20 to-pink-500/10 border-purple-400/30',
-    icon: CalendarDays,
-    displayMode: 'games',
-    allowsFinalHighlight: false,
   },
 ];
 
@@ -153,7 +126,6 @@ function getSourceLabel(source, fallback = 'Teilnehmer offen') {
 function getDefaultChampionTitle(type, finalRoundName) {
   if (!allowsFinalHighlight(type)) return '';
   if (finalRoundName) return finalRoundName;
-  if (type === 'cup') return 'Cup Sieger';
   return 'Champion';
 }
 
@@ -545,7 +517,7 @@ export default function CompetitionWizard({ onClose, onSuccess }) {
       championTitle: canHighlight ? getDefaultChampionTitle(value, prev.finalRoundName) : '',
       rounds: prev.rounds.map(round => ({
         ...round,
-        venueMode: value === 'playdowns' || value === 'relegation' ? 'home' : round.venueMode || 'home',
+        venueMode: round.venueMode || 'home',
       })),
     }));
   };
@@ -798,7 +770,7 @@ export default function CompetitionWizard({ onClose, onSuccess }) {
             <div className="mb-4">
               <h3 className="text-sm font-black">Typ</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Playoffs/Cup werden als Turnierbaum angezeigt. Playdowns/Relegation werden als Spielkarten angezeigt.
+                Playoffs werden als Turnierbaum mit klarer Finalrunde angezeigt.
               </p>
             </div>
 
@@ -936,7 +908,7 @@ export default function CompetitionWizard({ onClose, onSuccess }) {
 
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                         {VENUE_MODES.map(mode => {
-                          const disabled = (formData.competitionType === 'playdowns' || formData.competitionType === 'relegation') && mode.value !== 'home';
+                          const disabled = false;
 
                           return (
                             <button

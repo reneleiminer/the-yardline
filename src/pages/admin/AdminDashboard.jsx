@@ -530,7 +530,7 @@ function AdBannerPlanner({
           </h2>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle dezente Banner nur für die Home-Seite.
+            Plane grosse Werbebanner fuer Home und News.
           </p>
         </div>
 
@@ -570,10 +570,9 @@ function AdBannerPlanner({
             >
               <option value="after_news">Nach News</option>
               <option value="after_gotw">Nach Game of the Week</option>
-              <option value="after_highlights">Nach Highlights</option>
               <option value="after_podcast">Nach Podcast</option>
+              <option value="after_highlights">Nach Highlights</option>
               <option value="after_shots">Nach GameDay Shots</option>
-              <option value="after_upcoming">Alt: Nach Kommende Spiele</option>
             </select>
           </label>
 
@@ -672,14 +671,14 @@ function AdBannerPlanner({
         </div>
 
         {(formData.title || formData.image_url) && (
-          <div className="rounded-2xl border border-white/10 bg-background/60 px-3 py-2.5">
-            <div className="flex items-center gap-3 min-h-[54px]">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black text-white">
+            <div className="grid min-h-[118px] grid-cols-[150px_1fr] items-center gap-3 p-3">
               {formData.image_url && (
-                <div className="w-16 h-10 rounded-xl bg-black/25 border border-white/10 overflow-hidden flex items-center justify-center p-1.5 flex-shrink-0">
+                <div className="aspect-[16/9] rounded-xl bg-white border border-white/10 overflow-hidden flex items-center justify-center flex-shrink-0">
                   <img
                     src={getImageUrl(formData.image_url)}
                     alt=""
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 </div>
               )}
@@ -689,7 +688,7 @@ function AdBannerPlanner({
                   Werbung
                 </p>
 
-                <p className="text-xs font-black truncate mt-0.5">
+                <p className="text-xl font-black italic truncate mt-0.5">
                   {formData.title || 'Werbe-Banner'}
                 </p>
               </div>
