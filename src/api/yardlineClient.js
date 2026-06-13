@@ -452,6 +452,9 @@ const OMIT_FIELDS = {
 };
 
 function shouldStoreInLegacyData() {
+  // The Yardline speichert ausschließlich in Supabase.
+  // Zusätzliche Felder werden nicht extern ausgelagert, sondern in der Supabase-Spalte legacy_data abgelegt,
+  // falls keine eigene Tabellenspalte existiert.
   return false;
 }
 
