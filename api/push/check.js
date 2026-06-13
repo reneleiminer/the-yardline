@@ -8,6 +8,7 @@ import {
   sendToAllSubscriptions,
 } from "../_push.js";
 
+
 const LOOKBACK_HOURS = 48;
 
 function hoursAgo(hours) {
@@ -216,6 +217,91 @@ async function buildPostEvents(supabase) {
   });
 }
 
+
+function getWinnerText(game, teams) {
+  const homeScore = Number(game.score_home ?? 0);
+  const awayScore = Number(game.score_away ?? 0);
+
+  if (homeScore > awayScore) return `${teams.homeName} gewinnt`;
+  if (awayScore > homeScore) return `${teams.awayName} gewinnt`;
+  return "Unentschieden";
+}
+
+async function sendToFavoriteTeamSubscriptions(supabase, teamIds, notification) {
+  const wantedTeamIds = new Set(teamIds.filter(Boolean));
+  if (wantedTeamIds.size === 0) return { sent: 0, failed: 0 };
+
+  const { data: subscriptions, error } = await supabase
+    .from("push_subscriptions")
+    .select("id,subscription")
+    .eq("active", true);
+
+  if (error) throw error;
+
+  const { configureWebPush } = await import("../_push.js");
+  const sender = configureWebPush();
+  let sent = 0;
+  let failed = 0;
+
+  await Promise.all(
+    (subscriptions || [])
+      .filter((row) => wantedTeamIds.has(row.subscription?.yardline?.favoriteTeamId))
+      .map(async (row) => {
+        try {
+          await sender.sendNotification(row.subscription, JSON.stringify(notification));
+          sent += 1;
+        } catch (error) {
+          failed += 1;
+
+          if (error.statusCode === 404 || error.statusCode === 410) {
+            await supabase
+              .from("push_subscriptions")
+              .update({ active: false, updated_at: new Date().toISOString() })
+              .eq("id", row.id);
+          }
+        }
+      })
+  );
+
+  return { sent, failed };
+}
+
+async function buildFavoriteFinalScoreEvents(supabase) {
+  const { data: games, error } = await supabase
+    .from("games")
+    .select("id,home_team_id,away_team_id,home_team_placeholder,away_team_placeholder,score_home,score_away,status,updated_at")
+    .eq("status", "final")
+    .not("score_home", "is", null)
+    .not("score_away", "is", null)
+    .gte("updated_at", hoursAgo(LOOKBACK_HOURS))
+    .limit(50);
+
+  if (error) throw error;
+
+  const teamsById = await fetchTeamMap(supabase, games || []);
+
+  return (games || []).map((game) => {
+    const teams = getGameTeams(game, teamsById);
+    const winnerText = getWinnerText(game, teams);
+    const score = `${Number(game.score_home)}:${Number(game.score_away)}`;
+
+    return {
+      key: `favorite_final:${game.id}:${game.updated_at || ""}:${score}`,
+      type: "favorite_final_score",
+      targetTeamIds: [game.home_team_id, game.away_team_id].filter(Boolean),
+      payload: {
+        title: "Endstand für dein Team",
+        body: `${winnerText} · ${teams.homeName} ${score} ${teams.awayName}`,
+        url: `/game/${game.id}`,
+        tag: `favorite_final:${game.id}`,
+        icon: teams.homeLogo || teams.awayLogo || "/yardline-icon-192.png",
+        renotify: true,
+      },
+    };
+  });
+}
+
+
 export default async function handler(req, res) {
   if (req.method !== "POST" && req.method !== "GET") {
     res.setHeader("Allow", "GET, POST");
@@ -231,6 +317,7 @@ export default async function handler(req, res) {
       buildPodcastEvents(supabase),
       buildHighlightEvents(supabase),
       buildPostEvents(supabase),
+      buildFavoriteFinalScoreEvents(supabase),
     ]);
 
     const events = groups.flat();
@@ -243,7 +330,10 @@ export default async function handler(req, res) {
       if (!canSend) continue;
 
       claimed += 1;
-      const result = await sendToAllSubscriptions(supabase, event.payload);
+      const result = event.type === "favorite_final_score"
+        ? await sendToFavoriteTeamSubscriptions(supabase, event.targetTeamIds || [], event.payload)
+        : await sendToAllSubscriptions(supabase, event.payload);
+
       sent += result.sent;
       failed += result.failed;
     }
