@@ -48,14 +48,14 @@ export default function ProtectedRoute({
   if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
     const allowed = allowedRoles.map(normalizeRole);
 
-    if (!allowed.includes(roleToCheck)) {
+    if (!allowed.includes(roleToCheck) && !checkRouteAccess(appUserSnapshot, requiredRoute)) {
       return <Navigate to={fallbackRoute} replace />;
     }
 
     return children;
   }
 
-  const hasAccess = checkRouteAccess(roleToCheck, requiredRoute);
+  const hasAccess = checkRouteAccess(appUserSnapshot, requiredRoute);
 
   if (!hasAccess) {
     return <AccessDenied />;

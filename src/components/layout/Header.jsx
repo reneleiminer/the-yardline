@@ -16,6 +16,7 @@ import { base44 } from "@/api/base44Client";
 import { useHeaderConfig } from "@/lib/HeaderContext";
 import { getImageUrl } from "@/lib/imageUtils";
 import { useAuth } from "@/lib/AuthContext";
+import { hasFeatureAccess } from "@/lib/rolePermissions";
 
 const APP_BRANDING_VERSION = "app_branding";
 
@@ -166,6 +167,21 @@ function DefaultContent() {
   );
 }
 
+function getDashboardRouteForUser(user) {
+  const roleSlug = String(user?.roleSlug || user?.role || "").toLowerCase();
+  if (roleSlug === "admin") return "/admin";
+  if (roleSlug === "gotw") return "/gotw";
+  if (roleSlug === "photographer") return "/photographer";
+  if (roleSlug === "podcast") return "/podcast";
+  if (roleSlug === "news") return "/news-dashboard";
+  if (hasFeatureAccess(user, "live_results")) return "/live-games";
+  if (hasFeatureAccess(user, "gotw")) return "/gotw";
+  if (hasFeatureAccess(user, "gameday_shots")) return "/photographer";
+  if (hasFeatureAccess(user, "podcast")) return "/podcast";
+  if (hasFeatureAccess(user, "news")) return "/news-dashboard";
+  return "";
+}
+
 function BackButton({ onBack, backTo }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -219,18 +235,20 @@ function BackContent({ title, onBack, backTo }) {
 }
 
 function DashboardContent({ title }) {
-  const { logout } = useAuth();
+  const { logout, appUserSnapshot } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const dashboardHome = location.pathname.startsWith("/admin")
     ? "/admin"
+    : location.pathname.startsWith("/live-games")
+    ? "/live-games"
     : location.pathname.startsWith("/photographer")
     ? "/photographer"
     : location.pathname.startsWith("/podcast")
     ? "/podcast"
     : location.pathname.startsWith("/news-dashboard")
     ? "/news-dashboard"
-    : "/gotw";
+    : getDashboardRouteForUser(appUserSnapshot) || "/gotw";
   const showDashboardButton = location.pathname !== dashboardHome;
 
   return (
@@ -415,7 +433,9 @@ function HeaderMenu({ open, onClose }) {
 
 export default function Header() {
   const { config } = useHeaderConfig();
+  const { appUserSnapshot } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const scrolled = useScrolled();
   const [menuOpen, setMenuOpen] = useState(false);
   const lastPathRef = useRef(location.pathname);
@@ -435,6 +455,7 @@ export default function Header() {
     "/support",
     "/legal",
   ].includes(location.pathname);
+  const dashboardRoute = getDashboardRouteForUser(appUserSnapshot);
 
   const contextPrimary =
     mode === "league"
@@ -461,16 +482,30 @@ export default function Header() {
             <>
               <DefaultContent />
 
-              {!hideMenuButton && (
-                <Link
-                  to="/settings"
-                  className="ml-auto flex h-11 w-11 items-center justify-center rounded-full active:bg-black/5 transition-colors"
-                  aria-label="Konto und Einstellungen"
-                  title="Konto und Einstellungen"
-                >
-                  <UserCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
-                </Link>
-              )}
+              <div className="ml-auto flex items-center gap-1">
+                {dashboardRoute && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(dashboardRoute, { replace: true })}
+                    className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 text-[10px] font-black uppercase tracking-wide text-white/78 transition-colors hover:bg-white/14 hover:text-white"
+                    aria-label="Zurueck zum Dashboard"
+                  >
+                    <LayoutDashboard className="h-3.5 w-3.5" />
+                    Dashboard
+                  </button>
+                )}
+
+                {!hideMenuButton && (
+                  <Link
+                    to="/settings"
+                    className="flex h-11 w-11 items-center justify-center rounded-full active:bg-black/5 transition-colors"
+                    aria-label="Konto und Einstellungen"
+                    title="Konto und Einstellungen"
+                  >
+                    <UserCircle className="h-8 w-8 text-white" strokeWidth={2.1} />
+                  </Link>
+                )}
+              </div>
             </>
           ) : (
             <div className="flex-1 min-w-0 flex items-center">

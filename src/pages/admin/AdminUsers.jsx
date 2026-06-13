@@ -67,6 +67,34 @@ const STATUS_LABELS = {
   blocked: "Gesperrt",
 };
 
+const FEATURE_OPTIONS = [
+  {
+    key: "gotw",
+    label: "GOTW",
+    description: "Game of the Week setzen",
+  },
+  {
+    key: "gameday_shots",
+    label: "GameDay Shots",
+    description: "Fotografen-Bilder verwalten",
+  },
+  {
+    key: "podcast",
+    label: "Podcast",
+    description: "Podcast-Karte bearbeiten",
+  },
+  {
+    key: "news",
+    label: "News",
+    description: "News und Transfers erstellen",
+  },
+  {
+    key: "live_results",
+    label: "Live-Ergebnisse",
+    description: "Scores live/final eintragen",
+  },
+];
+
 function normalizeUsername(value) {
   return String(value || "").trim().toLowerCase();
 }
@@ -132,10 +160,47 @@ function getRoleSlug(user) {
   return normalizeRole(user?.roleSlug || user?.role || "fan") || "fan";
 }
 
+function parseFeatureAccess(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return value.split(",").map(item => item.trim()).filter(Boolean);
+    }
+  }
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .filter(([, enabled]) => enabled)
+      .map(([key]) => key);
+  }
+  return [];
+}
+
+function getBaseFeaturesForRole(roleSlug) {
+  if (roleSlug === "admin") return FEATURE_OPTIONS.map(option => option.key);
+  if (roleSlug === "gotw") return ["gotw"];
+  if (roleSlug === "photographer") return ["gameday_shots"];
+  if (roleSlug === "podcast") return ["podcast"];
+  if (roleSlug === "news") return ["news"];
+  return [];
+}
+
+function getUserFeatures(user) {
+  return Array.from(new Set([
+    ...getBaseFeaturesForRole(getRoleSlug(user)),
+    ...parseFeatureAccess(user?.featureAccess || user?.permissions || user?.extraAccess),
+  ]));
+}
+
 function isInternalLogin(user) {
   const roleSlug = getRoleSlug(user);
+  const hasInternalFeature = parseFeatureAccess(user?.featureAccess || user?.permissions || user?.extraAccess).length > 0;
 
   return (
+    hasInternalFeature ||
     roleSlug === "admin" ||
     roleSlug === "gotw" ||
     roleSlug === "photographer" ||
@@ -232,6 +297,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
     username: initial?.username || initial?.internalUsername || "",
     roleSlug: getRoleSlug(initial || EMPTY_USER),
     connectedTeamId: initial?.connectedTeamId || "",
+    featureAccess: parseFeatureAccess(initial?.featureAccess || initial?.permissions || initial?.extraAccess),
     internalPassword: "",
   });
 
@@ -266,7 +332,10 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
       return;
     }
 
-    if (!initial?.id && roleSlug !== "fan" && !form.internalPassword.trim()) {
+    const featureAccess = Array.from(new Set(form.featureAccess || []));
+    const isInternalAccount = roleSlug !== "fan" || featureAccess.length > 0;
+
+    if (!initial?.id && isInternalAccount && !form.internalPassword.trim()) {
       toast.error("Bitte Passwort vergeben");
       return;
     }
@@ -278,11 +347,12 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
       displayName: form.displayName.trim(),
       roleSlug,
       role: ROLE_LABELS[roleSlug],
+      featureAccess,
       connectedTeamId: "",
       connectedClubId: "",
       linkedClubId: "",
       status: form.status || "active",
-      internalPassword: roleSlug === "fan" ? "" : form.internalPassword.trim(),
+      internalPassword: isInternalAccount ? form.internalPassword.trim() : "",
     });
   };
 
@@ -379,6 +449,68 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
           Fotografen werden nicht mehr fest mit einem Verein verbunden. Die Zuordnung passiert pro GameDay Shot beim Hochladen.
         </p>
       )}
+
+      <div className="rounded-2xl border border-border/50 bg-secondary/20 p-3">
+        <div className="mb-2">
+          <p className="text-xs font-bold">
+            Zusatzfunktionen
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Die Rolle hat ihre Basisfunktion automatisch. Alles hier ist extra freigeschaltet.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {FEATURE_OPTIONS.map(option => {
+            const roleFeatures = getBaseFeaturesForRole(form.roleSlug);
+            const includedByRole = roleFeatures.includes(option.key);
+            const checked = includedByRole || (form.featureAccess || []).includes(option.key);
+
+            return (
+              <label
+                key={option.key}
+                className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                  checked
+                    ? "border-primary/45 bg-primary/10"
+                    : "border-border/50 bg-background/40"
+                } ${isExistingProtected ? "opacity-60" : "cursor-pointer"}`}
+              >
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={isExistingProtected || includedByRole}
+                    onChange={event => {
+                      const nextChecked = event.target.checked;
+                      setForm(current => {
+                        const currentAccess = new Set(current.featureAccess || []);
+                        if (nextChecked) currentAccess.add(option.key);
+                        else currentAccess.delete(option.key);
+                        return {
+                          ...current,
+                          featureAccess: Array.from(currentAccess),
+                        };
+                      });
+                    }}
+                    className="mt-0.5 h-4 w-4 accent-primary"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold">
+                      {option.label}
+                      {includedByRole && (
+                        <span className="ml-1 text-[10px] text-primary">Rolle</span>
+                      )}
+                    </span>
+                    <span className="block text-[10px] text-muted-foreground">
+                      {option.description}
+                    </span>
+                  </span>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       <Input
         type="password"
@@ -483,13 +615,14 @@ export default function AdminUsers() {
         displayName: data.displayName,
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
+        featureAccess: data.featureAccess || [],
         connectedTeamId: "",
         connectedClubId: "",
         linkedClubId: "",
         status: data.status || "active",
         internalPassword: data.internalPassword,
         verified: true,
-        isInternalUser: data.roleSlug !== "fan",
+        isInternalUser: data.roleSlug !== "fan" || (data.featureAccess || []).length > 0,
         isOwner: false,
         needsOnboarding: false,
         createdByAdminId: appUserSnapshot?.id || "",
@@ -520,11 +653,12 @@ export default function AdminUsers() {
         displayName: data.displayName,
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
+        featureAccess: data.featureAccess || [],
         connectedTeamId: "",
         connectedClubId: "",
         linkedClubId: "",
         status: data.status || "active",
-        isInternalUser: data.roleSlug !== "fan",
+        isInternalUser: data.roleSlug !== "fan" || (data.featureAccess || []).length > 0,
         needsOnboarding: false,
         updatedAtUtc: new Date().toISOString(),
       };
@@ -912,6 +1046,22 @@ export default function AdminUsers() {
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Erstellt: {user.createdAtUtc || user.created_date || "unbekannt"}
                     </p>
+
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {getUserFeatures(user).map(featureKey => {
+                        const option = FEATURE_OPTIONS.find(item => item.key === featureKey);
+                        if (!option) return null;
+
+                        return (
+                          <span
+                            key={featureKey}
+                            className="rounded-full border border-border/50 bg-secondary/40 px-2 py-0.5 text-[10px] font-bold text-muted-foreground"
+                          >
+                            {option.label}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 

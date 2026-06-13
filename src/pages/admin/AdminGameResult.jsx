@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Shield } from 'lucide-react';
 import { getImageUrl } from '@/lib/imageUtils';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/AuthContext';
 
 const SYSTEM_AUTHOR_USERNAME = 'yardline-system';
 
@@ -390,11 +391,14 @@ export default function AdminGameResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
+  const isAdmin = String(appUserSnapshot?.roleSlug || appUserSnapshot?.role || '').toLowerCase() === 'admin';
+  const dashboardRoute = isAdmin ? '/admin' : '/live-games';
 
   useSetHeader({
   mode: 'back',
   title: 'Ergebnis eintragen',
-  backTo: '/admin',
+  backTo: dashboardRoute,
 });
 
   const gameId = searchParams.get('gameId');
@@ -505,7 +509,7 @@ export default function AdminGameResult() {
           : 'Live-Ergebnis gespeichert'
       );
 
-      navigate('/admin');
+      navigate(dashboardRoute);
     },
     onError: error => {
       console.error('SAVE RESULT ERROR:', error);
@@ -530,7 +534,7 @@ export default function AdminGameResult() {
         <p className="text-sm text-muted-foreground mb-4">
           Kein Spiel ausgewählt.
         </p>
-        <Button onClick={() => navigate('/admin')}>
+        <Button onClick={() => navigate(dashboardRoute)}>
           Zurück zum Dashboard
         </Button>
       </div>
@@ -552,7 +556,7 @@ export default function AdminGameResult() {
         <p className="text-xs text-muted-foreground mb-4">
           ID: {gameId}
         </p>
-        <Button onClick={() => navigate('/admin')}>
+        <Button onClick={() => navigate(dashboardRoute)}>
           Zurück zum Dashboard
         </Button>
       </div>
@@ -639,7 +643,7 @@ export default function AdminGameResult() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate(dashboardRoute)}
             className="flex-1"
             disabled={updateMutation.isPending}
           >

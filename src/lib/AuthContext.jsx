@@ -67,7 +67,16 @@ function isDeletedOrBlocked(appUser) {
 }
 
 function isInternalRole(appUser) {
-  return ["admin", "gotw", "photographer", "podcast", "news"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
+  const featureAccess = appUser?.featureAccess || appUser?.permissions || appUser?.extraAccess;
+  const hasInternalFeature = Array.isArray(featureAccess)
+    ? featureAccess.length > 0
+    : typeof featureAccess === "string"
+      ? featureAccess.trim().length > 0
+      : featureAccess && typeof featureAccess === "object"
+        ? Object.values(featureAccess).some(Boolean)
+        : false;
+
+  return ["admin", "gotw", "photographer", "podcast", "news"].includes(normalizeRole(appUser?.roleSlug || appUser?.role)) || hasInternalFeature;
 }
 
 function getStoredSessionId() {

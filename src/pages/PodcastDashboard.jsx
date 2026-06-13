@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getImageUrl } from "@/lib/imageUtils";
+import InternalAccessCards from "@/components/admin/InternalAccessCards";
 
 const PODCAST_VERSION = "podcast_feature";
 
@@ -447,6 +448,8 @@ export default function PodcastDashboard() {
           </div>
         </div>
       </Card>
+
+      <InternalAccessCards currentKey="podcast" />
 
       <PodcastPreview form={form} />
 

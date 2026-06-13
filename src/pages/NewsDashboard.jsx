@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import useSetHeader from "@/hooks/useSetHeader";
 import { useAuth } from "@/lib/AuthContext";
 import { getImageUrl } from "@/lib/imageUtils";
+import InternalAccessCards from "@/components/admin/InternalAccessCards";
 
 const EMPTY_FORM = {
   type: "news",
@@ -300,6 +301,8 @@ export default function NewsDashboard() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-5 pb-24 text-white">
+      <InternalAccessCards currentKey="news" className="mb-5" />
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)]">
         <section className="rounded-[28px] border border-white/10 bg-black/72 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

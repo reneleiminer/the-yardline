@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getImageUrl } from "@/lib/imageUtils";
 import { getRoleSlug } from "@/lib/roleDefinitions";
+import { hasFeatureAccess } from "@/lib/rolePermissions";
 
 const MAIN_TABS = [
   { path: "/", label: "Home" },
@@ -29,12 +30,18 @@ function getMainTabIndex(pathname) {
   );
 }
 
-function getTargetRouteForInternalRole(roleSlug) {
+function getTargetRouteForInternalUser(appUser) {
+  const roleSlug = getRoleSlug(appUser?.roleSlug || appUser?.role);
   if (roleSlug === "admin") return "/admin";
   if (roleSlug === "gotw") return "/gotw";
   if (roleSlug === "photographer") return "/photographer";
   if (roleSlug === "podcast") return "/podcast";
   if (roleSlug === "news") return "/news-dashboard";
+  if (hasFeatureAccess(appUser, "live_results")) return "/live-games";
+  if (hasFeatureAccess(appUser, "gotw")) return "/gotw";
+  if (hasFeatureAccess(appUser, "gameday_shots")) return "/photographer";
+  if (hasFeatureAccess(appUser, "podcast")) return "/podcast";
+  if (hasFeatureAccess(appUser, "news")) return "/news-dashboard";
   return "/";
 }
 
@@ -123,8 +130,7 @@ function AuthScreen() {
     }
 
     if (mode === "internal") {
-      const roleSlug = getRoleSlug(result.appUser?.roleSlug || result.appUser?.role);
-      navigate(getTargetRouteForInternalRole(roleSlug), { replace: true });
+      navigate(getTargetRouteForInternalUser(result.appUser), { replace: true });
     }
   };
 
@@ -683,6 +689,7 @@ export default function AppLayout() {
     "/photographer",
     "/podcast",
     "/news-dashboard",
+    "/live-games",
   ];
 
   const showFooter = footerVisibleRoutes.some((route) =>

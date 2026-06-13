@@ -41,6 +41,7 @@ const LeagueStandings = lazy(() => import("@/pages/LeagueStandings"));
 const GameDetail = lazy(() => import("@/pages/GameDetail"));
 const PodcastDashboard = lazy(() => import("@/pages/PodcastDashboard"));
 const NewsDashboard = lazy(() => import("@/pages/NewsDashboard"));
+const LiveGamesDashboard = lazy(() => import("@/pages/LiveGamesDashboard"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
@@ -119,6 +120,28 @@ function NewsRoute({ children }) {
     <ProtectedRoute
       requiredRoute="/news-dashboard"
       allowedRoles={["news", "admin"]}
+      fallbackRoute="/settings?login=internal"
+    >
+      {children}
+    </ProtectedRoute>
+  );
+}
+
+function GameResultRoute({ children }) {
+  return (
+    <ProtectedRoute
+      requiredRoute="/admin/game-result"
+      fallbackRoute="/settings?login=internal"
+    >
+      {children}
+    </ProtectedRoute>
+  );
+}
+
+function LiveGamesRoute({ children }) {
+  return (
+    <ProtectedRoute
+      requiredRoute="/live-games"
       fallbackRoute="/settings?login=internal"
     >
       {children}
@@ -211,6 +234,15 @@ function AppRoutes() {
                 <NewsRoute>
                   <NewsDashboard />
                 </NewsRoute>
+              }
+            />
+
+            <Route
+              path="/live-games"
+              element={
+                <LiveGamesRoute>
+                  <LiveGamesDashboard />
+                </LiveGamesRoute>
               }
             />
 
@@ -361,9 +393,9 @@ function AppRoutes() {
             <Route
               path="/admin/game-result"
               element={
-                <AdminRoute>
+                <GameResultRoute>
                   <AdminGameResult />
-                </AdminRoute>
+                </GameResultRoute>
               }
             />
 

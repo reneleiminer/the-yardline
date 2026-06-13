@@ -162,8 +162,6 @@ function LeagueGroup({ league, games, teams, isOpen, onToggle }) {
 }
 
 export default function TodaysGamesReminder() {
-  return null;
-
   const [openLeagueId, setOpenLeagueId] = useState('');
 
   const { data: allGames = [] } = useQuery({

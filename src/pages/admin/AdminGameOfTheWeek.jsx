@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Calendar, CheckCircle2, Loader2, MapPin, Search, Star, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
+import InternalAccessCards from '@/components/admin/InternalAccessCards';
 
 const STATUS_LABELS = {
   scheduled: 'Geplant',
@@ -374,6 +375,8 @@ export default function AdminGameOfTheWeek() {
           Wähle ein Spiel aus. Wenn du ein neues Spiel setzt, wird jede alte Auswahl automatisch abgewählt.
         </p>
       </div>
+
+      <InternalAccessCards currentKey="gotw" className="mb-5" />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 mb-4">
         <Card className="p-4 md:col-span-2">

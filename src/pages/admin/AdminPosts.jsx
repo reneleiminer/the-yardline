@@ -20,12 +20,14 @@ import {
 import { toast } from 'sonner';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
+import InternalAccessCards from '@/components/admin/InternalAccessCards';
 
 const GAMEDAY_SHOT_VERSION = 'gameday_photo';
 
 const EMPTY_FORM = {
   image_url: '',
   image_urls: [],
+  image_team_ids: {},
   team_id: '',
   credit: '',
   credit_link: '',
@@ -39,6 +41,7 @@ function createEmptyForm() {
   return {
     ...EMPTY_FORM,
     image_urls: [],
+    image_team_ids: {},
   };
 }
 
@@ -373,8 +376,13 @@ export default function AdminGameDayShots() {
       .filter((url, index, all) => all.indexOf(url) === index);
   };
 
+  const getTeamIdForImage = (imageUrl) => {
+    return formData.image_team_ids?.[imageUrl] || formData.team_id || '';
+  };
+
   const buildPayload = (imageUrl, index = 0) => {
-    const linkedTeam = teamsMap.get(formData.team_id);
+    const teamId = getTeamIdForImage(imageUrl);
+    const linkedTeam = teamsMap.get(teamId);
     const meta = {
       game_id: selectedGameId,
       game_title: selectedGameTitle,
@@ -383,7 +391,7 @@ export default function AdminGameDayShots() {
       home_team_id: selectedGame?.homeTeamId || '',
       away_team_id: selectedGame?.awayTeamId || '',
       team_ids: [selectedGame?.homeTeamId, selectedGame?.awayTeamId].filter(Boolean),
-      team_id: formData.team_id,
+      team_id: teamId,
       team_name: linkedTeam?.name || linkedTeam?.shortName || '',
       team_logo: linkedTeam?.logo || '',
       image_url: String(imageUrl || '').trim(),
@@ -418,7 +426,9 @@ export default function AdminGameDayShots() {
       return false;
     }
 
-    if (!formData.team_id) {
+    const missingTeam = getSelectedImageUrls().some((imageUrl) => !getTeamIdForImage(imageUrl));
+
+    if (missingTeam) {
       toast.error('Bitte den Verein bzw. das Team zum Bild auswählen');
       return false;
     }
@@ -489,6 +499,7 @@ export default function AdminGameDayShots() {
     setFormData({
       image_url: shot.image_url || '',
       image_urls: [],
+      image_team_ids: {},
       credit: shot.credit || '',
       credit_link: shot.credit_link || '',
       instagram: shot.instagram || '',
@@ -532,6 +543,8 @@ export default function AdminGameDayShots() {
           </div>
         </div>
       </section>
+
+      <InternalAccessCards currentKey="gameday_shots" className="mb-5" />
 
       {selectedGame && (
         <section className="rounded-2xl border border-border/50 bg-card p-4 mb-5">
@@ -598,6 +611,47 @@ export default function AdminGameDayShots() {
                 </option>
               ))}
             </select>
+
+            {!editingShotId && (formData.image_urls || []).length > 0 && (
+              <div className="space-y-2 rounded-2xl border border-border/50 bg-background/30 p-3">
+                <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                  Bilder einzeln Vereinen zuordnen
+                </p>
+                {(formData.image_urls || []).map((imageUrl, index) => (
+                  <div
+                    key={`${imageUrl}-${index}`}
+                    className="grid grid-cols-[54px_1fr] gap-2 items-center"
+                  >
+                    <img
+                      src={getImageUrl(imageUrl)}
+                      alt=""
+                      className="h-12 w-12 rounded-xl border border-border/40 bg-secondary object-cover"
+                    />
+                    <select
+                      value={formData.image_team_ids?.[imageUrl] || formData.team_id || ''}
+                      onChange={(event) => setFormData((current) => ({
+                        ...current,
+                        image_team_ids: {
+                          ...(current.image_team_ids || {}),
+                          [imageUrl]: event.target.value,
+                        },
+                      }))}
+                      className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
+                    >
+                      <option value="">Verein/Team fÃ¼r dieses Bild...</option>
+                      {[
+                        teamsMap.get(selectedGame.homeTeamId),
+                        teamsMap.get(selectedGame.awayTeamId),
+                      ].filter(Boolean).map((team) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name || team.shortName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input

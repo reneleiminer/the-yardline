@@ -13,16 +13,57 @@ const INTERNAL_ROUTES = [
   "/photographer",
   "/podcast",
   "/news-dashboard",
+  "/live-games",
 ];
 
 function normalizeRole(role) {
   return getRoleSlug(role || "fan");
 }
 
+function parseFeatureAccess(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return value.split(",").map(item => item.trim()).filter(Boolean);
+    }
+  }
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .filter(([, enabled]) => enabled)
+      .map(([key]) => key);
+  }
+  return [];
+}
+
 function getUserRole(userOrRole) {
   if (!userOrRole) return "fan";
   if (typeof userOrRole === "string") return userOrRole;
   return userOrRole.roleSlug || userOrRole.role || "fan";
+}
+
+export function getFeatureAccess(userOrRole) {
+  if (!userOrRole || typeof userOrRole === "string") return [];
+  return parseFeatureAccess(userOrRole.featureAccess || userOrRole.permissions || userOrRole.extraAccess);
+}
+
+export function hasFeatureAccess(userOrRole, featureKey) {
+  const role = getUserRole(userOrRole);
+  if (isAdminRole(role)) return true;
+
+  const feature = String(featureKey || "");
+  const extra = getFeatureAccess(userOrRole);
+
+  if (extra.includes(feature)) return true;
+  if (feature === "gotw") return isGotwRole(role);
+  if (feature === "gameday_shots") return isPhotographerRole(role);
+  if (feature === "podcast") return isPodcastRole(role);
+  if (feature === "news") return isNewsRole(role);
+
+  return false;
 }
 
 function isAdminRole(role) {
@@ -55,13 +96,11 @@ export const canEditGames = user => isAdminRole(getUserRole(user));
 export const canEditData = user => isAdminRole(getUserRole(user));
 
 export const canSelectGameOfTheWeek = user => {
-  const role = getUserRole(user);
-  return isAdminRole(role) || isGotwRole(role);
+  return hasFeatureAccess(user, "gotw");
 };
 
 export const canManagePodcast = user => {
-  const role = getUserRole(user);
-  return isAdminRole(role) || isPodcastRole(role);
+  return hasFeatureAccess(user, "podcast");
 };
 
 export const canSubmitStream = user => isAdminRole(getUserRole(user));
@@ -71,13 +110,11 @@ export const canResetPredictions = user => isAdminRole(getUserRole(user));
 export const canDeletePredictions = user => isAdminRole(getUserRole(user));
 
 export const canManageGameDayShots = user => {
-  const role = getUserRole(user);
-  return isAdminRole(role) || isPhotographerRole(role);
+  return hasFeatureAccess(user, "gameday_shots");
 };
 
 export const canManageNews = user => {
-  const role = getUserRole(user);
-  return isAdminRole(role) || isNewsRole(role);
+  return hasFeatureAccess(user, "news");
 };
 
 export const canApproveRoles = user => isAdminRole(getUserRole(user));
@@ -102,16 +139,19 @@ export const canCreateTransfer = user => canManageNews(user);
 
 export const checkRouteAccess = (userRole, route) => {
   const normalizedRoute = route || "";
+  const role = getUserRole(userRole);
 
   if (!INTERNAL_ROUTES.some(prefix => normalizedRoute.startsWith(prefix))) {
     return true;
   }
 
-  if (normalizedRoute.startsWith("/admin")) return isAdminRole(userRole);
-  if (normalizedRoute.startsWith("/gotw")) return isGotwRole(userRole) || isAdminRole(userRole);
-  if (normalizedRoute.startsWith("/photographer")) return isPhotographerRole(userRole) || isAdminRole(userRole);
-  if (normalizedRoute.startsWith("/podcast")) return isPodcastRole(userRole) || isAdminRole(userRole);
-  if (normalizedRoute.startsWith("/news-dashboard")) return isNewsRole(userRole) || isAdminRole(userRole);
+  if (normalizedRoute.startsWith("/admin/game-result")) return isAdminRole(role) || hasFeatureAccess(userRole, "live_results");
+  if (normalizedRoute.startsWith("/admin")) return isAdminRole(role);
+  if (normalizedRoute.startsWith("/live-games")) return isAdminRole(role) || hasFeatureAccess(userRole, "live_results");
+  if (normalizedRoute.startsWith("/gotw")) return hasFeatureAccess(userRole, "gotw");
+  if (normalizedRoute.startsWith("/photographer")) return hasFeatureAccess(userRole, "gameday_shots");
+  if (normalizedRoute.startsWith("/podcast")) return hasFeatureAccess(userRole, "podcast");
+  if (normalizedRoute.startsWith("/news-dashboard")) return hasFeatureAccess(userRole, "news");
 
   return false;
 };
