@@ -30,10 +30,30 @@ function parseJsonMessage(message) {
   }
 }
 
-function isVisibleNews(post) {
+
+function isDeletedOrBlockedAuthor(author) {
+  return (
+    !author ||
+    author.deletionStatus === "pending" ||
+    author.deletionStatus === "completed" ||
+    author.status === "deleted" ||
+    author.status === "blocked_deleted" ||
+    author.status === "banned" ||
+    author.status === "blocked" ||
+    author.status === "inactive"
+  );
+}
+
+function isPostVisibleByAuthor(post, appUsersById) {
+  if (post?.isHidden || post?.isDeleted || post?.isActive === false) return false;
+  if (!post?.authorId) return true;
+
+  return !isDeletedOrBlockedAuthor(appUsersById.get(post.authorId));
+}
+
+function isVisibleNews(post, appUsersById) {
   if (!post) return false;
-  if (post.isHidden || post.isDeleted) return false;
-  if (post.isActive === false) return false;
+  if (!isPostVisibleByAuthor(post, appUsersById)) return false;
   return post.type === "news" || post.type === "transfer" || post.type === "official";
 }
 
@@ -121,6 +141,16 @@ export default function Announcements() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: appUsers = [] } = useQuery({
+    queryKey: ["news-page-app-users"],
+    queryFn: () => base44.entities.AppUser.list("-created_date", 500),
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+  });
+
   const { data: appUpdates = [] } = useQuery({
     queryKey: ["news-page-banners"],
     queryFn: () => base44.entities.AppUpdate.list("-created_date", 200),
@@ -144,11 +174,13 @@ export default function Announcements() {
       .filter((item) => item.active && (item.title || item.imageUrl));
   }, [appUpdates]);
 
+  const appUsersById = useMemo(() => new Map(appUsers.map((user) => [user.id, user])), [appUsers]);
+
   const visiblePosts = useMemo(() => {
     const query = search.trim().toLowerCase();
 
     return posts
-      .filter(isVisibleNews)
+      .filter((post) => isVisibleNews(post, appUsersById))
       .filter((post) => {
         if (!query) return true;
         return [post.title, post.teaser, post.text, post.category, post.type]
@@ -162,7 +194,7 @@ export default function Announcements() {
         const dateB = new Date(getPostDate(b) || 0).getTime();
         return dateB - dateA;
       });
-  }, [posts, search]);
+  }, [appUsersById, posts, search]);
 
   const featured = visiblePosts[0] || null;
   const rest = featured ? visiblePosts.slice(1) : visiblePosts;
