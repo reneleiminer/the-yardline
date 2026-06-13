@@ -1345,8 +1345,8 @@ export default function AdminDashboard() {
     },
     {
       icon: BarChart3,
-      title: 'Wettbewerbe',
-      description: 'Cups, Playoffs, Turniere und Brackets verwalten',
+      title: 'Playoffs',
+      description: 'Playoffs, Bowls und Turnierbaum verwalten',
       route: '/admin/competitions',
       count: competitions.length,
       color: 'text-pink-400',
