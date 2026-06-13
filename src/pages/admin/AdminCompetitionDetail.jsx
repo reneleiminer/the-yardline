@@ -92,7 +92,7 @@ const DEFAULT_DISPLAY_SETTINGS = {
 };
 
 function getCompetitionTypeLabel(type) {
-  return COMPETITION_TYPE_LABELS[type] || type || 'Wettbewerb';
+  return COMPETITION_TYPE_LABELS[type] || type || 'Playoffs';
 }
 
 function getCompetitionFormatLabel(format) {
@@ -100,7 +100,28 @@ function getCompetitionFormatLabel(format) {
 }
 
 function getPublicName(competition) {
-  return competition?.publicName || competition?.displayName || competition?.name || 'Wettbewerb';
+  return competition?.publicName || competition?.displayName || competition?.name || 'Playoffs';
+}
+
+function normalizeBracketArray(value) {
+  if (Array.isArray(value)) return value;
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function getCompetitionBracket(competition) {
+  const bracket = normalizeBracketArray(competition?.bracket);
+  if (bracket.length > 0) return bracket;
+  return normalizeBracketArray(competition?.brackets);
 }
 
 function getFinalRoundName(competition) {
@@ -297,7 +318,7 @@ function normalizeRoundMeta({ competition, round, roundIndex, totalRounds }) {
 }
 
 function resolveBracket({ competition, league, teams, games }) {
-  const originalBracket = competition?.bracket || competition?.brackets || [];
+  const originalBracket = getCompetitionBracket(competition);
   const standings = calculateStandings({
     league,
     teams,
@@ -448,7 +469,7 @@ function findCompetitionGameForMatchup(games, round, matchup) {
 }
 
 export default function AdminCompetitionDetail() {
-  useSetHeader({ mode: 'back', title: 'Wettbewerb Details' });
+  useSetHeader({ mode: 'back', title: 'Playoffs Details' });
 
   const { competitionId } = useParams();
   const queryClient = useQueryClient();
@@ -595,11 +616,11 @@ export default function AdminCompetitionDetail() {
     mutationFn: data => base44.entities.Tournament.update(competitionId, data),
     onSuccess: () => {
       invalidate();
-      toast.success('Wettbewerb aktualisiert');
+      toast.success('Playoffs aktualisiert');
     },
     onError: error => {
       console.error('UPDATE COMPETITION ERROR:', error);
-      toast.error('Wettbewerb konnte nicht aktualisiert werden');
+      toast.error('Playoffs konnte nicht aktualisiert werden');
     },
   });
 
@@ -762,7 +783,7 @@ export default function AdminCompetitionDetail() {
 
   const handleSaveCompetition = async () => {
     if (!editForm?.name?.trim()) {
-      toast.error('Bitte Wettbewerbsnamen eingeben.');
+      toast.error('Bitte Playoffssnamen eingeben.');
       return;
     }
 
@@ -848,7 +869,7 @@ export default function AdminCompetitionDetail() {
       setEditMode(false);
     } catch (error) {
       console.error('SAVE COMPETITION WITH GAMES ERROR:', error);
-      toast.error(error?.message || 'Wettbewerb konnte nicht gespeichert werden');
+      toast.error(error?.message || 'Playoffs konnte nicht gespeichert werden');
     }
   };
 
@@ -1059,7 +1080,7 @@ export default function AdminCompetitionDetail() {
 
       {editMode && (
         <Card className="p-4 mb-5">
-          <h3 className="font-semibold text-sm mb-4">Wettbewerb bearbeiten</h3>
+          <h3 className="font-semibold text-sm mb-4">Playoffs bearbeiten</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <ImageUploadField
@@ -1083,7 +1104,7 @@ export default function AdminCompetitionDetail() {
               <Input
                 value={editForm.name}
                 onChange={event => setEditForm(prev => ({ ...prev, name: event.target.value }))}
-                placeholder="Wettbewerbsname"
+                placeholder="Playoffssname"
               />
             </div>
 
@@ -1100,7 +1121,7 @@ export default function AdminCompetitionDetail() {
 
             <div className="space-y-2 sm:col-span-2">
               <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Wettbewerb-Typ
+                Playoffs-Typ
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1167,7 +1188,7 @@ export default function AdminCompetitionDetail() {
                     placeholder="z.B. German Bowl 2026 oder Gold Bowl"
                   />
                   <p className="text-[10px] text-muted-foreground">
-                    Bowl ist kein eigener Typ, sondern die letzte Runde dieses Playoff-/Cup-Wettbewerbs.
+                    Bowl ist kein eigener Typ, sondern die letzte Runde dieses Playoff-/Cup-Playoffss.
                   </p>
                 </div>
 
@@ -1321,7 +1342,7 @@ export default function AdminCompetitionDetail() {
           </div>
         ) : bracket.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-6">
-            Noch kein Wettbewerbsbaum vorhanden.
+            Noch kein Playoffssbaum vorhanden.
           </p>
         ) : (
           <div className="space-y-4">
