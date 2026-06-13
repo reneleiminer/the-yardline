@@ -141,40 +141,28 @@ export default function Footer() {
           Version {APP_VERSION}
         </p>
 
-        <div className="relative mx-auto mt-8 h-[58px] max-w-5xl overflow-hidden rounded-[10px] border border-white/55 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.006))]">
-          <div className="absolute inset-x-0 top-[10px] h-px bg-white/52" />
-          <div className="absolute inset-x-0 bottom-[10px] h-px bg-white/52" />
-          <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/18" />
+        <div className="relative mx-auto mt-8 h-[78px] max-w-5xl overflow-hidden rounded-t-[10px] border-x border-t border-white/35 bg-[linear-gradient(180deg,#245b27_0%,#173f1b_58%,#0d2b12_100%)] shadow-[inset_0_16px_38px_rgba(255,255,255,0.08)]">
+          <div className="absolute inset-0 opacity-45 bg-[repeating-linear-gradient(100deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_7px)]" />
+          <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/95" />
+          <div className="absolute inset-x-0 bottom-[22px] h-px bg-white/70" />
 
           {Array.from({ length: 11 }).map((_, index) => {
             const left = `${index * 10}%`;
-            const isMidfield = index === 5;
+            const number = index <= 5 ? 50 - index * 10 : (index - 5) * 10;
 
             return (
-              <span
-                key={index}
-                className={`absolute top-[10px] w-px ${
-                  isMidfield ? 'h-[38px] bg-white/88' : 'h-[24px] bg-white/50'
-                }`}
-                style={{ left }}
-              />
+              <span key={index} className="absolute bottom-0 flex -translate-x-1/2 flex-col items-center" style={{ left }}>
+                <span className="mb-1 text-[13px] font-black text-white/75 drop-shadow">{number}</span>
+                <span className="h-[44px] w-px bg-white/78" />
+              </span>
             );
           })}
 
-          <div className="absolute inset-x-[5%] top-[18px] flex justify-between">
-            {Array.from({ length: 21 }).map((_, index) => (
+          <div className="absolute inset-x-[1.5%] bottom-0 flex justify-between">
+            {Array.from({ length: 51 }).map((_, index) => (
               <span
                 key={index}
-                className="h-[8px] w-px bg-white/24"
-              />
-            ))}
-          </div>
-
-          <div className="absolute inset-x-[5%] bottom-[18px] flex justify-between">
-            {Array.from({ length: 21 }).map((_, index) => (
-              <span
-                key={index}
-                className="h-[8px] w-px bg-white/24"
+                className={`${index % 5 === 0 ? 'h-[20px]' : 'h-[10px]'} w-px bg-white/72`}
               />
             ))}
           </div>

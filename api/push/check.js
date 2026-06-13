@@ -184,6 +184,38 @@ async function buildHighlightEvents(supabase) {
   }));
 }
 
+async function buildPostEvents(supabase) {
+  const { data: posts, error } = await supabase
+    .from("posts")
+    .select("id,type,title,teaser,text,image_url,author_username,published_at_utc,created_at,updated_at,is_hidden,is_deleted")
+    .in("type", ["news", "transfer"])
+    .or("is_hidden.is.null,is_hidden.eq.false")
+    .or("is_deleted.is.null,is_deleted.eq.false")
+    .gte("created_at", hoursAgo(LOOKBACK_HOURS))
+    .limit(20);
+
+  if (error) throw error;
+
+  return (posts || []).map((post) => {
+    const isTransfer = post.type === "transfer";
+    const timestamp = post.published_at_utc || post.created_at || post.updated_at || "";
+    const author = post.author_username ? ` von ${post.author_username}` : "";
+
+    return {
+      key: `post:${post.id}:${timestamp}`,
+      type: isTransfer ? "transfer" : "news",
+      payload: {
+        title: isTransfer ? "Neuer Transfer" : "Neue News",
+        body: `${post.title || (isTransfer ? "Transfer Update" : "News Update")}${author}`,
+        url: `/post/${post.id}`,
+        tag: `post:${post.id}`,
+        icon: "/yardline-icon-192.png",
+        image: post.image_url || undefined,
+      },
+    };
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST" && req.method !== "GET") {
     res.setHeader("Allow", "GET, POST");
@@ -198,6 +230,7 @@ export default async function handler(req, res) {
       buildTodaysGameEvents(supabase),
       buildPodcastEvents(supabase),
       buildHighlightEvents(supabase),
+      buildPostEvents(supabase),
     ]);
 
     const events = groups.flat();

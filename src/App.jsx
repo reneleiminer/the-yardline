@@ -40,6 +40,7 @@ const LeagueDetail = lazy(() => import("@/pages/LeagueDetail"));
 const LeagueStandings = lazy(() => import("@/pages/LeagueStandings"));
 const GameDetail = lazy(() => import("@/pages/GameDetail"));
 const PodcastDashboard = lazy(() => import("@/pages/PodcastDashboard"));
+const NewsDashboard = lazy(() => import("@/pages/NewsDashboard"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
@@ -105,6 +106,18 @@ function PodcastRoute({ children }) {
     <ProtectedRoute
       requiredRoute="/podcast"
       allowedRoles={["podcast", "admin"]}
+      fallbackRoute="/settings?login=internal"
+    >
+      {children}
+    </ProtectedRoute>
+  );
+}
+
+function NewsRoute({ children }) {
+  return (
+    <ProtectedRoute
+      requiredRoute="/news-dashboard"
+      allowedRoles={["news", "admin"]}
       fallbackRoute="/settings?login=internal"
     >
       {children}
@@ -188,6 +201,15 @@ function AppRoutes() {
                 <PodcastRoute>
                   <PodcastDashboard />
                 </PodcastRoute>
+              }
+            />
+
+            <Route
+              path="/news-dashboard"
+              element={
+                <NewsRoute>
+                  <NewsDashboard />
+                </NewsRoute>
               }
             />
 

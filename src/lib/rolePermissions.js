@@ -4,6 +4,7 @@ import {
   isGameOfWeekEditorBySlug,
   isPhotographerBySlug,
   isPodcastPartnerBySlug,
+  isNewsEditorBySlug,
 } from "./roleDefinitions";
 
 const INTERNAL_ROUTES = [
@@ -11,6 +12,7 @@ const INTERNAL_ROUTES = [
   "/gotw",
   "/photographer",
   "/podcast",
+  "/news-dashboard",
 ];
 
 function normalizeRole(role) {
@@ -37,6 +39,10 @@ function isPhotographerRole(role) {
 
 function isPodcastRole(role) {
   return isPodcastPartnerBySlug(normalizeRole(role));
+}
+
+function isNewsRole(role) {
+  return isNewsEditorBySlug(normalizeRole(role));
 }
 
 export const canEditTeam = user => isAdminRole(getUserRole(user));
@@ -69,6 +75,11 @@ export const canManageGameDayShots = user => {
   return isAdminRole(role) || isPhotographerRole(role);
 };
 
+export const canManageNews = user => {
+  const role = getUserRole(user);
+  return isAdminRole(role) || isNewsRole(role);
+};
+
 export const canApproveRoles = user => isAdminRole(getUserRole(user));
 export const canModerate = user => isAdminRole(getUserRole(user));
 export const canManageUsers = user => isAdminRole(getUserRole(user));
@@ -86,8 +97,8 @@ export const canManageOwnClub = user => isAdminRole(getUserRole(user));
 export const isOwnerProtected = user => !!user?.isOwner;
 
 export const canCreateOfficialPost = () => false;
-export const canCreateNews = () => false;
-export const canCreateTransfer = () => false;
+export const canCreateNews = user => canManageNews(user);
+export const canCreateTransfer = user => canManageNews(user);
 
 export const checkRouteAccess = (userRole, route) => {
   const normalizedRoute = route || "";
@@ -100,6 +111,7 @@ export const checkRouteAccess = (userRole, route) => {
   if (normalizedRoute.startsWith("/gotw")) return isGotwRole(userRole) || isAdminRole(userRole);
   if (normalizedRoute.startsWith("/photographer")) return isPhotographerRole(userRole) || isAdminRole(userRole);
   if (normalizedRoute.startsWith("/podcast")) return isPodcastRole(userRole) || isAdminRole(userRole);
+  if (normalizedRoute.startsWith("/news-dashboard")) return isNewsRole(userRole) || isAdminRole(userRole);
 
   return false;
 };

@@ -836,6 +836,10 @@ function shouldCheckPushEvents(entityName, data = {}) {
     return ['podcast_feature', 'game_highlight'].includes(data.version);
   }
 
+  if (entityName === 'Post') {
+    return ['news', 'transfer'].includes(data.type);
+  }
+
   return false;
 }
 

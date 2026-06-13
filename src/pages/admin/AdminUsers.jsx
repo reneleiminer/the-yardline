@@ -10,6 +10,7 @@ import {
   KeyRound,
   Loader2,
   Lock,
+  Newspaper,
   Pencil,
   Plus,
   Camera,
@@ -39,6 +40,7 @@ const ROLE_LABELS = {
   gotw: "GOTW",
   photographer: "Fotograf",
   podcast: "Podcast",
+  news: "News",
 };
 
 const ROLE_DISPLAY_LABELS = {
@@ -47,6 +49,7 @@ const ROLE_DISPLAY_LABELS = {
   gotw: "GOTW",
   photographer: "Fotograf",
   podcast: "Podcast",
+  news: "News",
 };
 
 const INTERNAL_ROLE_OPTIONS = [
@@ -55,6 +58,7 @@ const INTERNAL_ROLE_OPTIONS = [
   { value: "gotw", label: "GOTW" },
   { value: "photographer", label: "Fotograf" },
   { value: "podcast", label: "Podcast" },
+  { value: "news", label: "News" },
 ];
 
 const STATUS_LABELS = {
@@ -81,6 +85,10 @@ function normalizeRole(value) {
     fotograf: "photographer",
     podcast: "podcast",
     podcast_partner: "podcast",
+    news: "news",
+    newsroom: "news",
+    redaktion: "news",
+    journalist: "news",
     data_editor: "fan",
     club: "fan",
     verein: "fan",
@@ -102,6 +110,7 @@ function getInternalEmail(username, roleSlug = "gotw") {
     gotw: "gotw",
     photographer: "fotograf",
     podcast: "podcast",
+    news: "news",
   };
 
   const prefix = prefixByRole[roleSlug] || "internal";
@@ -130,7 +139,8 @@ function isInternalLogin(user) {
     roleSlug === "admin" ||
     roleSlug === "gotw" ||
     roleSlug === "photographer" ||
-    roleSlug === "podcast"
+    roleSlug === "podcast" ||
+    roleSlug === "news"
   );
 }
 
@@ -148,6 +158,10 @@ function isPhotographer(user) {
 
 function isPodcast(user) {
   return getRoleSlug(user) === "podcast";
+}
+
+function isNews(user) {
+  return getRoleSlug(user) === "news";
 }
 
 function isInactive(user) {
@@ -178,6 +192,7 @@ function RoleBadge({ user }) {
   const gotw = roleSlug === "gotw";
   const photographer = roleSlug === "photographer";
   const podcast = roleSlug === "podcast";
+  const news = roleSlug === "news";
 
   return (
     <span
@@ -190,6 +205,8 @@ function RoleBadge({ user }) {
           ? "bg-emerald-500/15 text-emerald-400"
           : podcast
           ? "bg-violet-500/15 text-violet-300"
+          : news
+          ? "bg-red-500/15 text-red-300"
           : "bg-primary/15 text-primary"
       }`}
     >
@@ -242,7 +259,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
     const username = normalizeUsername(form.username);
     const roleSlug = normalizeRole(form.roleSlug || "gotw");
 
-    if (!["fan", "admin", "gotw", "photographer", "podcast"].includes(roleSlug)) {
+    if (!["fan", "admin", "gotw", "photographer", "podcast", "news"].includes(roleSlug)) {
       toast.error("Bitte eine gültige Account-Art auswählen.");
       return;
     }
@@ -660,7 +677,7 @@ export default function AdminUsers() {
           </h1>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Hier verwaltest du Admin-, GOTW-, Fotografen-, Podcast- und Nutzerkonten. Admin-Accounts sind geschuetzt.
+            Hier verwaltest du Admin-, GOTW-, Fotografen-, Podcast-, News- und Nutzerkonten. Admin-Accounts sind geschuetzt.
           </p>
         </div>
 
@@ -677,7 +694,7 @@ export default function AdminUsers() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-7 gap-2 mb-5">
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <UserCog className="w-4 h-4 text-white mb-2" />
           <div className="text-xl font-black">
@@ -716,6 +733,13 @@ export default function AdminUsers() {
             {internalUsers.filter(isPodcast).length}
           </div>
           <div className="text-[10px] text-muted-foreground">Podcast</div>
+        </div>
+        <div className="bg-card border border-border/50 rounded-xl p-3">
+          <Newspaper className="w-4 h-4 text-red-300 mb-2" />
+          <div className="text-xl font-black">
+            {internalUsers.filter(isNews).length}
+          </div>
+          <div className="text-[10px] text-muted-foreground">News</div>
         </div>
         <div className="bg-card border border-border/50 rounded-xl p-3">
           <Lock className="w-4 h-4 text-yellow-400 mb-2" />
@@ -773,6 +797,7 @@ export default function AdminUsers() {
             { key: "gotw", label: "GOTW" },
             { key: "photographer", label: "Fotografen" },
             { key: "podcast", label: "Podcast" },
+            { key: "news", label: "News" },
           ].map(item => (
             <button
               key={item.key}
@@ -812,7 +837,7 @@ export default function AdminUsers() {
           </h3>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle den ersten Zugang fuer Admin, GOTW, Fotograf, Podcast oder Nutzer.
+            Erstelle den ersten Zugang fuer Admin, GOTW, Fotograf, Podcast, News oder Nutzer.
           </p>
         </div>
       ) : (
@@ -824,6 +849,7 @@ export default function AdminUsers() {
             const gotw = isGotw(user);
             const photographer = isPhotographer(user);
             const podcast = isPodcast(user);
+            const news = isNews(user);
             const connectedTeamName = getTeamName(
               teams,
               user.connectedTeamId
@@ -844,6 +870,8 @@ export default function AdminUsers() {
                       <Camera className="w-5 h-5 text-emerald-400" />
                     ) : podcast ? (
                       <Radio className="w-5 h-5 text-violet-300" />
+                    ) : news ? (
+                      <Newspaper className="w-5 h-5 text-red-300" />
                     ) : (
                       <UserCog className="w-5 h-5 text-primary" />
                     )}

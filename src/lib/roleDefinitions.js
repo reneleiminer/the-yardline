@@ -4,6 +4,7 @@ export const ROLE_SLUGS = {
   GOTW: "gotw",
   PHOTOGRAPHER: "photographer",
   PODCAST: "podcast",
+  NEWS: "news",
 };
 
 export const ROLES = {
@@ -12,6 +13,7 @@ export const ROLES = {
   GOTW: "GOTW",
   PHOTOGRAPHER: "Fotograf",
   PODCAST: "Podcast",
+  NEWS: "News",
 };
 
 export const ROLE_LABELS = {
@@ -20,6 +22,7 @@ export const ROLE_LABELS = {
   gotw: "GOTW",
   photographer: "Fotograf",
   podcast: "Podcast",
+  news: "News",
 
   Nutzer: "Nutzer",
   Fan: "Nutzer",
@@ -28,13 +31,15 @@ export const ROLE_LABELS = {
   Media: "GOTW",
   Fotograf: "Fotograf",
   Podcast: "Podcast",
+  News: "News",
 };
 
-export const INTERNAL_ROLE_SLUGS = ["admin", "gotw", "photographer", "podcast"];
+export const INTERNAL_ROLE_SLUGS = ["admin", "gotw", "photographer", "podcast", "news"];
 export const ADMIN_ROLE_SLUGS = ["admin"];
 export const GAME_OF_WEEK_ROLE_SLUGS = ["gotw", "admin"];
 export const PHOTOGRAPHER_ROLE_SLUGS = ["photographer", "admin"];
 export const PODCAST_ROLE_SLUGS = ["podcast", "admin"];
+export const NEWS_ROLE_SLUGS = ["news", "admin"];
 
 export const getRoleSlug = role => {
   if (!role) return "fan";
@@ -73,6 +78,12 @@ export const getRoleSlug = role => {
     football_germany: "podcast",
     footballgermany: "podcast",
 
+    news: "news",
+    newsroom: "news",
+    redaktion: "news",
+    journalist: "news",
+    creator: "news",
+
     dataeditor: "fan",
     data_editor: "fan",
     daten_editor: "fan",
@@ -80,8 +91,6 @@ export const getRoleSlug = role => {
     verein: "fan",
     league: "fan",
     liga: "fan",
-    journalist: "fan",
-    creator: "fan",
     moderator: "fan",
     official_media: "fan",
     offizielle_medien: "fan",
@@ -97,11 +106,13 @@ export const isAdminBySlug = slug => ADMIN_ROLE_SLUGS.includes(getRoleSlug(slug)
 export const isGameOfWeekEditorBySlug = slug => GAME_OF_WEEK_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isPhotographerBySlug = slug => PHOTOGRAPHER_ROLE_SLUGS.includes(getRoleSlug(slug));
 export const isPodcastPartnerBySlug = slug => PODCAST_ROLE_SLUGS.includes(getRoleSlug(slug));
+export const isNewsEditorBySlug = slug => NEWS_ROLE_SLUGS.includes(getRoleSlug(slug));
 
 export const isAdmin = role => isAdminBySlug(role);
 export const isGameOfWeekEditor = role => isGameOfWeekEditorBySlug(role);
 export const isPhotographer = role => isPhotographerBySlug(role);
 export const isPodcastPartner = role => isPodcastPartnerBySlug(role);
+export const isNewsEditor = role => isNewsEditorBySlug(role);
 
 export const isDataEditorBySlug = () => false;
 export const isModeratorBySlug = () => false;
@@ -116,7 +127,7 @@ export const isOrganization = () => false;
 export const isVolunteer = () => false;
 
 export const showBadge = role => {
-  return ["admin", "gotw", "photographer", "podcast"].includes(getRoleSlug(role));
+  return ["admin", "gotw", "photographer", "podcast", "news"].includes(getRoleSlug(role));
 };
 
 export const CREATE_PERMISSIONS = {
@@ -125,6 +136,7 @@ export const CREATE_PERMISSIONS = {
   gotw: [],
   photographer: ["gameday-shot"],
   podcast: ["podcast"],
+  news: ["news", "transfer"],
 };
 
 export const canCreate = (role, contentType) => {

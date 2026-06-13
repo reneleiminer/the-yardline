@@ -24,14 +24,24 @@ function isVisibleNews(post) {
   if (!post) return false;
   if (post.isHidden || post.isDeleted) return false;
   if (post.isActive === false) return false;
-  return post.type === "news" || post.type === "official";
+  return post.type === "news" || post.type === "transfer" || post.type === "official";
 }
 
 function NewsCard({ post, featured = false }) {
   const image = getPostImages(post)[0];
   const date = getPostDate(post);
   const timeAgo = date ? formatDistanceToNow(new Date(date), { addSuffix: true, locale: de }) : "";
-  const category = post.category || (post.sourceType === "club_news" ? "Vereinsnews" : "News");
+  const meta = (() => {
+    try {
+      return post.message ? JSON.parse(post.message) : {};
+    } catch {
+      return {};
+    }
+  })();
+  const category = post.type === "transfer"
+    ? "Transfer"
+    : post.category || (post.sourceType === "club_news" ? "Vereinsnews" : "News");
+  const authorName = meta.author_name || meta.authorName || post.authorUsername || "";
 
   if (!featured) {
     return (
@@ -47,6 +57,11 @@ function NewsCard({ post, featured = false }) {
             </p>
           )}
           {timeAgo && <p className="mt-2 text-[10px] font-bold text-white/45">{timeAgo}</p>}
+          {authorName && (
+            <p className="mt-1 truncate text-[10px] font-bold uppercase text-white/35">
+              Presented by {authorName}
+            </p>
+          )}
         </div>
 
         <div className="bg-black/60">
@@ -79,6 +94,11 @@ function NewsCard({ post, featured = false }) {
           </p>
         )}
         {timeAgo && <p className="mt-3 text-[11px] font-bold text-white/45">{timeAgo}</p>}
+        {authorName && (
+          <p className="mt-1 truncate text-[10px] font-bold uppercase text-white/35">
+            Presented by {authorName}
+          </p>
+        )}
       </div>
     </Link>
   );
@@ -104,7 +124,7 @@ export default function Announcements() {
       .filter(isVisibleNews)
       .filter((post) => {
         if (!query) return true;
-        return [post.title, post.teaser, post.text, post.category]
+        return [post.title, post.teaser, post.text, post.category, post.type]
           .filter(Boolean)
           .join(" ")
           .toLowerCase()

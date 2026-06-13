@@ -341,6 +341,7 @@ function isBannerInWindow(banner, now = new Date()) {
 }
 
 function normalizeBannerPosition(position) {
+  if (position === "before_spotlight") return "after_news";
   if (position === "after_upcoming") return "after_gotw";
   return position || "after_highlights";
 }
@@ -479,15 +480,24 @@ function HighlightCard({ item }) {
 
 function NewsCard({ post }) {
   const imageUrl = post.imageUrl || post.coverImageUrl || post.thumbnailUrl || "";
+  const meta = parseJsonMessage(post.message);
+  const authorName = meta.author_name || meta.authorName || post.authorUsername || "";
 
   return (
-    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[22px] bg-white text-black">
+    <Link to={`/post/${post.id}`} className="block overflow-hidden rounded-[22px] border border-white/10 bg-black/78 text-white shadow-[0_14px_30px_rgba(0,0,0,0.28)]">
       {imageUrl && (
-        <img src={getImageUrl(imageUrl)} alt="" className="aspect-[16/8] w-full object-cover" loading="lazy" />
+        <img src={getImageUrl(imageUrl)} alt="" className="aspect-square w-full object-cover" loading="lazy" />
       )}
       <div className="p-3">
-        <p className="text-[10px] font-black uppercase text-red-700">News</p>
+        <p className="text-[10px] font-black uppercase text-[#ff2338]">
+          {post.type === "transfer" ? "Transfer" : "News"}
+        </p>
         <h3 className="mt-1 line-clamp-2 text-sm font-black leading-tight">{post.title || "News"}</h3>
+        {authorName && (
+          <p className="mt-2 truncate text-[10px] font-bold uppercase text-white/45">
+            Presented by {authorName}
+          </p>
+        )}
       </div>
     </Link>
   );
@@ -751,6 +761,18 @@ export default function Home() {
       .slice(0, 4);
   }, [posts]);
 
+  const transfers = useMemo(() => {
+    return posts
+      .filter((post) => post.type === "transfer" && post.isActive !== false)
+      .filter((post) => !post.isHidden && !post.isDeleted)
+      .sort((a, b) => {
+        const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || a.created_date || 0).getTime();
+        const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || b.created_date || 0).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, 4);
+  }, [posts]);
+
   const shots = useMemo(() => {
     return appUpdates
       .filter((item) => item.version === GAMEDAY_SHOT_VERSION && item.isActive !== false)
@@ -832,6 +854,19 @@ export default function Home() {
         </section>
 
         <AdBannerSlot banners={adBanners} position="after_news" />
+
+        {transfers.length > 0 && (
+          <section>
+            <SectionTitle title="Transfers" to="/feed" />
+            <HorizontalRail>
+              {transfers.map((post) => (
+                <div key={post.id} className="min-w-[58vw] max-w-[58vw] sm:min-w-[240px] sm:max-w-[240px]">
+                  <NewsCard post={post} />
+                </div>
+              ))}
+            </HorizontalRail>
+          </section>
+        )}
 
         {gameOfTheWeek && (
           <section>

@@ -182,6 +182,58 @@ function isClubNews(post) {
     }
   };
 
+  const renderEditorialBlocks = () => {
+    let meta = {};
+
+    try {
+      meta = post.message ? JSON.parse(post.message) : {};
+    } catch {
+      meta = {};
+    }
+
+    const blocks = Array.isArray(meta.blocks) ? meta.blocks : [];
+    if (blocks.length === 0) return null;
+
+    return (
+      <div className="mt-5 space-y-4">
+        {blocks.map((block, index) => {
+          if (block.type === 'quote') {
+            return (
+              <blockquote key={block.id || index} className="rounded-[22px] border-l-4 border-red-600 bg-black/72 p-4 text-white">
+                {block.title && <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-red-400">{block.title}</p>}
+                <p className="text-lg font-black italic leading-snug">"{block.text}"</p>
+              </blockquote>
+            );
+          }
+
+          if (block.type === 'stats') {
+            return (
+              <div key={block.id || index} className="rounded-[22px] border border-white/10 bg-black/72 p-4 text-white">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#2f7dff]">{block.title || 'Statistik'}</p>
+                {block.subject && <h3 className="mt-1 text-xl font-black">{block.subject}</h3>}
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {(block.rows || []).filter(row => row.label || row.value).map((row, rowIndex) => (
+                    <div key={rowIndex} className="rounded-2xl border border-white/10 bg-white/8 p-3">
+                      <p className="text-[10px] font-bold uppercase text-white/45">{row.label}</p>
+                      <p className="mt-1 text-xl font-black text-white">{row.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div key={block.id || index} className="whitespace-pre-wrap rounded-[22px] border border-white/10 bg-black/45 p-4 text-foreground/90">
+              {block.title && <p className="mb-2 text-xs font-black uppercase tracking-wide text-white">{block.title}</p>}
+              {block.text}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (post.type) {
       case 'official':
@@ -240,15 +292,27 @@ function isClubNews(post) {
                   {post.text}
                 </div>
               )}
+
+              {renderEditorialBlocks()}
             </div>
           </>
         );
 
       case 'transfer': {
+        let meta = {};
+
+        try {
+          meta = post.message ? JSON.parse(post.message) : {};
+        } catch {
+          meta = {};
+        }
+
         const lines = post.text?.split('\n') || [];
-        const playerName = lines[0] || '';
-        const fromTeam = post.teamIds?.[0] ? teamsById?.get(post.teamIds[0]) : null;
-        const toTeam = post.teamIds?.[1] ? teamsById?.get(post.teamIds[1]) : null;
+        const playerName = meta.transfer_player || meta.transferPlayer || lines[0] || post.title || '';
+        const fromTeamId = meta.transfer_from_team_id || meta.transferFromTeamId || post.teamIds?.[0] || '';
+        const toTeamId = meta.transfer_to_team_id || meta.transferToTeamId || post.teamIds?.[1] || '';
+        const fromTeam = fromTeamId ? teamsById?.get(fromTeamId) : null;
+        const toTeam = toTeamId ? teamsById?.get(toTeamId) : null;
 
         return (
           <div className="space-y-4">
@@ -265,7 +329,7 @@ function isClubNews(post) {
                   />
                 )}
 
-                <span className="text-sm font-semibold flex-1">{fromTeam?.shortName || 'TBA'}</span>
+                <span className="text-sm font-semibold flex-1">{fromTeam?.shortName || meta.transfer_from_external || 'Extern'}</span>
                 <ArrowRight className="w-4 h-4 text-primary flex-shrink-0" />
                 <span className="text-sm font-semibold flex-1 text-right">{toTeam?.shortName || 'TBA'}</span>
 
@@ -289,11 +353,13 @@ function isClubNews(post) {
               />
             )}
 
-            {lines.length > 2 && lines.slice(2).join('\n').trim() && (
+            {post.text && (
               <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
-                {lines.slice(2).join('\n')}
+                {post.text}
               </p>
             )}
+
+            {renderEditorialBlocks()}
           </div>
         );
       }

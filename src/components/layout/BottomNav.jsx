@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, Newspaper, PlaySquare, Trophy } from "lucide-react";
+import { Newspaper, PlaySquare, Trophy } from "lucide-react";
 
 function FootballIcon({ className }) {
   return (
@@ -35,7 +35,6 @@ const navItems = [
   { path: "/match-center", icon: FieldIcon, label: "Match Center" },
   { path: "/playoffs", icon: Trophy, label: "Playoffs" },
   { path: "/highlights", icon: PlaySquare, label: "Game Highlights" },
-  { path: "/settings", icon: Menu, label: "Einstellungen" },
 ];
 
 function scrollMainToTop() {
@@ -60,7 +59,7 @@ export default function BottomNav() {
     >
       <div className="absolute inset-0 pointer-events-none border-t border-white/12 bg-black" />
 
-      <div className="relative mx-auto grid h-[72px] w-full max-w-[560px] grid-cols-6 gap-1.5 px-1 pointer-events-auto">
+      <div className="relative mx-auto grid h-[72px] w-full max-w-[520px] grid-cols-5 gap-3 px-2 pointer-events-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =

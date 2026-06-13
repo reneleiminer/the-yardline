@@ -90,6 +90,7 @@ function getBackFallback(pathname) {
   if (pathname === "/admin") return "/";
   if (pathname === "/data-editor") return "/";
   if (pathname === "/podcast") return "/";
+  if (pathname === "/news-dashboard") return "/";
 
   if (pathname.startsWith("/legal/")) return "/legal";
   if (pathname === "/settings") return "/";
@@ -227,6 +228,8 @@ function DashboardContent({ title }) {
     ? "/photographer"
     : location.pathname.startsWith("/podcast")
     ? "/podcast"
+    : location.pathname.startsWith("/news-dashboard")
+    ? "/news-dashboard"
     : "/gotw";
   const showDashboardButton = location.pathname !== dashboardHome;
 

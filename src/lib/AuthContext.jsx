@@ -32,14 +32,17 @@ function normalizeRole(value) {
     gameday_shots: "photographer",
     podcast: "podcast",
     podcast_partner: "podcast",
+    news: "news",
+    newsroom: "news",
+    redaktion: "news",
+    journalist: "news",
+    creator: "news",
     data_editor: "fan",
     daten_editor: "fan",
     club: "fan",
     verein: "fan",
     league: "fan",
     liga: "fan",
-    journalist: "fan",
-    creator: "fan",
     moderator: "fan",
     official_media: "fan",
   };
@@ -64,7 +67,7 @@ function isDeletedOrBlocked(appUser) {
 }
 
 function isInternalRole(appUser) {
-  return ["admin", "gotw", "photographer", "podcast"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
+  return ["admin", "gotw", "photographer", "podcast", "news"].includes(normalizeRole(appUser?.roleSlug || appUser?.role));
 }
 
 function getStoredSessionId() {
@@ -132,6 +135,7 @@ function getInternalRoleLabel(roleSlug) {
   if (roleSlug === "gotw") return "GOTW";
   if (roleSlug === "photographer") return "Fotograf";
   if (roleSlug === "podcast") return "Podcast";
+  if (roleSlug === "news") return "News";
   return "Intern";
 }
 

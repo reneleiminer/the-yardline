@@ -8,6 +8,7 @@ const ALLOWED_DURING_MAINTENANCE = [
   "/admin",
   "/data-editor",
   "/podcast",
+  "/news-dashboard",
 ];
 
 function isAllowedDuringMaintenance(pathname) {

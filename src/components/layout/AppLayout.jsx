@@ -21,7 +21,6 @@ const MAIN_TABS = [
   { path: "/match-center", label: "Match Center" },
   { path: "/playoffs", label: "Playoffs" },
   { path: "/highlights", label: "Game Highlights" },
-  { path: "/settings", label: "Einstellungen" },
 ];
 
 function getMainTabIndex(pathname) {
@@ -35,6 +34,7 @@ function getTargetRouteForInternalRole(roleSlug) {
   if (roleSlug === "gotw") return "/gotw";
   if (roleSlug === "photographer") return "/photographer";
   if (roleSlug === "podcast") return "/podcast";
+  if (roleSlug === "news") return "/news-dashboard";
   return "/";
 }
 
@@ -682,6 +682,7 @@ export default function AppLayout() {
     "/gotw",
     "/photographer",
     "/podcast",
+    "/news-dashboard",
   ];
 
   const showFooter = footerVisibleRoutes.some((route) =>

@@ -11,6 +11,7 @@ const INTERNAL_PREFIXES = [
   "/admin",
   "/data-editor",
   "/podcast",
+  "/news-dashboard",
   "/settings",
   "/support",
   "/legal",

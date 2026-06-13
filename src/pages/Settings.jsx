@@ -43,6 +43,7 @@ function getTargetRouteForRole(roleSlug) {
   if (roleSlug === "gotw") return "/gotw";
   if (roleSlug === "photographer") return "/photographer";
   if (roleSlug === "podcast") return "/podcast";
+  if (roleSlug === "news") return "/news-dashboard";
 
   return "/";
 }
