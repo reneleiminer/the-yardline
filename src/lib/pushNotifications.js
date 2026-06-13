@@ -53,7 +53,7 @@ async function getVapidPublicKey() {
   return VAPID_PUBLIC_KEY;
 }
 
-async function savePushSubscription(subscription) {
+async function savePushSubscription(subscription, metadata = {}) {
   const response = await fetch("/api/push/subscribe", {
     method: "POST",
     headers: {
@@ -62,6 +62,8 @@ async function savePushSubscription(subscription) {
     body: JSON.stringify({
       visitorId: getVisitorId(),
       subscription,
+      appUserId: metadata.appUserId || "",
+      favoriteTeamId: metadata.favoriteTeamId || "",
     }),
   });
 
@@ -138,7 +140,7 @@ export async function getCurrentPushSubscription() {
   return registration.pushManager.getSubscription();
 }
 
-export async function enablePushNotifications() {
+export async function enablePushNotifications(metadata = {}) {
   if (!isPushSupported()) {
     throw new Error("Push-Benachrichtigungen werden auf diesem Geraet nicht unterstuetzt.");
   }
@@ -177,12 +179,32 @@ export async function enablePushNotifications() {
       applicationServerKey,
     }));
 
-  await savePushSubscription(subscription);
+  await savePushSubscription(subscription, metadata);
 
   return subscription;
 }
 
-export async function syncExistingPushSubscription() {
+export async function syncPushSubscriptionMetadata(metadata = {}) {
+  if (
+    !isPushSupported() ||
+    Notification.permission !== "granted" ||
+    arePushNotificationsDisabled()
+  ) {
+    return null;
+  }
+
+  const registration = await registerServiceWorker();
+  const existing = registration
+    ? await registration.pushManager.getSubscription()
+    : null;
+
+  if (!existing) return null;
+
+  await savePushSubscription(existing, metadata);
+  return existing;
+}
+
+export async function syncExistingPushSubscription(metadata = {}) {
   if (
     !isPushSupported() ||
     arePushNotificationsDisabled() ||
@@ -191,7 +213,7 @@ export async function syncExistingPushSubscription() {
     return null;
   }
 
-  return enablePushNotifications();
+  return enablePushNotifications(metadata);
 }
 
 export async function disablePushNotifications() {
