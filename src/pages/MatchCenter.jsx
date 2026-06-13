@@ -105,7 +105,7 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
   const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
   const awayColor = getTeamColor(away, "#c20f1a");
   const status = getEffectiveGameStatus(game);
-  const showScore = status === "final";
+  const showScore = status === "final" || status === "live";
   const kickoff = getGameDate(game);
 
   return (
@@ -113,25 +113,30 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
       to={`/game/${game.id}`}
       className="block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_16px_40px_rgba(0,0,0,0.32)] active:scale-[0.99] transition-transform"
     >
-      <div className="relative grid min-h-[152px] grid-cols-2 overflow-hidden">
+      <div className="relative grid min-h-[166px] grid-cols-2 overflow-hidden sm:min-h-[178px]">
         <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-35" />
-        <div className="relative flex flex-col justify-between p-4" style={{ background: homeColor }}>
+
+        <div className="relative flex min-w-0 flex-col justify-between p-3.5" style={{ background: homeColor }}>
           <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/22" />
           <div className="relative z-10 flex items-start justify-start">
-            <TeamLogo team={home} />
+            <TeamLogo team={home} className="h-16 w-16 sm:h-20 sm:w-20" />
           </div>
-          <p className="relative z-10 pr-12 line-clamp-2 text-lg font-black leading-tight">{homeName}</p>
+          <p className="relative z-10 pr-10 text-left text-[15px] font-black leading-[1.08] sm:pr-14 sm:text-lg">
+            {homeName}
+          </p>
         </div>
 
-        <div className="relative flex flex-col justify-between p-4 text-right" style={{ background: awayColor }}>
+        <div className="relative flex min-w-0 flex-col justify-between p-3.5 text-right" style={{ background: awayColor }}>
           <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/22" />
           <div className="relative z-10 flex items-start justify-end">
-            <TeamLogo team={away} />
+            <TeamLogo team={away} className="h-16 w-16 sm:h-20 sm:w-20" />
           </div>
-          <p className="relative z-10 pl-12 line-clamp-2 text-lg font-black leading-tight">{awayName}</p>
+          <p className="relative z-10 pl-10 text-right text-[15px] font-black leading-[1.08] sm:pl-14 sm:text-lg">
+            {awayName}
+          </p>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/24 bg-black px-4 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.62),0_0_0_1px_rgba(194,15,26,0.22)]">
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/24 bg-black px-3.5 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.62),0_0_0_1px_rgba(194,15,26,0.22)]">
           <StatusBadge game={game} />
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
