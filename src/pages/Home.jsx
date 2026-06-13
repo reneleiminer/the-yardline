@@ -350,41 +350,51 @@ function AdBannerCard({ banner }) {
   if (!banner?.imageUrl && !banner?.title) return null;
 
   const content = (
-    <div className="group relative overflow-hidden rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.34)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(194,15,26,0.28),rgba(0,0,0,0.65)_46%,rgba(47,125,255,0.24)),repeating-linear-gradient(105deg,rgba(255,255,255,0.06)_0_1px,transparent_1px_18px)]" />
-      <div className="relative grid min-h-[132px] grid-cols-[132px_1fr] items-center gap-4 p-4 sm:grid-cols-[180px_1fr]">
-        {banner.imageUrl && (
-          <div className="flex aspect-[16/9] w-full flex-shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-white/10 bg-white p-2">
-            <img
-              src={getImageUrl(banner.imageUrl)}
-              alt={banner.title || ""}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
+    <div className="group relative w-full overflow-hidden rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.34)]">
+      <div className="relative min-h-[132px] w-full overflow-hidden sm:min-h-[170px]">
+        {banner.imageUrl ? (
+          <img
+            src={getImageUrl(banner.imageUrl)}
+            alt={banner.title || "Werbung"}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(194,15,26,0.88),rgba(0,0,0,0.86)_48%,rgba(47,125,255,0.66))]" />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-r from-black/76 via-black/28 to-black/10" />
+        <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_18px)] opacity-35" />
+
+        <div className="relative z-10 flex min-h-[132px] items-center justify-between gap-4 p-4 sm:min-h-[170px] sm:p-6">
+          <div className="min-w-0 max-w-[72%]">
+            <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#ff2338]">
+              Werbung
+            </p>
+
+            <p className="mt-1 line-clamp-2 text-2xl font-black italic leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl">
+              {banner.title || "Partner"}
+            </p>
           </div>
-        )}
 
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-[#ff2338]">
-            Werbung
-          </p>
-          <p className="mt-1 line-clamp-2 text-2xl font-black italic leading-tight text-white">
-            {banner.title || "Partner"}
-          </p>
+          {banner.linkUrl && (
+            <span className="absolute right-4 top-4 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-red-700 shadow-[0_12px_30px_rgba(0,0,0,0.28)] transition-transform group-hover:scale-105">
+              <ExternalLink className="h-4 w-4" />
+            </span>
+          )}
         </div>
-
-        {banner.linkUrl && (
-          <span className="absolute right-4 top-4 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-red-700 transition-transform group-hover:scale-105">
-            <ExternalLink className="h-4 w-4" />
-          </span>
-        )}
       </div>
     </div>
   );
 
   if (banner.linkUrl) {
     return (
-      <a href={banner.linkUrl} target="_blank" rel="noopener noreferrer" className="block">
+      <a
+        href={banner.linkUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block w-full"
+      >
         {content}
       </a>
     );
@@ -950,4 +960,3 @@ export default function Home() {
     </div>
   );
 }
-
