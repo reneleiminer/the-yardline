@@ -12,6 +12,7 @@ const LEGAL_PAGES = [
   { slug: 'impressum', title: 'Impressum', path: '/impressum' },
   { slug: 'datenschutz', title: 'Datenschutz', path: '/datenschutz' },
   { slug: 'nutzungsbedingungen', title: 'Nutzungsbedingungen', path: '/nutzungsbedingungen' },
+  { slug: 'tippspiel', title: 'Tippspiel-Regeln', path: '/legal/community-guidelines' },
 ];
 
 export default function AdminLegal() {
@@ -59,6 +60,7 @@ export default function AdminLegal() {
   title: data.title,
   content: data.content,
   path: activeMeta?.path || `/${activeSlug}`,
+  updatedAtUtc: new Date().toISOString(),
 };
 
       if (existingPage?.id) {
@@ -103,7 +105,7 @@ export default function AdminLegal() {
   return (
     <div className="w-full max-w-2xl mx-auto px-3 sm:px-4 py-4 pb-32">
       <p className="text-xs text-muted-foreground mb-5">
-        Impressum, Datenschutz, AGB und Guidelines verwalten
+        Impressum, Datenschutz, Nutzungsbedingungen und Tippspiel-Regeln verwalten
       </p>
 
       <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 mb-5">
