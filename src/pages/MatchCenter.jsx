@@ -141,8 +141,8 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
   );
 }
 
-function isGameTodayOrTomorrow(date, today) {
-  return date >= today && date < addDays(today, 2);
+function isGameToday(date, today) {
+  return date >= today && date < addDays(today, 1);
 }
 
 function isGameUpcoming(date, today) {
@@ -166,7 +166,7 @@ function selectRelevantGames(games, mode = "today") {
         return isGameUpcoming(item.date, today);
       }
 
-      return isGameTodayOrTomorrow(item.date, today);
+      return isGameToday(item.date, today);
     })
     .sort((a, b) => {
       const liveA = a.game.status === "live" ? 0 : 1;
@@ -269,7 +269,7 @@ function GamesPanel({ games, teamsById, leaguesById }) {
 
   const emptyLabel =
     gameFilter === "today"
-      ? "Keine Spiele in den nächsten 2 Tagen."
+      ? "Heute stehen keine Spiele an."
       : "Keine kommenden Spiele in den nächsten 7 Tagen.";
 
   return (
