@@ -744,8 +744,6 @@ function GameForm({
   };
 
   const handleSave = () => {
-    if (isSaving) return;
-
     const err = validate();
 
     if (err) {
@@ -1025,52 +1023,6 @@ function GameForm({
   );
 }
 
-
-function updateGameInCacheList(current, nextGame) {
-  if (!nextGame?.id) return current;
-
-  if (Array.isArray(current)) {
-    const exists = current.some((item) => item?.id === nextGame.id);
-
-    if (!exists) {
-      return [nextGame, ...current];
-    }
-
-    return current.map((item) =>
-      item?.id === nextGame.id
-        ? {
-            ...item,
-            ...nextGame,
-          }
-        : item
-    );
-  }
-
-  if (current?.id === nextGame.id) {
-    return {
-      ...current,
-      ...nextGame,
-    };
-  }
-
-  return current;
-}
-
-function createGameErrorMessage(error) {
-  const message = String(error?.message || "");
-
-  if (message.toLowerCase().includes("foreign key")) {
-    return "Spiel konnte nicht gespeichert werden: Liga, Team oder Playoff-Verknüpfung ist ungültig.";
-  }
-
-  if (message.toLowerCase().includes("invalid input")) {
-    return "Spiel konnte nicht gespeichert werden: Ein Feld hat ein ungültiges Format.";
-  }
-
-  return message || "Fehler beim Speichern des Spiels";
-}
-
-
 export default function AdminGames() {
   useSetHeader({ mode: "back", title: "Spiele" });
 
@@ -1127,22 +1079,20 @@ export default function AdminGames() {
     let kickoffAt = "";
 
     if (data.date && data.time) {
-      const [hours, minutes] = String(data.time).split(":");
-      const [year, month, day] = String(data.date).split("-");
+      const [hours, minutes] = data.time.split(":");
+      const [year, month, day] = data.date.split("-");
 
       const kickoffDate = new Date(
-        Number(year),
-        Number(month) - 1,
-        Number(day),
-        Number(hours) || 0,
-        Number(minutes) || 0,
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        parseInt(hours) || 0,
+        parseInt(minutes) || 0,
         0,
         0
       );
 
-      if (!Number.isNaN(kickoffDate.getTime())) {
-        kickoffAt = kickoffDate.toISOString();
-      }
+      kickoffAt = kickoffDate.toISOString();
     }
 
     const streamLinks = cleanStreamLinks(data.streamLinks);
@@ -1223,78 +1173,32 @@ export default function AdminGames() {
       thumbnailUrl: "",
       highlightTitle: "",
       highlightSubtitle: "",
-      updatedAtUtc: new Date().toISOString(),
     };
   };
 
   const createMutation = useMutation({
-    mutationFn: async (data) => {
-      const payload = {
-        ...buildPayload(data),
-        createdAtUtc: new Date().toISOString(),
-      };
-
-      const created = await base44.entities.Game.create(payload);
-
-      if (!created?.id) {
-        throw new Error("Supabase hat keine Spiel-ID zurückgegeben.");
-      }
-
-      return created;
-    },
-    onSuccess: async (createdGame) => {
-      queryClient.setQueriesData({ queryKey: ["games"], exact: false }, (current) =>
-        updateGameInCacheList(current, createdGame)
-      );
-      queryClient.setQueriesData({ queryKey: ["admin-count-games"], exact: false }, (current) =>
-        updateGameInCacheList(current, createdGame)
-      );
-
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ["games"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-count-games"] }),
-        queryClient.invalidateQueries({ queryKey: ["standings"] }),
-      ]);
-
+    mutationFn: (data) => base44.entities.Game.create(buildPayload(data)),
+    onSuccess: () => {
+      invalidate();
       setAdding(false);
-      toast.success("Spiel in Supabase erstellt");
+      toast.success("Spiel erstellt");
     },
     onError: (err) => {
       console.error("CREATE GAME ERROR:", err);
-      toast.error(createGameErrorMessage(err));
+      toast.error(err.message || "Fehler beim Erstellen des Spiels");
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }) => {
-      const updated = await base44.entities.Game.update(id, buildPayload(data));
-
-      if (!updated?.id) {
-        return {
-          id,
-          ...buildPayload(data),
-        };
-      }
-
-      return updated;
-    },
-    onSuccess: async (updatedGame) => {
-      queryClient.setQueriesData({ queryKey: ["games"], exact: false }, (current) =>
-        updateGameInCacheList(current, updatedGame)
-      );
-
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ["games"] }),
-        queryClient.invalidateQueries({ queryKey: ["admin-count-games"] }),
-        queryClient.invalidateQueries({ queryKey: ["standings"] }),
-      ]);
-
+    mutationFn: ({ id, data }) => base44.entities.Game.update(id, buildPayload(data)),
+    onSuccess: () => {
+      invalidate();
       setEditingId(null);
-      toast.success("Spiel in Supabase aktualisiert");
+      toast.success("Spiel aktualisiert");
     },
     onError: (err) => {
       console.error("UPDATE GAME ERROR:", err);
-      toast.error(createGameErrorMessage(err));
+      toast.error(err.message || "Fehler beim Aktualisieren des Spiels");
     },
   });
 
