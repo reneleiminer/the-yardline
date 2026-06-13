@@ -401,6 +401,10 @@ const ENTITY_COLUMNS = {
   ]),
 };
 
+const NULLABLE_VALUE_COLUMNS = {
+  Game: new Set(['date', 'time', 'kickoff_time', 'kickoff_at']),
+};
+
 const NULLABLE_FOREIGN_KEY_COLUMNS = {
   AppUser: new Set(['connected_team_id', 'linked_league_id']),
   ClubFollow: new Set(['game_id', 'league_id', 'home_team_id', 'away_team_id']),
@@ -773,7 +777,8 @@ function toDbPayload(entityName, data = {}) {
     }
 
     const column = toColumn(entityName, field);
-    const normalizedValue = value === '' && nullableForeignKeys.has(column)
+    const nullableValueColumns = NULLABLE_VALUE_COLUMNS[entityName] || new Set();
+    const normalizedValue = value === '' && (nullableForeignKeys.has(column) || nullableValueColumns.has(column))
       ? null
       : value;
 
