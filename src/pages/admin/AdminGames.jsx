@@ -1060,12 +1060,16 @@ function updateGameInCacheList(current, nextGame) {
 function getGameSaveErrorMessage(error) {
   const message = String(error?.message || "");
 
-  if (message.toLowerCase().includes("foreign key")) {
-    return "Speichern fehlgeschlagen: Liga, Team oder Playoff-Verknüpfung ist ungültig.";
+  if (message.toLowerCase().includes("invalid input syntax") && message.toLowerCase().includes("date")) {
+    return "Speichern fehlgeschlagen: Das Datum war leer oder ungültig. Leere Termine werden jetzt als null gespeichert.";
   }
 
-  if (message.toLowerCase().includes("invalid input")) {
-    return "Speichern fehlgeschlagen: Ein Feld hat ein ungültiges Format.";
+  if (message.toLowerCase().includes("invalid input syntax") && message.toLowerCase().includes("time")) {
+    return "Speichern fehlgeschlagen: Die Uhrzeit war leer oder ungültig. Leere Uhrzeiten werden jetzt als null gespeichert.";
+  }
+
+  if (message.toLowerCase().includes("foreign key")) {
+    return "Speichern fehlgeschlagen: Liga, Team oder Playoff-Verknüpfung ist ungültig.";
   }
 
   if (message.toLowerCase().includes("column")) {
@@ -1129,11 +1133,13 @@ export default function AdminGames() {
   };
 
   const buildPayload = (data) => {
-    let kickoffAt = "";
+    const cleanDate = String(data.date || "").trim() || null;
+    const cleanTime = String(data.time || "").trim() || null;
+    let kickoffAt = null;
 
-    if (data.date && data.time) {
-      const [hours, minutes] = String(data.time).split(":");
-      const [year, month, day] = String(data.date).split("-");
+    if (cleanDate && cleanTime) {
+      const [hours, minutes] = cleanTime.split(":");
+      const [year, month, day] = cleanDate.split("-");
 
       const kickoffDate = new Date(
         Number(year),
@@ -1178,9 +1184,9 @@ export default function AdminGames() {
       awayTeamSeed: data.awayTeamSeed ? parseInt(data.awayTeamSeed) : null,
       teamsResolved: !!data.homeTeamId && !!data.awayTeamId,
 
-      date: data.date || "",
-      time: data.time || "",
-      kickoffTime: data.time || "",
+      date: cleanDate,
+      time: cleanTime,
+      kickoffTime: cleanTime,
       kickoffAt,
 
       status,
