@@ -19,6 +19,7 @@ import {
   Loader2,
   Menu,
   MousePointer,
+  Newspaper,
   Pencil,
   PlaySquare,
   Radio,
@@ -926,6 +927,11 @@ export default function AdminDashboard() {
     queryFn: () => base44.entities.AppUser.list(),
   });
 
+  const { data: posts = [] } = useQuery({
+    queryKey: ['admin-dashboard-posts'],
+    queryFn: () => base44.entities.Post.list('-publishedAtUtc', 500),
+  });
+
   const { data: leagues = [] } = useQuery({
     queryKey: ['admin-count-leagues'],
     queryFn: () => base44.entities.League.list(),
@@ -1230,6 +1236,15 @@ export default function AdminDashboard() {
       bg: 'bg-blue-400/10',
     },
     {
+      icon: Newspaper,
+      title: 'Beiträge',
+      description: 'News, Transfers und Test-Beiträge ausblenden oder löschen',
+      route: '/admin/content',
+      count: posts.length,
+      color: 'text-red-400',
+      bg: 'bg-red-400/10',
+    },
+    {
       icon: Image,
       title: 'Werbe-Banner',
       description: 'Dezente Home-Banner planen und verwalten',
@@ -1409,6 +1424,7 @@ export default function AdminDashboard() {
       title: 'Content & Partner',
       subtitle: 'Highlights, Shots, Banner und Partnerflächen',
       items: sections.filter(section => [
+        '/admin/content',
         '/admin/highlights',
         '/admin/gameday-shots',
         '/admin/leagues?intro=1',
