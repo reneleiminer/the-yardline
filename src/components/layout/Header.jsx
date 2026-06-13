@@ -261,10 +261,12 @@ function DashboardContent({ title }) {
           <button
             type="button"
             onClick={() => navigate(dashboardHome, { replace: true })}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/78 transition-colors hover:bg-white/14 hover:text-white"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-white/8 text-white/82 transition-colors hover:bg-white/14 hover:text-white sm:w-auto sm:gap-1.5 sm:px-3 sm:py-1.5 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-wide"
+            aria-label="Zum Dashboard"
+            title="Dashboard"
           >
-            <LayoutDashboard className="h-3.5 w-3.5" />
-            Dashboard
+            <LayoutDashboard className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+            <span className="hidden sm:inline">Dashboard</span>
           </button>
         )}
         <button
@@ -487,11 +489,12 @@ export default function Header() {
                   <button
                     type="button"
                     onClick={() => navigate(dashboardRoute, { replace: true })}
-                    className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/12 bg-white/8 px-3 text-[10px] font-black uppercase tracking-wide text-white/78 transition-colors hover:bg-white/14 hover:text-white"
-                    aria-label="Zurueck zum Dashboard"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/8 text-white/82 shadow-[0_8px_24px_rgba(0,0,0,0.28)] transition-colors hover:bg-white/14 hover:text-white sm:w-auto sm:gap-1.5 sm:px-3 sm:text-[10px] sm:font-black sm:uppercase sm:tracking-wide"
+                    aria-label="Zum Dashboard"
+                    title="Dashboard"
                   >
-                    <LayoutDashboard className="h-3.5 w-3.5" />
-                    Dashboard
+                    <LayoutDashboard className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
+                    <span className="hidden sm:inline">Dashboard</span>
                   </button>
                 )}
 
