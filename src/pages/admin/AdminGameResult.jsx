@@ -387,6 +387,70 @@ async function advanceCompetitionBracketFromFinalGame(game) {
   };
 }
 
+
+function updateGameInCacheList(current, nextGame) {
+  if (!nextGame?.id) return current;
+
+  if (Array.isArray(current)) {
+    return current.map(item =>
+      item?.id === nextGame.id
+        ? {
+            ...item,
+            ...nextGame,
+          }
+        : item
+    );
+  }
+
+  if (current?.id === nextGame.id) {
+    return {
+      ...current,
+      ...nextGame,
+    };
+  }
+
+  return current;
+}
+
+async function refreshGameCaches(queryClient, nextGame, gameId) {
+  if (nextGame?.id) {
+    queryClient.setQueriesData({ queryKey: ['games'], exact: false }, current =>
+      updateGameInCacheList(current, nextGame)
+    );
+
+    queryClient.setQueriesData({ queryKey: ['today-games-reminder'], exact: false }, current =>
+      updateGameInCacheList(current, nextGame)
+    );
+
+    queryClient.setQueriesData({ queryKey: ['admin-count-games'], exact: false }, current =>
+      updateGameInCacheList(current, nextGame)
+    );
+
+    queryClient.setQueriesData({ queryKey: ['game-result', gameId], exact: false }, current =>
+      updateGameInCacheList(current, nextGame)
+    );
+
+    queryClient.setQueriesData({ queryKey: ['game', gameId], exact: false }, current =>
+      updateGameInCacheList(current, nextGame)
+    );
+  }
+
+  await Promise.allSettled([
+    queryClient.invalidateQueries({ queryKey: ['games'] }),
+    queryClient.invalidateQueries({ queryKey: ['today-games-reminder'] }),
+    queryClient.invalidateQueries({ queryKey: ['admin-count-games'] }),
+    queryClient.invalidateQueries({ queryKey: ['game-result', gameId] }),
+    queryClient.invalidateQueries({ queryKey: ['game', gameId] }),
+    queryClient.invalidateQueries({ queryKey: ['game-content', gameId] }),
+    queryClient.invalidateQueries({ queryKey: ['standings'] }),
+    queryClient.invalidateQueries({ queryKey: ['posts'] }),
+    queryClient.invalidateQueries({ queryKey: ['competitions'] }),
+    queryClient.invalidateQueries({ queryKey: ['adminCompetitions'] }),
+    queryClient.invalidateQueries({ queryKey: ['tournaments'] }),
+  ]);
+}
+
+
 export default function AdminGameResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -449,11 +513,14 @@ export default function AdminGameResult() {
       const nextAwayScore = Number.parseInt(awayScore, 10);
       const isFinal = resultStatus === 'final';
 
+      const now = new Date().toISOString();
+
       const payload = {
         scoreHome: Number.isNaN(nextHomeScore) ? 0 : nextHomeScore,
         scoreAway: Number.isNaN(nextAwayScore) ? 0 : nextAwayScore,
         status: resultStatus,
-        finalizedAt: isFinal ? new Date().toISOString() : '',
+        finalizedAt: isFinal ? now : '',
+        updatedAtUtc: now,
       };
 
       const updatedGame = await base44.entities.Game.update(game.id, payload);
@@ -485,17 +552,10 @@ export default function AdminGameResult() {
         advanceInfo: null,
       };
     },
-    onSuccess: result => {
-      queryClient.invalidateQueries({ queryKey: ['games'] });
-      queryClient.invalidateQueries({ queryKey: ['today-games-reminder'] });
-      queryClient.invalidateQueries({ queryKey: ['game-result', gameId] });
-      queryClient.invalidateQueries({ queryKey: ['game', gameId] });
-      queryClient.invalidateQueries({ queryKey: ['game-content', gameId] });
-      queryClient.invalidateQueries({ queryKey: ['standings'] });
-      queryClient.invalidateQueries({ queryKey: ['posts'] });
-      queryClient.invalidateQueries({ queryKey: ['competitions'] });
-      queryClient.invalidateQueries({ queryKey: ['adminCompetitions'] });
-      queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+    onSuccess: async result => {
+      const nextGame = result?.nextGame;
+
+      await refreshGameCaches(queryClient, nextGame, gameId);
 
       const advanceInfo = result?.advanceInfo;
 
@@ -509,7 +569,7 @@ export default function AdminGameResult() {
           : 'Live-Ergebnis gespeichert'
       );
 
-      navigate(dashboardRoute);
+      navigate(dashboardRoute, { replace: true, state: { updatedGameId: result?.nextGame?.id || gameId, resultSavedAt: Date.now() } });
     },
     onError: error => {
       console.error('SAVE RESULT ERROR:', error);
