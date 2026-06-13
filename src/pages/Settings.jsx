@@ -12,6 +12,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { base44 } from "@/api/base44Client";
 
 import useSetHeader from "@/hooks/useSetHeader";
 import { useAuth } from "@/lib/AuthContext";
@@ -227,11 +228,148 @@ function AppInfoSettings() {
 }
 
 function AccountSettings() {
-  const { appUserSnapshot, logout } = useAuth();
+  const { appUserSnapshot, logout, updatePublicUser } = useAuth();
+
   const displayName =
     appUserSnapshot?.displayName ||
     appUserSnapshot?.username ||
     "Konto";
+
+  const isInternalAccount = appUserSnapshot?.isInternalUser === true;
+  const roleSlug = normalizeRole(appUserSnapshot?.roleSlug || appUserSnapshot?.role);
+  const currentUsername = appUserSnapshot?.internalUsername || appUserSnapshot?.username || "";
+  const storedPassword =
+    appUserSnapshot?.internalPassword ||
+    appUserSnapshot?.password ||
+    appUserSnapshot?.loginPassword ||
+    appUserSnapshot?.temporaryPassword ||
+    "";
+
+  const [editing, setEditing] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [form, setForm] = React.useState({
+    displayName,
+    username: currentUsername,
+    currentPassword: "",
+    newPassword: "",
+    newPasswordConfirm: "",
+  });
+
+  React.useEffect(() => {
+    if (!editing) {
+      setForm({
+        displayName,
+        username: currentUsername,
+        currentPassword: "",
+        newPassword: "",
+        newPasswordConfirm: "",
+      });
+    }
+  }, [currentUsername, displayName, editing]);
+
+  const updateField = (field, value) => {
+    setForm(current => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const handleSave = async event => {
+    event.preventDefault();
+
+    if (!appUserSnapshot?.id) {
+      toast.error("Du bist nicht angemeldet.");
+      return;
+    }
+
+    const cleanDisplayName = String(form.displayName || "").trim();
+    const cleanUsername = normalizeUsername(form.username);
+    const currentPassword = String(form.currentPassword || "").trim();
+    const newPassword = String(form.newPassword || "").trim();
+    const newPasswordConfirm = String(form.newPasswordConfirm || "").trim();
+
+    if (!cleanDisplayName) {
+      toast.error("Bitte gib einen Namen ein.");
+      return;
+    }
+
+    if (!cleanUsername || cleanUsername.length < 3) {
+      toast.error("Der Benutzername braucht mindestens 3 Zeichen.");
+      return;
+    }
+
+    if (newPassword || newPasswordConfirm) {
+      if (isInternalAccount && storedPassword && String(storedPassword) !== currentPassword) {
+        toast.error("Das aktuelle Passwort ist falsch.");
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        toast.error("Das neue Passwort braucht mindestens 6 Zeichen.");
+        return;
+      }
+
+      if (newPassword !== newPasswordConfirm) {
+        toast.error("Die neuen Passwörter stimmen nicht überein.");
+        return;
+      }
+    }
+
+    setSaving(true);
+
+    try {
+      if (cleanUsername !== normalizeUsername(currentUsername)) {
+        const [byUsername, byInternalUsername] = await Promise.all([
+          base44.entities.AppUser.filter({ username: cleanUsername }),
+          base44.entities.AppUser.filter({ internalUsername: cleanUsername }),
+        ]);
+
+        const usernameTaken = [...byUsername, ...byInternalUsername].some(
+          user => user.id !== appUserSnapshot.id
+        );
+
+        if (usernameTaken) {
+          throw new Error("Dieser Benutzername ist bereits vergeben.");
+        }
+      }
+
+      const updates = {
+        displayName: cleanDisplayName,
+        username: cleanUsername,
+      };
+
+      if (isInternalAccount) {
+        updates.internalUsername = cleanUsername;
+        updates.isInternalUser = true;
+        updates.roleSlug = roleSlug;
+        updates.role = appUserSnapshot.role || getRoleSlug(roleSlug);
+        updates.status = appUserSnapshot.status || "active";
+      }
+
+      if (newPassword) {
+        if (isInternalAccount) {
+          updates.internalPassword = newPassword;
+        } else {
+          updates.password = newPassword;
+        }
+      }
+
+      await updatePublicUser(updates);
+
+      toast.success("Login-Daten gespeichert");
+      setEditing(false);
+      setForm(current => ({
+        ...current,
+        currentPassword: "",
+        newPassword: "",
+        newPasswordConfirm: "",
+      }));
+    } catch (error) {
+      toast.error(error.message || "Login-Daten konnten nicht gespeichert werden");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
@@ -245,9 +383,21 @@ function AccountSettings() {
             {displayName}
           </h2>
           <p className="text-xs text-muted-foreground truncate">
-            Konto und Anmeldung
+            {isInternalAccount
+              ? `Interner Login · ${getRoleSlug(roleSlug).toUpperCase()}`
+              : "Konto und Anmeldung"}
           </p>
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setEditing(value => !value)}
+          className="rounded-full px-3 text-xs font-black"
+        >
+          {editing ? "Schließen" : "Bearbeiten"}
+        </Button>
 
         <Button
           type="button"
@@ -260,6 +410,87 @@ function AccountSettings() {
           Abmelden
         </Button>
       </div>
+
+      {editing && (
+        <form onSubmit={handleSave} className="space-y-3 border-t border-border/30 px-4 py-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                Name
+              </p>
+              <Input
+                value={form.displayName}
+                onChange={event => updateField("displayName", event.target.value)}
+                placeholder="Anzeigename"
+                disabled={saving}
+              />
+            </div>
+
+            <div>
+              <p className="mb-1.5 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                Benutzername
+              </p>
+              <Input
+                value={form.username}
+                onChange={event => updateField("username", event.target.value)}
+                placeholder="Benutzername"
+                autoComplete="username"
+                disabled={saving}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-secondary/20 p-3">
+            <p className="text-xs font-black">
+              Passwort ändern
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Leer lassen, wenn das Passwort gleich bleiben soll.
+            </p>
+
+            <div className="mt-3 grid grid-cols-1 gap-3">
+              {isInternalAccount && storedPassword && (
+                <Input
+                  type="password"
+                  value={form.currentPassword}
+                  onChange={event => updateField("currentPassword", event.target.value)}
+                  placeholder="Aktuelles Passwort"
+                  autoComplete="current-password"
+                  disabled={saving}
+                />
+              )}
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Input
+                  type="password"
+                  value={form.newPassword}
+                  onChange={event => updateField("newPassword", event.target.value)}
+                  placeholder="Neues Passwort"
+                  autoComplete="new-password"
+                  disabled={saving}
+                />
+
+                <Input
+                  type="password"
+                  value={form.newPasswordConfirm}
+                  onChange={event => updateField("newPasswordConfirm", event.target.value)}
+                  placeholder="Neues Passwort wiederholen"
+                  autoComplete="new-password"
+                  disabled={saving}
+                />
+              </div>
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={saving}
+            className="w-full"
+          >
+            {saving ? "Speichert..." : "Login-Daten speichern"}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
