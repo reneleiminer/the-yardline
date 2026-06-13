@@ -27,6 +27,36 @@ const DEFAULT_DISPLAY_SETTINGS = {
   showBracketStats: true,
 };
 
+const BRACKET_CARD_HEIGHT = 122;
+const BRACKET_BASE_GAP = 14;
+const BRACKET_CARD_WIDTH = 224;
+const BRACKET_CONNECTOR_INSET = 14;
+const BRACKET_SECTION_WIDTH = 258;
+
+function getRoundLayout(roundIndex = 0) {
+  const multiplier = Math.max(1, 2 ** roundIndex);
+  const topOffset = roundIndex === 0
+    ? 0
+    : ((multiplier - 1) * (BRACKET_CARD_HEIGHT + BRACKET_BASE_GAP)) / 2;
+
+  const rowGap = roundIndex === 0
+    ? BRACKET_BASE_GAP
+    : ((multiplier - 1) * (BRACKET_CARD_HEIGHT + BRACKET_BASE_GAP)) + BRACKET_BASE_GAP;
+
+  return {
+    topOffset,
+    rowGap,
+  };
+}
+
+function getRoundContentHeight(matchCount = 0, roundIndex = 0) {
+  if (matchCount <= 0) return BRACKET_CARD_HEIGHT;
+
+  const { topOffset, rowGap } = getRoundLayout(roundIndex);
+
+  return (topOffset * 2) + (matchCount * BRACKET_CARD_HEIGHT) + (Math.max(0, matchCount - 1) * rowGap);
+}
+
 const BRACKET_TYPES = ['playoffs', 'cup'];
 
 function sameSeason(game, season) {
@@ -495,7 +525,7 @@ function MatchCard({
       onClick={() => {
         if (canOpen) onOpenGame(game.id);
       }}
-      className={`relative w-full text-left rounded-xl border overflow-hidden transition-all active:scale-[0.99] ${
+      className={`relative h-[122px] w-full text-left rounded-xl border overflow-hidden transition-all active:scale-[0.99] ${
         finalRound
           ? 'border-emerald-400/35 bg-gradient-to-br from-emerald-500/14 via-slate-950 to-slate-950 shadow-[0_0_24px_rgba(16,185,129,0.12)]'
           : 'border-white/10 bg-slate-950/95 hover:border-primary/35'
@@ -676,6 +706,15 @@ export default function BracketView({ tournament, teams: passedTeams }) {
     return [...resolvedBracket].sort((a, b) => (a.round || 0) - (b.round || 0));
   }, [resolvedBracket]);
 
+  const maxRoundHeight = useMemo(() => {
+    if (rounds.length === 0) return BRACKET_CARD_HEIGHT;
+
+    return rounds.reduce((maxHeight, round, roundIndex) => {
+      const nextHeight = getRoundContentHeight((round.matchups || []).length, roundIndex);
+      return Math.max(maxHeight, nextHeight);
+    }, BRACKET_CARD_HEIGHT);
+  }, [rounds]);
+
   const activeRoundIndex = useMemo(() => {
     if (rounds.length === 0) return 0;
 
@@ -793,21 +832,20 @@ export default function BracketView({ tournament, teams: passedTeams }) {
             ref={bracketScrollerRef}
             className="overflow-x-auto hide-scrollbar snap-x snap-mandatory"
           >
-            <div className="flex gap-5 px-3 py-4 min-w-max">
+            <div className="flex items-start gap-5 px-3 py-4 min-w-max">
               {rounds.map((roundData, roundIndex) => {
                 const isFinalRound = !!roundData.isFinalRound || roundIndex === rounds.length - 1;
+                const matchups = roundData.matchups || [];
+                const { topOffset, rowGap } = getRoundLayout(roundIndex);
 
                 return (
                   <section
                     key={`${roundData.round}-${roundIndex}`}
                     data-round-index={roundIndex}
-                    className="relative snap-start shrink-0 w-[230px]"
+                    className="relative snap-start shrink-0"
+                    style={{ width: `${BRACKET_SECTION_WIDTH}px` }}
                   >
-                    {!isFinalRound && (
-                      <div className="absolute left-full top-[56px] h-px w-5 bg-emerald-400/35" />
-                    )}
-
-                    <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center justify-between gap-2 mb-2 px-1">
                       <div
                         className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[9px] font-black uppercase tracking-wider ${
                           isFinalRound
@@ -820,23 +858,83 @@ export default function BracketView({ tournament, teams: passedTeams }) {
                       </div>
 
                       <span className="text-[10px] text-muted-foreground">
-                        {(roundData.matchups || []).length} Spiele
+                        {matchups.length} Spiele
                       </span>
                     </div>
 
-                    <div className="space-y-2">
-                      {(roundData.matchups || []).map((match, index) => (
-                        <MatchCard
-                          key={`${roundData.round}-${match.matchupIndex ?? index}`}
-                          match={match}
-                          round={roundData}
-                          teamsMap={teamsMap}
-                          groups={league?.groups || []}
-                          canResolveTeams={canResolveTeams}
-                          competitionGames={competitionGames}
-                          onOpenGame={(gameId) => navigate(`/game/${gameId}`)}
-                        />
-                      ))}
+                    <div
+                      className="relative"
+                      style={{ minHeight: `${maxRoundHeight}px` }}
+                    >
+                      {matchups.map((match, index) => {
+                        const slotTop = topOffset + (index * (BRACKET_CARD_HEIGHT + rowGap));
+                        const centerY = slotTop + (BRACKET_CARD_HEIGHT / 2);
+                        const isPairStart = index % 2 === 0;
+                        const pairMatch = matchups[index + 1];
+
+                        return (
+                          <div key={`${roundData.round}-${match.matchupIndex ?? index}`}>
+                            <div
+                              className="absolute left-0"
+                              style={{
+                                top: `${slotTop}px`,
+                                width: `${BRACKET_CARD_WIDTH}px`,
+                              }}
+                            >
+                              <MatchCard
+                                match={match}
+                                round={roundData}
+                                teamsMap={teamsMap}
+                                groups={league?.groups || []}
+                                canResolveTeams={canResolveTeams}
+                                competitionGames={competitionGames}
+                                onOpenGame={(gameId) => navigate(`/game/${gameId}`)}
+                              />
+                            </div>
+
+                            {!isFinalRound && (
+                              <div
+                                className="absolute h-px bg-emerald-400/35"
+                                style={{
+                                  left: `${BRACKET_CARD_WIDTH}px`,
+                                  top: `${centerY}px`,
+                                  width: `${BRACKET_CONNECTOR_INSET}px`,
+                                }}
+                              />
+                            )}
+
+                            {!isFinalRound && isPairStart && pairMatch && (() => {
+                              const pairTop = topOffset + ((index + 1) * (BRACKET_CARD_HEIGHT + rowGap));
+                              const pairCenterY = pairTop + (BRACKET_CARD_HEIGHT / 2);
+                              const trunkLeft = BRACKET_CARD_WIDTH + BRACKET_CONNECTOR_INSET;
+                              const trunkHeight = pairCenterY - centerY;
+                              const midpointY = centerY + (trunkHeight / 2);
+                              const exitWidth = BRACKET_SECTION_WIDTH - trunkLeft;
+
+                              return (
+                                <>
+                                  <div
+                                    className="absolute w-px bg-emerald-400/35"
+                                    style={{
+                                      left: `${trunkLeft}px`,
+                                      top: `${centerY}px`,
+                                      height: `${trunkHeight}px`,
+                                    }}
+                                  />
+                                  <div
+                                    className="absolute h-px bg-emerald-400/35"
+                                    style={{
+                                      left: `${trunkLeft}px`,
+                                      top: `${midpointY}px`,
+                                      width: `${exitWidth}px`,
+                                    }}
+                                  />
+                                </>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })}
                     </div>
                   </section>
                 );
