@@ -46,6 +46,23 @@ function getGameTimeLabel(game) {
   return 'Uhrzeit offen';
 }
 
+function getEffectiveGameStatus(game) {
+  if (!game) return 'scheduled';
+
+  const rawStatus = String(game.status || 'scheduled').toLowerCase();
+
+  if (rawStatus === 'cancelled') return 'cancelled';
+  if (rawStatus === 'final') return 'final';
+  if (rawStatus === 'live') return 'live';
+
+  const kickoff = getGameDate(game);
+  if (kickoff && kickoff.getTime() <= Date.now()) {
+    return 'live';
+  }
+
+  return 'scheduled';
+}
+
 function getTeamName(team, fallback) {
   return team?.shortName || team?.name || fallback || 'Offen';
 }
@@ -401,7 +418,7 @@ function TeamGameCard({ game, home, away, league }) {
   const homeColor = getTeamColor(home, league?.primaryColor || '#2563eb');
   const awayColor = getTeamColor(away, '#ef4444');
 
-  const showScore = game.status === 'final' || game.status === 'live';
+  const showScore = getEffectiveGameStatus(game) === 'final' || getEffectiveGameStatus(game) === 'live';
 
   return (
     <Link
@@ -426,11 +443,11 @@ function TeamGameCard({ game, home, away, league }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
           <div className="flex flex-col items-center min-w-0">
             <TeamLogo logo={home?.logo} name={homeName} />
 
-            <p className="mt-2 text-[11px] font-black text-center leading-tight whitespace-normal break-words line-clamp-2 min-h-[28px]">
+            <p className="mt-2 min-h-[36px] text-center text-[12px] font-black leading-[1.08] whitespace-normal break-words">
               {homeName}
             </p>
           </div>
@@ -460,7 +477,7 @@ function TeamGameCard({ game, home, away, league }) {
           <div className="flex flex-col items-center min-w-0">
             <TeamLogo logo={away?.logo} name={awayName} />
 
-            <p className="mt-2 text-[11px] font-black text-center leading-tight whitespace-normal break-words line-clamp-2 min-h-[28px]">
+            <p className="mt-2 min-h-[36px] text-center text-[12px] font-black leading-[1.08] whitespace-normal break-words">
               {awayName}
             </p>
           </div>
