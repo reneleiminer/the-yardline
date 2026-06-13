@@ -42,7 +42,7 @@ function getStatusLabel(status) {
 }
 
 function getCompetitionTypeLabel(type) {
-  return COMPETITION_TYPE_LABELS[type] || type || 'Wettbewerb';
+  return COMPETITION_TYPE_LABELS[type] || type || 'Playoffs';
 }
 
 function getCompetitionFormatLabel(format) {
@@ -50,7 +50,28 @@ function getCompetitionFormatLabel(format) {
 }
 
 function getCompetitionPublicName(comp) {
-  return comp.publicName || comp.displayName || comp.name || 'Wettbewerb';
+  return comp.publicName || comp.displayName || comp.name || 'Playoffs';
+}
+
+function normalizeBracketArray(value) {
+  if (Array.isArray(value)) return value;
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+function getCompetitionBracket(comp) {
+  return normalizeBracketArray(comp?.bracket).length > 0
+    ? normalizeBracketArray(comp.bracket)
+    : normalizeBracketArray(comp?.brackets);
 }
 
 function isPlayoffCompetition(comp) {
@@ -77,7 +98,8 @@ function getSourceLabel(source) {
 }
 
 function getBracketSourceCount(bracket = []) {
-  return bracket.reduce((sum, round) => {
+  const safeBracket = normalizeBracketArray(bracket);
+  return safeBracket.reduce((sum, round) => {
     const roundCount = (round.matchups || []).reduce((matchupSum, matchup) => {
       const sourceCount = [matchup.team1Source, matchup.team2Source]
         .filter(source => source?.type === 'standings')
@@ -91,7 +113,8 @@ function getBracketSourceCount(bracket = []) {
 }
 
 function getMatchupCount(bracket = []) {
-  return bracket.reduce((sum, round) => sum + (round.matchups?.length || 0), 0);
+  const safeBracket = normalizeBracketArray(bracket);
+  return safeBracket.reduce((sum, round) => sum + (round.matchups?.length || 0), 0);
 }
 
 function normalizeRoundNames(bracket = [], finalRoundName = '', highlightFinal = false) {
@@ -120,7 +143,7 @@ function normalizeRoundNames(bracket = [], finalRoundName = '', highlightFinal =
 }
 
 function buildTournamentPayload(formData) {
-  const rawBracket = formData.bracket || formData.brackets || [];
+  const rawBracket = getCompetitionBracket(formData);
   const now = new Date().toISOString();
 
   const competitionType =
@@ -278,7 +301,7 @@ function buildCompetitionGamePayload({ competition, round, matchup, index }) {
 }
 
 async function createGamesForCompetition(competition) {
-  const bracket = competition.bracket || competition.brackets || [];
+  const bracket = getCompetitionBracket(competition);
   const createdIds = [];
 
   for (const round of bracket) {
@@ -307,7 +330,7 @@ async function createGamesForCompetition(competition) {
 }
 
 export default function AdminCompetitions() {
-  useSetHeader({ mode: 'back', title: 'Wettbewerbe' });
+  useSetHeader({ mode: 'back', title: 'Playoffs' });
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -361,8 +384,8 @@ export default function AdminCompetitions() {
       invalidate();
       const count = result?.createdGameIds?.length || 0;
       toast.success(count > 0
-        ? `Wettbewerb erstellt und ${count} Spiel${count === 1 ? '' : 'e'} angelegt`
-        : 'Wettbewerb erstellt');
+        ? `Playoffs erstellt und ${count} Spiel${count === 1 ? '' : 'e'} angelegt`
+        : 'Playoffs erstellt');
       setShowWizard(false);
     },
     onError: error => {
@@ -386,7 +409,7 @@ export default function AdminCompetitions() {
     },
     onSuccess: () => {
       invalidate();
-      toast.success('Wettbewerb gelöscht');
+      toast.success('Playoffs gelöscht');
       setDeleteTarget(null);
       setDeleteMode('comp-only');
     },
@@ -418,7 +441,7 @@ export default function AdminCompetitions() {
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 pb-24">
       <p className="text-xs text-muted-foreground mb-4">
-        Erstelle und verwalte nur Playoffs. Finale, Bowl oder Championship sind die letzte Runde des Playoff-Baums.
+        Erstelle und verwalte Playoffs. Finale, Bowl oder Championship sind die letzte Runde des Playoff-Baums.
       </p>
 
       <Button
@@ -444,12 +467,12 @@ export default function AdminCompetitions() {
       <div className="space-y-3">
         {playoffCompetitions.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">
-            Keine Wettbewerbe erstellt.
+            Keine Playoffs erstellt.
           </p>
         ) : (
           playoffCompetitions.map(comp => {
             const league = leagueMap[comp.leagueId];
-            const bracket = comp.bracket || comp.brackets || [];
+            const bracket = getCompetitionBracket(comp);
             const sourceCount = getBracketSourceCount(bracket);
             const matchupCount = getMatchupCount(bracket);
             const publicName = getCompetitionPublicName(comp);
@@ -614,7 +637,7 @@ export default function AdminCompetitions() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Wettbewerb löschen?</AlertDialogTitle>
+            <AlertDialogTitle>Playoffs löschen?</AlertDialogTitle>
 
             <AlertDialogDescription>
               {deleteTarget && compGameCount(deleteTarget.id) > 0 ? (
@@ -633,7 +656,7 @@ export default function AdminCompetitions() {
                         onChange={event => setDeleteMode(event.target.value)}
                         className="w-4 h-4"
                       />
-                      <span className="text-sm">Nur Wettbewerb löschen</span>
+                      <span className="text-sm">Nur Playoffs löschen</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer hover:bg-secondary/30 p-2 rounded">
@@ -646,13 +669,13 @@ export default function AdminCompetitions() {
                         className="w-4 h-4"
                       />
                       <span className="text-sm">
-                        Wettbewerb + {compGameCount(deleteTarget.id)} Spiele löschen
+                        Playoffs + {compGameCount(deleteTarget.id)} Spiele löschen
                       </span>
                     </label>
                   </div>
                 </div>
               ) : (
-                'Der Wettbewerb wird endgültig gelöscht.'
+                'Die Playoffs werden endgültig gelöscht.'
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
