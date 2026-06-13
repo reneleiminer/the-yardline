@@ -161,12 +161,29 @@ function getGameDate(game) {
   return null;
 }
 
+function getEffectiveGameStatus(game) {
+  if (!game) return 'scheduled';
+
+  const rawStatus = String(game.status || 'scheduled').toLowerCase();
+
+  if (rawStatus === 'cancelled') return 'cancelled';
+  if (rawStatus === 'final') return 'final';
+  if (rawStatus === 'live') return 'live';
+
+  const kickoff = getGameDate(game);
+  if (kickoff && kickoff.getTime() <= Date.now()) {
+    return 'live';
+  }
+
+  return 'scheduled';
+}
+
 function isPredictionOpen(game) {
   if (!game) return false;
 
   if (game.predictionEnabled === false) return false;
 
-  const status = String(game.status || '').toLowerCase();
+  const status = getEffectiveGameStatus(game);
 
   if (status === 'cancelled' || status === 'live' || status === 'final') return false;
 
@@ -188,7 +205,11 @@ function hasFinalScore(game) {
 }
 
 function isFinalGame(game) {
-  return String(game?.status || '').toLowerCase() === 'final';
+  return getEffectiveGameStatus(game) === 'final';
+}
+
+function isLiveGame(game) {
+  return getEffectiveGameStatus(game) === 'live';
 }
 
 function buildPredictionStats(predictions, homeTeamId, awayTeamId) {
