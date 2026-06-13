@@ -44,6 +44,7 @@ const NewsDashboard = lazy(() => import("@/pages/NewsDashboard"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
+const AdminContent = lazy(() => import("@/pages/admin/AdminContent"));
 const AdminPartners = lazy(() => import("@/pages/admin/AdminPartners"));
 const AdminLegal = lazy(() => import("@/pages/admin/AdminLegal"));
 const AdminLeagues = lazy(() => import("@/pages/admin/AdminLeagues"));
@@ -227,6 +228,15 @@ function AppRoutes() {
               element={
                 <AdminRoute>
                   <AdminUsers />
+                </AdminRoute>
+              }
+            />
+
+            <Route
+              path="/admin/content"
+              element={
+                <AdminRoute>
+                  <AdminContent />
                 </AdminRoute>
               }
             />
