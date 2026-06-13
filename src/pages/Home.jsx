@@ -55,21 +55,23 @@ function getGameDate(game) {
 
 function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
+
+  const rawStatus = String(game.status || "scheduled").toLowerCase();
+
+  if (rawStatus === "cancelled") return "cancelled";
+  if (rawStatus === "final") return "final";
+  if (rawStatus === "live") return "live";
+
   const kickoff = getGameDate(game);
-  if (kickoff && kickoff.getTime() > Date.now()) {
-    return game.status === "cancelled" ? "cancelled" : "scheduled";
+  if (kickoff && kickoff.getTime() <= Date.now()) {
+    return "live";
   }
-  if (game.status === "cancelled") return "cancelled";
-  if (game.status === "final" && hasPlayableScore(game)) return "final";
-  if (hasFinalScore(game)) return "final";
+
   return "scheduled";
 }
 
 function hasFinalScore(game) {
-  if (!hasPlayableScore(game)) return false;
-  const kickoff = getGameDate(game);
-  if (kickoff && kickoff.getTime() > Date.now()) return false;
-  return true;
+  return getEffectiveGameStatus(game) === "final" && hasPlayableScore(game);
 }
 
 function hasPlayableScore(game) {
@@ -116,13 +118,16 @@ function StatusPill({ game }) {
   if (status === "scheduled") return null;
 
   const label = {
+    live: "LIVE",
     final: "FINAL",
     cancelled: "ABGESAGT",
   }[status] || "";
 
-  const className = status === "final"
-    ? "bg-slate-950 text-white"
-    : "bg-red-700 text-white";
+  const className = status === "live"
+    ? "bg-red-700 text-white animate-pulse"
+    : status === "final"
+      ? "bg-slate-950 text-white"
+      : "bg-orange-600 text-white";
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[9px] font-black ${className}`}>
@@ -802,6 +807,13 @@ export default function Home() {
   }, [games]);
 
   const gameOfTheWeekLabel = gameOfTheWeek?.gameOfTheWeekLabel || gameOfTheWeek?.gameOfTheWeekPresentedBy || "EuroFBShow";
+  const liveGames = useMemo(() => {
+    return games
+      .filter((game) => getEffectiveGameStatus(game) === "live")
+      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
+      .slice(0, 6);
+  }, [games]);
+
   const favoriteTeam = useMemo(() => {
     return teamsById.get(appUserSnapshot?.favoriteTeamId || "") || null;
   }, [appUserSnapshot?.favoriteTeamId, teamsById]);
@@ -811,7 +823,7 @@ export default function Home() {
     const now = new Date();
 
     return games
-      .filter((game) => game.status !== "final" && game.status !== "cancelled")
+      .filter((game) => !["final", "cancelled"].includes(getEffectiveGameStatus(game)))
       .filter((game) => game.homeTeamId === favoriteTeam.id || game.awayTeamId === favoriteTeam.id)
       .map((game) => ({ game, date: getGameDate(game) }))
       .filter((item) => item.date && item.date >= now)
