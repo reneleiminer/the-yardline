@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, Radio, Shield } from 'lucide-react';
 import { isToday, parseISO, format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -163,12 +163,16 @@ function LeagueGroup({ league, games, teams, isOpen, onToggle }) {
 
 export default function TodaysGamesReminder() {
   const [openLeagueId, setOpenLeagueId] = useState('');
+  const location = useLocation();
+  const queryClient = useQueryClient();
 
   const { data: allGames = [] } = useQuery({
     queryKey: ['today-games-reminder'],
     queryFn: () => base44.entities.Game.list('-date', 500),
-    staleTime: 30000,
-    refetchInterval: 60000,
+    staleTime: 0,
+    refetchInterval: 10000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const { data: teams = {} } = useQuery({
@@ -188,6 +192,14 @@ export default function TodaysGamesReminder() {
     },
     staleTime: 300000,
   });
+
+  useEffect(() => {
+    if (!location.state?.resultSavedAt) return;
+
+    queryClient.invalidateQueries({ queryKey: ['today-games-reminder'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-count-games'] });
+    queryClient.invalidateQueries({ queryKey: ['games'] });
+  }, [location.state?.resultSavedAt, queryClient]);
 
   const liveGamesByLeague = useMemo(() => {
     const liveGames = allGames
