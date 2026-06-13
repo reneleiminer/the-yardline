@@ -7,6 +7,29 @@ function normalizeId(value) {
   return String(value || '').trim();
 }
 
+function isWithdrawn(team) {
+  return team?.withdrawn === true;
+}
+
+function isWithdrawnBeforeSeason(team) {
+  return team?.withdrawn === true && team?.withdrawnBeforeSeason === true;
+}
+
+function createZeroWithdrawnRow(team) {
+  return {
+    teamId: team.id,
+    groupId: team.groupId || null,
+    w: 0,
+    l: 0,
+    t: 0,
+    pf: 0,
+    pa: 0,
+    played: 0,
+    withdrawn: true,
+    withdrawnBeforeSeason: true,
+  };
+}
+
 function computeStandings(leagueId, allGames, allTeams, groupId = null) {
   const resolvedGroupId = normalizeId(groupId || 'all');
 
@@ -29,6 +52,8 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
       pf: 0,
       pa: 0,
       played: 0,
+      withdrawn: isWithdrawn(team),
+      withdrawnBeforeSeason: isWithdrawnBeforeSeason(team),
     };
   });
 
@@ -54,7 +79,7 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
     const homeScore = Number(game.scoreHome || 0);
     const awayScore = Number(game.scoreAway || 0);
 
-    if (home) {
+    if (home && home.withdrawnBeforeSeason !== true) {
       home.played += 1;
       home.pf += homeScore;
       home.pa += awayScore;
@@ -68,7 +93,7 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
       }
     }
 
-    if (away) {
+    if (away && away.withdrawnBeforeSeason !== true) {
       away.played += 1;
       away.pf += awayScore;
       away.pa += homeScore;
@@ -81,6 +106,10 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
         away.t += 1;
       }
     }
+  });
+
+  leagueTeams.forEach(team => {
+    if (isWithdrawnBeforeSeason(team)) stats[team.id] = createZeroWithdrawnRow(team);
   });
 
   const getWinPct = row => {
@@ -162,9 +191,10 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
     return teamAName.localeCompare(teamBName, 'de');
   };
 
-  const rows = Object.values(stats);
+  const activeRows = Object.values(stats).filter(row => row.withdrawn !== true);
+  const withdrawnRows = Object.values(stats).filter(row => row.withdrawn === true);
 
-  const pctGroups = rows.reduce((groups, row) => {
+  const pctGroups = activeRows.reduce((groups, row) => {
     const pctKey = getWinPct(row).toFixed(6);
 
     if (!groups[pctKey]) groups[pctKey] = [];
@@ -173,7 +203,7 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
     return groups;
   }, {});
 
-  return Object.keys(pctGroups)
+  const sortedActiveRows = Object.keys(pctGroups)
     .sort((a, b) => Number(b) - Number(a))
     .flatMap(pctKey => {
       const group = pctGroups[pctKey];
@@ -184,6 +214,12 @@ function computeStandings(leagueId, allGames, allTeams, groupId = null) {
 
       return [...group].sort((a, b) => compareByAfvdTieBreakers(a, b, tiedTeamIds));
     });
+
+  const sortedWithdrawnRows = [...withdrawnRows].sort((a, b) =>
+    (teamsById[a.teamId]?.name || '').localeCompare(teamsById[b.teamId]?.name || '', 'de')
+  );
+
+  return [...sortedActiveRows, ...sortedWithdrawnRows];
 }
 
 export default function ClubStandingsTab({ club }) {

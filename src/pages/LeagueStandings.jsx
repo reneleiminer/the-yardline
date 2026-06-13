@@ -73,13 +73,6 @@ function computeStandings({ league, games = [], teams = [], groupId = 'all' }) {
     if (!sameSeason(game, league.season)) return false;
     if (game.isCompetitionGame || game.competitionId || game.tournamentId) return false;
 
-    const homeTeam = teamsById[game.homeTeamId];
-    const awayTeam = teamsById[game.awayTeamId];
-
-    if (isWithdrawnBeforeSeason(homeTeam) || isWithdrawnBeforeSeason(awayTeam)) {
-      return false;
-    }
-
     const homeIsInCurrentTable = Boolean(stats[game.homeTeamId]);
     const awayIsInCurrentTable = Boolean(stats[game.awayTeamId]);
 

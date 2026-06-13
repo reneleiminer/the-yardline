@@ -192,6 +192,8 @@ export const calculateStandings = (games, teams, leagueId) => {
   if (!games || !teams) return [];
 
   const standings = {};
+  const teamsById = Object.fromEntries(teams.map(team => [team.id, team]));
+  const isWithdrawnBeforeSeason = team => team?.withdrawn === true && team?.withdrawnBeforeSeason === true;
 
   teams.forEach(team => {
     if (team.leagueId === leagueId) {
@@ -212,27 +214,36 @@ export const calculateStandings = (games, teams, leagueId) => {
   games
     .filter(game => game.leagueId === leagueId && game.status === 'final')
     .forEach(game => {
-      if (!standings[game.homeTeamId] || !standings[game.awayTeamId]) return;
-
       const homeTeam = standings[game.homeTeamId];
       const awayTeam = standings[game.awayTeamId];
+      const homeEntity = teamsById[game.homeTeamId];
+      const awayEntity = teamsById[game.awayTeamId];
+      const countHome = Boolean(homeTeam) && !isWithdrawnBeforeSeason(homeEntity);
+      const countAway = Boolean(awayTeam) && !isWithdrawnBeforeSeason(awayEntity);
 
-      homeTeam.played++;
-      awayTeam.played++;
-      homeTeam.goalsFor += game.scoreHome || 0;
-      homeTeam.goalsAgainst += game.scoreAway || 0;
-      awayTeam.goalsFor += game.scoreAway || 0;
-      awayTeam.goalsAgainst += game.scoreHome || 0;
+      if (!countHome && !countAway) return;
+
+      if (countHome) {
+        homeTeam.played++;
+        homeTeam.goalsFor += game.scoreHome || 0;
+        homeTeam.goalsAgainst += game.scoreAway || 0;
+      }
+
+      if (countAway) {
+        awayTeam.played++;
+        awayTeam.goalsFor += game.scoreAway || 0;
+        awayTeam.goalsAgainst += game.scoreHome || 0;
+      }
 
       if ((game.scoreHome || 0) > (game.scoreAway || 0)) {
-        homeTeam.won++;
-        awayTeam.lost++;
+        if (countHome) homeTeam.won++;
+        if (countAway) awayTeam.lost++;
       } else if ((game.scoreHome || 0) < (game.scoreAway || 0)) {
-        homeTeam.lost++;
-        awayTeam.won++;
+        if (countHome) homeTeam.lost++;
+        if (countAway) awayTeam.won++;
       } else {
-        homeTeam.drawn++;
-        awayTeam.drawn++;
+        if (countHome) homeTeam.drawn++;
+        if (countAway) awayTeam.drawn++;
       }
     });
 

@@ -210,33 +210,38 @@ function calculateStandings({ league, teams = [], games = [], season }) {
 
       if (homeTeam?.leagueId !== league.id || awayTeam?.leagueId !== league.id) return;
 
-      if (isWithdrawnBeforeSeason(homeTeam) || isWithdrawnBeforeSeason(awayTeam)) return;
-
       const home = stats[game.homeTeamId];
       const away = stats[game.awayTeamId];
 
-      if (!home || !away) return;
+      const countHome = Boolean(home) && !isWithdrawnBeforeSeason(homeTeam);
+      const countAway = Boolean(away) && !isWithdrawnBeforeSeason(awayTeam);
+
+      if (!countHome && !countAway) return;
 
       const homeScore = Number(game.scoreHome || 0);
       const awayScore = Number(game.scoreAway || 0);
 
-      home.played += 1;
-      away.played += 1;
+      if (countHome) {
+        home.played += 1;
+        home.pointsFor += homeScore;
+        home.pointsAgainst += awayScore;
+      }
 
-      home.pointsFor += homeScore;
-      home.pointsAgainst += awayScore;
-      away.pointsFor += awayScore;
-      away.pointsAgainst += homeScore;
+      if (countAway) {
+        away.played += 1;
+        away.pointsFor += awayScore;
+        away.pointsAgainst += homeScore;
+      }
 
       if (homeScore > awayScore) {
-        home.won += 1;
-        away.lost += 1;
+        if (countHome) home.won += 1;
+        if (countAway) away.lost += 1;
       } else if (awayScore > homeScore) {
-        away.won += 1;
-        home.lost += 1;
+        if (countAway) away.won += 1;
+        if (countHome) home.lost += 1;
       } else {
-        home.tied += 1;
-        away.tied += 1;
+        if (countHome) home.tied += 1;
+        if (countAway) away.tied += 1;
       }
     });
 
