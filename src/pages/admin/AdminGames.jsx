@@ -83,16 +83,18 @@ const EMPTY = {
   highlightSubtitle: "",
 };
 
-const GAME_STATUSES = ["scheduled", "final", "cancelled"];
+const GAME_STATUSES = ["scheduled", "live", "final", "cancelled"];
 
 const STATUS_COLORS = {
   scheduled: "bg-secondary text-foreground",
+  live: "bg-red-500/15 text-red-400",
   final: "bg-green-500/15 text-green-500",
   cancelled: "bg-orange-500/15 text-orange-400",
 };
 
 const STATUS_LABELS = {
   scheduled: "Geplant",
+  live: "Live",
   final: "Final",
   cancelled: "Abgesagt",
 };
