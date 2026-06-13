@@ -351,7 +351,7 @@ function AdBannerCard({ banner }) {
 
   const content = (
     <div className="group relative w-full overflow-hidden rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.34)]">
-      <div className="relative aspect-[16/7] w-full overflow-hidden">
+      <div className="relative min-h-[132px] w-full overflow-hidden sm:min-h-[170px]">
         {banner.imageUrl ? (
           <img
             src={getImageUrl(banner.imageUrl)}
@@ -363,26 +363,26 @@ function AdBannerCard({ banner }) {
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(194,15,26,0.88),rgba(0,0,0,0.86)_48%,rgba(47,125,255,0.66))]" />
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-r from-black/62 via-black/10 to-black/5" />
-        <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(255,255,255,0.07)_0_1px,transparent_1px_18px)] opacity-25" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/76 via-black/28 to-black/10" />
+        <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(255,255,255,0.08)_0_1px,transparent_1px_18px)] opacity-35" />
 
-        <div className="absolute left-4 top-4 z-10 sm:left-5 sm:top-5">
-          <div className="rounded-2xl border border-white/10 bg-black/45 px-3 py-2 backdrop-blur-md">
-            <p className="text-[8px] font-black uppercase tracking-[0.26em] text-[#ff2338]">
+        <div className="relative z-10 flex min-h-[132px] items-center justify-between gap-4 p-4 sm:min-h-[170px] sm:p-6">
+          <div className="min-w-0 max-w-[72%]">
+            <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#ff2338]">
               Werbung
             </p>
 
-            <p className="mt-0.5 max-w-[220px] truncate text-lg font-black italic leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-2xl">
+            <p className="mt-1 line-clamp-2 text-2xl font-black italic leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.75)] sm:text-4xl">
               {banner.title || "Partner"}
             </p>
           </div>
-        </div>
 
-        {banner.linkUrl && (
-          <span className="absolute right-4 top-4 z-10 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-red-700 shadow-[0_12px_30px_rgba(0,0,0,0.28)] transition-transform group-hover:scale-105">
-            <ExternalLink className="h-4 w-4" />
-          </span>
-        )}
+          {banner.linkUrl && (
+            <span className="absolute right-4 top-4 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-red-700 shadow-[0_12px_30px_rgba(0,0,0,0.28)] transition-transform group-hover:scale-105">
+              <ExternalLink className="h-4 w-4" />
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -688,6 +688,27 @@ function StreakCard({ item }) {
   );
 }
 
+
+function isDeletedOrBlockedAuthor(author) {
+  return (
+    !author ||
+    author.deletionStatus === "pending" ||
+    author.deletionStatus === "completed" ||
+    author.status === "deleted" ||
+    author.status === "blocked_deleted" ||
+    author.status === "banned" ||
+    author.status === "blocked" ||
+    author.status === "inactive"
+  );
+}
+
+function isPostVisibleByAuthor(post, appUsersById) {
+  if (post?.isHidden || post?.isDeleted || post?.isActive === false) return false;
+  if (!post?.authorId) return true;
+
+  return !isDeletedOrBlockedAuthor(appUsersById.get(post.authorId));
+}
+
 function GameOfWeekTitle({ label }) {
   const cleanLabel = normalizePresentedByLabel(label);
 
@@ -739,8 +760,19 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: appUsers = [] } = useQuery({
+    queryKey: ["home-overview-app-users"],
+    queryFn: () => base44.entities.AppUser.list("-created_date", 500),
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+    retry: 1,
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+  });
+
   const teamsById = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
+  const appUsersById = useMemo(() => new Map(appUsers.map((user) => [user.id, user])), [appUsers]);
   const sevenDaysAgo = useMemo(() => subDays(new Date(), 7), []);
 
   const gameOfTheWeek = useMemo(() => {
@@ -790,26 +822,27 @@ export default function Home() {
 
   const news = useMemo(() => {
     return posts
-      .filter((post) => post.type === "news" && post.isActive !== false)
+      .filter((post) => post.type === "news")
+      .filter((post) => isPostVisibleByAuthor(post, appUsersById))
       .sort((a, b) => {
         const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || a.created_date || 0).getTime();
         const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || b.created_date || 0).getTime();
         return dateB - dateA;
       })
       .slice(0, 4);
-  }, [posts]);
+  }, [appUsersById, posts]);
 
   const transfers = useMemo(() => {
     return posts
-      .filter((post) => post.type === "transfer" && post.isActive !== false)
-      .filter((post) => !post.isHidden && !post.isDeleted)
+      .filter((post) => post.type === "transfer")
+      .filter((post) => isPostVisibleByAuthor(post, appUsersById))
       .sort((a, b) => {
         const dateA = new Date(a.publishedAtUtc || a.createdAtUtc || a.created_date || 0).getTime();
         const dateB = new Date(b.publishedAtUtc || b.createdAtUtc || b.created_date || 0).getTime();
         return dateB - dateA;
       })
       .slice(0, 4);
-  }, [posts]);
+  }, [appUsersById, posts]);
 
   const shots = useMemo(() => {
     return appUpdates
