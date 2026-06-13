@@ -456,39 +456,166 @@ function getZonesForGroup({ standingsConfigs = [], groupId }) {
   return config?.zones || [];
 }
 
+function getLeagueRegionLabel(league) {
+  const raw = [
+    league?.country,
+    league?.regionState,
+    league?.stateRegion,
+    league?.tierLabel,
+    league?.name,
+    league?.shortName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    raw.includes("europe") ||
+    raw.includes("europa") ||
+    raw.includes("efa") ||
+    raw.includes("afle") ||
+    raw.includes("elf")
+  ) {
+    return "Europa";
+  }
+
+  if (
+    raw.includes("austria") ||
+    raw.includes("österreich") ||
+    raw.includes("osterreich") ||
+    raw.includes("afl")
+  ) {
+    return "Österreich";
+  }
+
+  if (raw.includes("italy") || raw.includes("italien") || raw.includes("italia")) {
+    return "Italien";
+  }
+
+  if (raw.includes("france") || raw.includes("frankreich") || raw.includes("français") || raw.includes("francais")) {
+    return "Frankreich";
+  }
+
+  if (raw.includes("germany") || raw.includes("deutschland") || raw.includes("gfl") || raw.includes("regional")) {
+    return "Deutschland";
+  }
+
+  return league?.country || "Weitere";
+}
+
+function getLeagueRegionOrder(label) {
+  const order = {
+    Europa: 0,
+    Deutschland: 1,
+    Österreich: 2,
+    Italien: 3,
+    Frankreich: 4,
+    Weitere: 99,
+  };
+
+  return order[label] ?? 90;
+}
+
+function groupLeaguesByRegion(leagues) {
+  const groups = new Map();
+
+  leagues.forEach((league) => {
+    const label = getLeagueRegionLabel(league);
+
+    if (!groups.has(label)) {
+      groups.set(label, {
+        label,
+        leagues: [],
+      });
+    }
+
+    groups.get(label).leagues.push(league);
+  });
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      leagues: [...group.leagues].sort((a, b) => {
+        const orderA = Number(a.sortOrder ?? a.level ?? 999);
+        const orderB = Number(b.sortOrder ?? b.level ?? 999);
+        if (orderA !== orderB) return orderA - orderB;
+
+        return String(a.shortName || a.name || "").localeCompare(String(b.shortName || b.name || ""), "de");
+      }),
+    }))
+    .sort((a, b) => {
+      const regionA = getLeagueRegionOrder(a.label);
+      const regionB = getLeagueRegionOrder(b.label);
+      if (regionA !== regionB) return regionA - regionB;
+
+      return a.label.localeCompare(b.label, "de");
+    });
+}
+
 function LeagueIconPicker({ leagues, selectedLeagueId, onSelect }) {
+  const groupedLeagues = useMemo(() => groupLeaguesByRegion(leagues), [leagues]);
+
   if (leagues.length === 0) return null;
 
   return (
-    <div className="-mx-4 overflow-x-auto px-4 hide-scrollbar">
-      <div className="flex gap-2 pb-1">
-        {leagues.map((league) => {
-          const active = league.id === selectedLeagueId;
+    <div className="space-y-5">
+      {groupedLeagues.map((group) => (
+        <div key={group.label}>
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/45">
+            {group.label}
+          </p>
 
-          return (
-            <button
-              key={league.id}
-              type="button"
-              onClick={() => onSelect(league.id)}
-              title={league.name}
-              aria-label={league.name}
-              className={`flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl border p-2 transition-all ${
-                active
-                  ? "border-[#ff2338]/70 bg-black shadow-[0_10px_26px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.10)]"
-                  : "border-white/12 bg-black/72 active:bg-black"
-              }`}
-            >
-              {league.logo ? (
-                <img src={getImageUrl(league.logo)} alt="" className="h-full w-full object-contain" loading="lazy" />
-              ) : (
-                <span className={`text-sm font-black ${active ? "text-white" : "text-white/55"}`}>
-                  {(league.shortName || league.name || "L").slice(0, 2)}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+          <div className="grid grid-cols-3 gap-3">
+            {group.leagues.map((league) => {
+              const active = league.id === selectedLeagueId;
+
+              return (
+                <button
+                  key={league.id}
+                  type="button"
+                  onClick={() => onSelect(league.id)}
+                  title={league.name}
+                  aria-label={league.name}
+                  className={`relative flex aspect-square min-h-[92px] flex-col items-center justify-center overflow-hidden rounded-[24px] border p-3 text-center transition-all ${
+                    active
+                      ? "border-[#ff2338]/80 bg-black shadow-[0_14px_34px_rgba(0,0,0,0.48),0_0_0_1px_rgba(255,255,255,0.12)]"
+                      : "border-white/12 bg-black/72 active:bg-black"
+                  }`}
+                >
+                  <div
+                    className={`pointer-events-none absolute inset-0 ${
+                      active
+                        ? "bg-[radial-gradient(circle_at_50%_0%,rgba(255,35,56,0.22),transparent_55%)]"
+                        : "bg-[radial-gradient(circle_at_50%_0%,rgba(47,125,255,0.12),transparent_55%)]"
+                    }`}
+                  />
+
+                  <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white p-2 shadow-[0_10px_22px_rgba(0,0,0,0.28)]">
+                    {league.logo ? (
+                      <img
+                        src={getImageUrl(league.logo)}
+                        alt=""
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-sm font-black text-black">
+                        {(league.shortName || league.name || "L").slice(0, 2)}
+                      </span>
+                    )}
+                  </span>
+
+                  <span className={`relative mt-2 line-clamp-2 text-[10px] font-black uppercase leading-tight ${
+                    active ? "text-white" : "text-white/68"
+                  }`}>
+                    {league.shortName || league.name || "Liga"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
