@@ -14,8 +14,18 @@ export default async function handler(req, res) {
   try {
     const body = await readBody(req);
     const subscription = normalizeSubscription(body.subscription);
+    const enrichedSubscription = subscription
+      ? {
+          ...subscription,
+          yardline: {
+            appUserId: body.appUserId || "",
+            favoriteTeamId: body.favoriteTeamId || "",
+            visitorId: body.visitorId || "",
+          },
+        }
+      : null;
 
-    if (!subscription) {
+    if (!enrichedSubscription) {
       return sendJson(res, 400, { error: "Invalid push subscription." });
     }
 
@@ -27,7 +37,7 @@ export default async function handler(req, res) {
       .upsert(
         {
           endpoint: subscription.endpoint,
-          subscription,
+          subscription: enrichedSubscription,
           visitor_id: body.visitorId || null,
           user_agent: req.headers["user-agent"] || "",
           active: true,
