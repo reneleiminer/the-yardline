@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ImageUploadField from '@/components/common/ImageUploadField';
-import { MapPin, Plus, Save, Trash2, Trophy, X } from 'lucide-react';
+import { MapPin, Plus, Save, ShieldCheck, Trash2, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DEFAULT_DISPLAY_SETTINGS = {
