@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { addDays, format, isBefore, isSameDay, startOfDay, subDays } from "date-fns";
+import { addDays, format, startOfDay } from "date-fns";
 import { de } from "date-fns/locale";
 import { Search } from "lucide-react";
 
@@ -10,6 +10,11 @@ import StandingsTable from "@/components/standings/StandingsTable";
 const MATCH_TABS = [
   { key: "games", label: "Spiele" },
   { key: "standings", label: "Tabellen" },
+];
+
+const GAME_FILTER_TABS = [
+  { key: "today", label: "Today" },
+  { key: "upcoming", label: "Upcoming" },
 ];
 
 function normalizeId(value) {
@@ -136,81 +141,45 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
   );
 }
 
-function getUpcomingWindow(today) {
-  const day = today.getDay();
-  const daysUntilFriday = (5 - day + 7) % 7;
-  const friday = addDays(today, daysUntilFriday);
-
-  return {
-    start: day === 0 || day === 6 ? today : friday,
-    end: addDays(friday, 3),
-  };
+function isGameTodayOrTomorrow(date, today) {
+  return date >= today && date < addDays(today, 2);
 }
 
-function getTeamNextGameDate(teamId, games, now) {
+function isGameUpcoming(date, today) {
+  return date >= addDays(today, 1) && date < addDays(today, 8);
+}
+
+function selectRelevantGames(games, mode = "today") {
+  const today = startOfDay(new Date());
+
   return games
-    .filter((game) => game.status !== "final" && game.status !== "cancelled")
-    .filter((game) => game.homeTeamId === teamId || game.awayTeamId === teamId)
-    .map(getGameDate)
-    .filter((date) => date && date >= now)
-    .sort((a, b) => a.getTime() - b.getTime())[0] || null;
-}
-
-function selectRelevantGames(games) {
-  const now = new Date();
-  const today = startOfDay(now);
-  const weekend = getUpcomingWindow(today);
-  const recentFinalCutoff = subDays(today, 7);
-  const teamNextCache = new Map();
-
-  const getNext = (teamId) => {
-    if (!teamId) return null;
-    if (!teamNextCache.has(teamId)) teamNextCache.set(teamId, getTeamNextGameDate(teamId, games, now));
-    return teamNextCache.get(teamId);
-  };
-
-  const candidates = games
-    .map((game) => ({ game, date: getGameDate(game), status: getEffectiveGameStatus(game) }))
+    .map((game) => ({
+      game,
+      date: getGameDate(game),
+      status: getEffectiveGameStatus(game),
+    }))
     .filter((item) => {
       if (!item.date) return false;
+      if (item.status === "cancelled") return false;
 
-      const todayGame = isSameDay(item.date, today);
-      const weekendGame =
-        item.status !== "final" &&
-        item.status !== "cancelled" &&
-        item.date >= weekend.start &&
-        item.date < addDays(weekend.end, 1);
-
-      if (todayGame || weekendGame) return true;
-
-      if (item.status === "final" || item.status === "cancelled") {
-        if (isBefore(item.date, recentFinalCutoff)) return false;
-        const nextGame = [getNext(item.game.homeTeamId), getNext(item.game.awayTeamId)]
-          .filter(Boolean)
-          .sort((a, b) => a.getTime() - b.getTime())[0];
-        return !nextGame || nextGame > addDays(today, 3);
+      if (mode === "upcoming") {
+        return isGameUpcoming(item.date, today);
       }
 
-      return false;
+      return isGameTodayOrTomorrow(item.date, today);
     })
     .sort((a, b) => {
-      const finalA = a.status === "final" || a.status === "cancelled" ? 1 : 0;
-      const finalB = b.status === "final" || b.status === "cancelled" ? 1 : 0;
+      const liveA = a.game.status === "live" ? 0 : 1;
+      const liveB = b.game.status === "live" ? 0 : 1;
+      if (liveA !== liveB) return liveA - liveB;
+
+      const finalA = a.status === "final" ? 1 : 0;
+      const finalB = b.status === "final" ? 1 : 0;
       if (finalA !== finalB) return finalA - finalB;
+
       return a.date.getTime() - b.date.getTime();
-    });
-
-  const usedTeams = new Set();
-  const selected = [];
-
-  candidates.forEach(({ game }) => {
-    if ((game.homeTeamId && usedTeams.has(game.homeTeamId)) || (game.awayTeamId && usedTeams.has(game.awayTeamId))) return;
-    selected.push(game);
-    if (game.homeTeamId) usedTeams.add(game.homeTeamId);
-    if (game.awayTeamId) usedTeams.add(game.awayTeamId);
-  });
-
-  return selected;
+    })
+    .map((item) => item.game);
 }
 
 function groupByLeague(items, getLeagueId, leaguesById) {
@@ -255,25 +224,62 @@ function LeagueTitle({ group }) {
   );
 }
 
-function SectionHeader({ title }) {
+function SectionHeader({ title, action }) {
   return (
-    <div className="mb-3">
+    <div className="mb-3 flex items-center justify-between gap-3">
       <h2 className="yardline-heading truncate text-[22px] sm:text-2xl">{title}</h2>
+      {action ? <div className="flex-shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+function GameDateSwitch({ value, onChange }) {
+  return (
+    <div className="grid grid-cols-2 rounded-2xl border border-white/12 bg-black/72 p-1 shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
+      {GAME_FILTER_TABS.map((tab) => (
+        <button
+          key={tab.key}
+          type="button"
+          onClick={() => onChange(tab.key)}
+          className={`h-9 min-w-[82px] rounded-xl px-3 text-[10px] font-black uppercase tracking-wide transition-colors ${
+            value === tab.key
+              ? "bg-[#c20f1a] text-white shadow-[0_8px_20px_rgba(194,15,26,0.28)]"
+              : "text-white/54 hover:text-white"
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
     </div>
   );
 }
 
 function GamesPanel({ games, teamsById, leaguesById }) {
-  const groups = useMemo(
-    () => groupByLeague(selectRelevantGames(games), (game) => game.leagueId, leaguesById),
-    [games, leaguesById]
+  const [gameFilter, setGameFilter] = useState("today");
+
+  const selectedGames = useMemo(
+    () => selectRelevantGames(games, gameFilter),
+    [gameFilter, games]
   );
+
+  const groups = useMemo(
+    () => groupByLeague(selectedGames, (game) => game.leagueId, leaguesById),
+    [leaguesById, selectedGames]
+  );
+
+  const emptyLabel =
+    gameFilter === "today"
+      ? "Keine Spiele in den nächsten 2 Tagen."
+      : "Keine kommenden Spiele in den nächsten 7 Tagen.";
 
   return (
     <section>
-      <SectionHeader title="Spiele" />
+      <SectionHeader
+        title="Spiele"
+        action={<GameDateSwitch value={gameFilter} onChange={setGameFilter} />}
+      />
       {groups.length === 0 ? (
-        <EmptyState label="Keine aktuellen oder kommenden Spiele." />
+        <EmptyState label={emptyLabel} />
       ) : (
         <div className="space-y-5">
           {groups.map((group) => (
