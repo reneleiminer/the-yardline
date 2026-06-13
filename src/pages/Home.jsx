@@ -613,6 +613,9 @@ function normalizeShot(item) {
   return {
     id: item.id,
     gameId: meta.game_id || meta.gameId || "",
+    teamId: meta.team_id || meta.teamId || "",
+    teamName: meta.team_name || meta.teamName || "",
+    teamLogo: meta.team_logo || meta.teamLogo || "",
     imageUrl: meta.image_url || meta.imageUrl || item.imageUrl || "",
     caption: meta.caption || item.title || "",
     sortOrder: Number(meta.sort_order ?? meta.sortOrder ?? 0),
@@ -627,6 +630,14 @@ function ShotCard({ shot }) {
     <div className="min-w-[42vw] max-w-[42vw] overflow-hidden rounded-[22px] border border-white/10 bg-black/72 text-white shadow-[0_12px_28px_rgba(0,0,0,0.26)] backdrop-blur sm:min-w-[220px] sm:max-w-[220px]">
       <img src={getImageUrl(shot.imageUrl)} alt="" className="aspect-[3/4] w-full object-cover" loading="lazy" />
       <div className="p-3">
+        {shot.teamName && (
+          <div className="mb-2 flex items-center gap-2">
+            {shot.teamLogo && (
+              <img src={getImageUrl(shot.teamLogo)} alt="" className="h-5 w-5 rounded bg-white object-contain p-0.5" loading="lazy" />
+            )}
+            <p className="truncate text-[10px] font-black uppercase text-[#ff2338]">{shot.teamName}</p>
+          </div>
+        )}
         <p className="line-clamp-2 text-xs font-black leading-tight">{shot.caption || "GameDay Shot"}</p>
       </div>
     </div>

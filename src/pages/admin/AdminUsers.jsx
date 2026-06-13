@@ -178,14 +178,6 @@ function canManageTarget(user) {
   return !!user && !isProtectedAccount(user);
 }
 
-function getTeamName(teams, teamId) {
-  if (!teamId) return "";
-
-  const team = teams.find(item => item.id === teamId);
-
-  return team?.name || team?.displayName || team?.shortName || "";
-}
-
 function RoleBadge({ user }) {
   const roleSlug = getRoleSlug(user);
   const admin = roleSlug === "admin";
@@ -231,7 +223,7 @@ function StatusBadge({ user }) {
   );
 }
 
-function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, submitLabel }) {
+function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
   const isExistingProtected = initial?.id && isProtectedAccount(initial);
 
   const [form, setForm] = useState({
@@ -264,11 +256,6 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
       return;
     }
 
-    if (roleSlug === "photographer" && !form.connectedTeamId) {
-      toast.error("Bitte ein Team für den Fotografen verbinden.");
-      return;
-    }
-
     if (!username) {
       toast.error("Bitte Benutzername eingeben");
       return;
@@ -291,7 +278,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
       displayName: form.displayName.trim(),
       roleSlug,
       role: ROLE_LABELS[roleSlug],
-      connectedTeamId: roleSlug === "photographer" ? form.connectedTeamId : "",
+      connectedTeamId: "",
       connectedClubId: "",
       linkedClubId: "",
       status: form.status || "active",
@@ -362,7 +349,7 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
             setForm(current => ({
               ...current,
               roleSlug: nextRole,
-              connectedTeamId: nextRole === "photographer" ? current.connectedTeamId : "",
+              connectedTeamId: "",
             }));
           }}
           disabled={isExistingProtected}
@@ -388,19 +375,9 @@ function UserForm({ title, initial, teams = [], onSave, onCancel, isSaving, subm
       </div>
 
       {form.roleSlug === "photographer" && (
-        <select
-          value={form.connectedTeamId}
-          onChange={event => set("connectedTeamId", event.target.value)}
-          disabled={isExistingProtected}
-          className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground disabled:opacity-60"
-        >
-          <option value="">Team verbinden...</option>
-          {teams.map(team => (
-            <option key={team.id} value={team.id}>
-              {team.name || team.displayName || team.shortName || "Unbenanntes Team"}
-            </option>
-          ))}
-        </select>
+        <p className="rounded-xl border border-border/50 bg-secondary/30 px-3 py-2 text-[11px] text-muted-foreground">
+          Fotografen werden nicht mehr fest mit einem Verein verbunden. Die Zuordnung passiert pro GameDay Shot beim Hochladen.
+        </p>
       )}
 
       <Input
@@ -455,11 +432,6 @@ export default function AdminUsers() {
     queryFn: () => base44.entities.AppUser.list("-created_date"),
   });
 
-  const { data: teams = [] } = useQuery({
-    queryKey: ["adminUsersTeams"],
-    queryFn: () => base44.entities.Team.list("name"),
-  });
-
   const internalUsers = useMemo(() => {
     return users.filter(isInternalLogin);
   }, [users]);
@@ -511,7 +483,7 @@ export default function AdminUsers() {
         displayName: data.displayName,
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
-        connectedTeamId: data.roleSlug === "photographer" ? data.connectedTeamId : "",
+        connectedTeamId: "",
         connectedClubId: "",
         linkedClubId: "",
         status: data.status || "active",
@@ -548,7 +520,7 @@ export default function AdminUsers() {
         displayName: data.displayName,
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
-        connectedTeamId: data.roleSlug === "photographer" ? data.connectedTeamId : "",
+        connectedTeamId: "",
         connectedClubId: "",
         linkedClubId: "",
         status: data.status || "active",
@@ -788,7 +760,6 @@ export default function AdminUsers() {
         <div className="mb-5">
           <UserForm
             title="Internen Login erstellen"
-            teams={teams}
             onSave={data => createMutation.mutate(data)}
             onCancel={() => setShowCreate(false)}
             isSaving={createMutation.isPending}
@@ -802,7 +773,6 @@ export default function AdminUsers() {
           <UserForm
             title={isInternalLogin(editingUser) ? "Internen Login bearbeiten" : "Nutzerkonto bearbeiten"}
             initial={editingUser}
-            teams={teams}
             onSave={data => updateMutation.mutate({ user: editingUser, data })}
             onCancel={() => setEditingUser(null)}
             isSaving={updateMutation.isPending}
@@ -884,10 +854,6 @@ export default function AdminUsers() {
             const photographer = isPhotographer(user);
             const podcast = isPodcast(user);
             const news = isNews(user);
-            const connectedTeamName = getTeamName(
-              teams,
-              user.connectedTeamId
-            );
 
             return (
               <div
@@ -942,12 +908,6 @@ export default function AdminUsers() {
                     <p className="text-xs text-muted-foreground mt-1">
                       @{user.internalUsername || user.username}
                     </p>
-
-                    {photographer && (
-                      <p className="text-[11px] text-emerald-300 mt-1">
-                        Team: {connectedTeamName || "Nicht verbunden"}
-                      </p>
-                    )}
 
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Erstellt: {user.createdAtUtc || user.created_date || "unbekannt"}

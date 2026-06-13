@@ -1077,6 +1077,8 @@ function GameDayShotsBlock({ photos }) {
               const creditLink = meta.credit_link || meta.creditLink || '';
               const instagram = meta.instagram || '';
               const caption = meta.caption || '';
+              const teamName = meta.team_name || meta.teamName || '';
+              const teamLogo = meta.team_logo || meta.teamLogo || '';
 
               return (
                 <div
@@ -1103,8 +1105,18 @@ function GameDayShotsBlock({ photos }) {
                     </div>
                   </a>
 
-                  {(credit || instagram || caption) && (
+                  {(credit || instagram || caption || teamName) && (
                     <div className="p-2">
+                      {teamName && (
+                        <div className="mb-1.5 flex items-center gap-1.5">
+                          {teamLogo && (
+                            <img src={getImageUrl(teamLogo)} alt="" className="h-5 w-5 rounded bg-white object-contain p-0.5" loading="lazy" />
+                          )}
+                          <p className="truncate text-[10px] font-black uppercase text-primary">
+                            {teamName}
+                          </p>
+                        </div>
+                      )}
                       {caption && (
                         <p className="text-[11px] font-semibold line-clamp-2">
                           {caption}

@@ -26,6 +26,7 @@ const GAMEDAY_SHOT_VERSION = 'gameday_photo';
 const EMPTY_FORM = {
   image_url: '',
   image_urls: [],
+  team_id: '',
   credit: '',
   credit_link: '',
   instagram: '',
@@ -76,6 +77,9 @@ function normalizeGameDayShot(item) {
     league_id: meta.league_id || meta.leagueId || '',
     season: meta.season || '',
     game_title: meta.game_title || meta.gameTitle || '',
+    team_id: meta.team_id || meta.teamId || '',
+    team_name: meta.team_name || meta.teamName || '',
+    team_logo: meta.team_logo || meta.teamLogo || '',
     image_url: meta.image_url || item.imageUrl || '',
     credit: meta.credit || '',
     credit_link: meta.credit_link || meta.creditLink || meta.credit_url || '',
@@ -199,7 +203,7 @@ function ShotCard({ shot, gameTitle, onEdit, onDelete, isDeleting }) {
           </div>
 
           <p className="text-[10px] text-muted-foreground mt-1 truncate">
-            {gameTitle}
+            {[gameTitle, shot.team_name].filter(Boolean).join(' · ')}
           </p>
 
           {(shot.credit || shot.credit_link || shot.instagram) && (
@@ -370,6 +374,7 @@ export default function AdminGameDayShots() {
   };
 
   const buildPayload = (imageUrl, index = 0) => {
+    const linkedTeam = teamsMap.get(formData.team_id);
     const meta = {
       game_id: selectedGameId,
       game_title: selectedGameTitle,
@@ -378,6 +383,9 @@ export default function AdminGameDayShots() {
       home_team_id: selectedGame?.homeTeamId || '',
       away_team_id: selectedGame?.awayTeamId || '',
       team_ids: [selectedGame?.homeTeamId, selectedGame?.awayTeamId].filter(Boolean),
+      team_id: formData.team_id,
+      team_name: linkedTeam?.name || linkedTeam?.shortName || '',
+      team_logo: linkedTeam?.logo || '',
       image_url: String(imageUrl || '').trim(),
       credit: formData.credit.trim(),
       credit_link: normalizeUrl(formData.credit_link),
@@ -407,6 +415,11 @@ export default function AdminGameDayShots() {
 
     if (getSelectedImageUrls().length === 0) {
       toast.error('Bitte mindestens ein Bild hochladen oder eine Bild-URL eintragen');
+      return false;
+    }
+
+    if (!formData.team_id) {
+      toast.error('Bitte den Verein bzw. das Team zum Bild auswählen');
       return false;
     }
 
@@ -479,6 +492,7 @@ export default function AdminGameDayShots() {
       credit: shot.credit || '',
       credit_link: shot.credit_link || '',
       instagram: shot.instagram || '',
+      team_id: shot.team_id || '',
       caption: shot.caption || '',
       sort_order: String(shot.sort_order || 0),
       active: shot.active !== false,
@@ -568,6 +582,22 @@ export default function AdminGameDayShots() {
               onChange={(event) => setFormData((current) => ({ ...current, image_url: event.target.value }))}
               placeholder={editingShotId ? 'Bild-URL' : 'Oder zusätzlich eine Bild-URL einfügen'}
             />
+
+            <select
+              value={formData.team_id}
+              onChange={(event) => setFormData((current) => ({ ...current, team_id: event.target.value }))}
+              className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
+            >
+              <option value="">Verein/Team zum Bild auswählen...</option>
+              {[
+                teamsMap.get(selectedGame.homeTeamId),
+                teamsMap.get(selectedGame.awayTeamId),
+              ].filter(Boolean).map((team) => (
+                <option key={team.id} value={team.id}>
+                  {team.name || team.shortName}
+                </option>
+              ))}
+            </select>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <Input
