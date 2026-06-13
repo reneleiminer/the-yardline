@@ -20,7 +20,6 @@ import {
 import { toast } from 'sonner';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
-import { useAuth } from '@/lib/AuthContext';
 
 const GAMEDAY_SHOT_VERSION = 'gameday_photo';
 
@@ -71,6 +70,12 @@ function normalizeGameDayShot(item) {
   return {
     id: item.id,
     game_id: meta.game_id || item.gameId || '',
+    home_team_id: meta.home_team_id || meta.homeTeamId || '',
+    away_team_id: meta.away_team_id || meta.awayTeamId || '',
+    team_ids: Array.isArray(meta.team_ids) ? meta.team_ids : [],
+    league_id: meta.league_id || meta.leagueId || '',
+    season: meta.season || '',
+    game_title: meta.game_title || meta.gameTitle || '',
     image_url: meta.image_url || item.imageUrl || '',
     credit: meta.credit || '',
     credit_link: meta.credit_link || meta.creditLink || meta.credit_url || '',
@@ -252,7 +257,6 @@ export default function AdminGameDayShots() {
   useSetHeader({ mode: 'dashboard', title: 'GameDay Shots' });
 
   const queryClient = useQueryClient();
-  const { appUserSnapshot } = useAuth();
   const [selectedGameId, setSelectedGameId] = useState('');
   const [search, setSearch] = useState('');
   const [editingShotId, setEditingShotId] = useState(null);
@@ -287,8 +291,6 @@ export default function AdminGameDayShots() {
   const teamsMap = useMemo(() => new Map(teams.map((team) => [team.id, team])), [teams]);
   const leaguesMap = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
   const gamesMap = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
-  const roleSlug = String(appUserSnapshot?.roleSlug || appUserSnapshot?.role || '').toLowerCase();
-  const photographerTeamId = roleSlug === 'photographer' ? appUserSnapshot?.connectedTeamId : '';
 
   const shotsByGameId = useMemo(() => {
     const map = new Map();
@@ -309,10 +311,6 @@ export default function AdminGameDayShots() {
     const normalizedSearch = search.trim().toLowerCase();
 
     return [...games]
-      .filter((game) => {
-        if (!photographerTeamId) return true;
-        return game.homeTeamId === photographerTeamId || game.awayTeamId === photographerTeamId;
-      })
       .filter((game) => {
         if (!normalizedSearch) return true;
 
@@ -343,7 +341,7 @@ export default function AdminGameDayShots() {
         return haystack.includes(normalizedSearch);
       })
       .sort((a, b) => getGameDateTime(b).localeCompare(getGameDateTime(a)));
-  }, [games, leaguesMap, photographerTeamId, search, teamsMap]);
+  }, [games, leaguesMap, search, teamsMap]);
 
   const invalidateShots = () => {
     queryClient.invalidateQueries({ queryKey: ['admin-gameday-shots'] });
@@ -374,6 +372,12 @@ export default function AdminGameDayShots() {
   const buildPayload = (imageUrl, index = 0) => {
     const meta = {
       game_id: selectedGameId,
+      game_title: selectedGameTitle,
+      league_id: selectedGame?.leagueId || '',
+      season: selectedGame?.season || '',
+      home_team_id: selectedGame?.homeTeamId || '',
+      away_team_id: selectedGame?.awayTeamId || '',
+      team_ids: [selectedGame?.homeTeamId, selectedGame?.awayTeamId].filter(Boolean),
       image_url: String(imageUrl || '').trim(),
       credit: formData.credit.trim(),
       credit_link: normalizeUrl(formData.credit_link),
@@ -529,6 +533,10 @@ export default function AdminGameDayShots() {
 
               <p className="text-xs text-muted-foreground mt-1">
                 {formatDate(selectedGame.date)} · {selectedGame.time || selectedGame.kickoffTime || 'ohne Uhrzeit'}
+              </p>
+
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Die Bilder werden automatisch diesem Spiel sowie beiden Teams zugeordnet.
               </p>
             </div>
 
