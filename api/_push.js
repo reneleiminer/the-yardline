@@ -136,7 +136,11 @@ export async function sendToAllSubscriptions(supabase, notification) {
   await Promise.all(
     (subscriptions || []).map(async (row) => {
       try {
-        await sender.sendNotification(row.subscription, JSON.stringify(notification));
+        const subscription = {
+          endpoint: row.subscription?.endpoint,
+          keys: row.subscription?.keys,
+        };
+        await sender.sendNotification(subscription, JSON.stringify(notification));
         sent += 1;
       } catch (error) {
         failed += 1;
