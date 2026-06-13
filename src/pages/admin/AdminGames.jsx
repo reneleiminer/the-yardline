@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import useSetHeader from "@/hooks/useSetHeader";
 import LeagueSelector from "@/components/admin/LeagueSelector";
 import { getImageUrl } from "@/lib/imageUtils";
+import { applyWithdrawnTeamForfeit, getWithdrawnTeamForfeit } from "@/lib/gameForfeitUtils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -653,6 +654,13 @@ function GameForm({
 
   const homeTeam = teams.find((team) => team.id === form.homeTeamId);
   const awayTeam = teams.find((team) => team.id === form.awayTeamId);
+  const selectedLeague = leagues.find((league) => league.id === form.leagueId);
+  const withdrawalForfeit = getWithdrawnTeamForfeit({
+    game: form,
+    homeTeam,
+    awayTeam,
+    league: selectedLeague,
+  });
 
   const stadiumOptions = useMemo(() => getGameStadiumOptions({ homeTeam, awayTeam }), [homeTeam, awayTeam]);
 
@@ -762,6 +770,17 @@ function GameForm({
       {error && (
         <div className="p-2 rounded-md bg-destructive/10 text-destructive text-xs">
           {error}
+        </div>
+      )}
+
+      {withdrawalForfeit && (
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-3 py-2">
+          <p className="text-xs font-semibold text-orange-300">
+            Automatische Spielwertung 0:36
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+            Ein Team ist als zurueckgezogen markiert. Deutsche Spiele werden beim Speichern automatisch final mit {withdrawalForfeit.scoreHome}:{withdrawalForfeit.scoreAway} fuer das andere Team gewertet.
+          </p>
         </div>
       )}
 
@@ -1174,7 +1193,7 @@ export default function AdminGames() {
     const status = data.status || "scheduled";
     const hasScore = status === "final" || status === "live";
 
-    return {
+    const basePayload = {
       leagueId: data.leagueId || "",
       homeTeamId: data.homeTeamId || "",
       awayTeamId: data.awayTeamId || "",
@@ -1235,6 +1254,12 @@ export default function AdminGames() {
       highlightTitle: "",
       highlightSubtitle: "",
     };
+
+    return applyWithdrawnTeamForfeit(basePayload, {
+      homeTeam: teamMap[data.homeTeamId],
+      awayTeam: teamMap[data.awayTeamId],
+      league: leagueMap[data.leagueId],
+    });
   };
 
   const createMutation = useMutation({

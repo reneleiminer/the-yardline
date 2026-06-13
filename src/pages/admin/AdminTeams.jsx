@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import useSetHeader from '@/hooks/useSetHeader';
+import { applyWithdrawnTeamForfeit } from '@/lib/gameForfeitUtils';
 
 const EMPTY = {
   name: '',
@@ -687,13 +688,60 @@ export default function AdminTeams() {
     queryFn: () => base44.entities.League.list(),
   });
 
+  const { data: games = [] } = useQuery({
+    queryKey: ['games'],
+    queryFn: () => base44.entities.Game.list('-date', 1000),
+  });
+
   const leagueMap = Object.fromEntries(leagues.map(league => [league.id, league]));
+  const teamMap = Object.fromEntries(teams.map(team => [team.id, team]));
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['teams'] });
     queryClient.invalidateQueries({ queryKey: ['standings'] });
     queryClient.invalidateQueries({ queryKey: ['competitions'] });
     queryClient.invalidateQueries({ queryKey: ['adminCompetitions'] });
+    queryClient.invalidateQueries({ queryKey: ['games'] });
+  };
+
+  const applyWithdrawalForfeitsForTeam = async (updatedTeam) => {
+    if (updatedTeam?.withdrawn !== true || !updatedTeam?.id) return 0;
+
+    const nextTeamMap = {
+      ...teamMap,
+      [updatedTeam.id]: updatedTeam,
+    };
+
+    const affectedGames = games.filter(game =>
+      game.homeTeamId === updatedTeam.id ||
+      game.awayTeamId === updatedTeam.id
+    );
+
+    let changed = 0;
+
+    await Promise.all(
+      affectedGames.map(async game => {
+        const nextPayload = applyWithdrawnTeamForfeit(game, {
+          homeTeam: nextTeamMap[game.homeTeamId],
+          awayTeam: nextTeamMap[game.awayTeamId],
+          league: leagueMap[game.leagueId],
+        });
+
+        const hasChanged =
+          nextPayload.status !== game.status ||
+          Number(nextPayload.scoreHome || 0) !== Number(game.scoreHome || 0) ||
+          Number(nextPayload.scoreAway || 0) !== Number(game.scoreAway || 0) ||
+          nextPayload.gameValuation !== game.gameValuation ||
+          nextPayload.forfeitWithdrawnTeamId !== game.forfeitWithdrawnTeamId;
+
+        if (!hasChanged) return;
+
+        changed += 1;
+        await base44.entities.Game.update(game.id, nextPayload);
+      })
+    );
+
+    return changed;
   };
 
   const createMutation = useMutation({
@@ -710,11 +758,19 @@ export default function AdminTeams() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Team.update(id, data),
-    onSuccess: () => {
+    mutationFn: async ({ id, data }) => {
+      const updatedTeam = await base44.entities.Team.update(id, data);
+      const changedGames = await applyWithdrawalForfeitsForTeam({ ...data, id });
+      return { updatedTeam, changedGames };
+    },
+    onSuccess: result => {
       invalidate();
       setEditingId(null);
-      toast.success('Team aktualisiert');
+      toast.success(
+        result?.changedGames > 0
+          ? `Team aktualisiert, ${result.changedGames} Spiele mit 0:36 gewertet`
+          : 'Team aktualisiert'
+      );
     },
     onError: error => {
       console.error('UPDATE TEAM ERROR:', error);
