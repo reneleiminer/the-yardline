@@ -168,61 +168,10 @@ async function getGameReportAuthor() {
   }
 }
 
-async function createOrUpdateGameReport({ game, homeTeam, awayTeam, league }) {
-  if (!game?.id || game.status !== 'final') return null;
-  if (!homeTeam || !awayTeam) return null;
-
-  const report = getGameReportText({
-    game,
-    homeTeam,
-    awayTeam,
-    league,
-  });
-
-  const now = new Date().toISOString();
-
-  const existingReports = await base44.entities.Post.filter({
-    gameId: game.id,
-    isGameReport: true,
-  });
-
-  const author = await getGameReportAuthor();
-
-  const payload = {
-    type: 'community',
-    authorId: author.id,
-    authorUsername: author.username || SYSTEM_AUTHOR_USERNAME,
-    authorAvatar: author.avatar || '',
-    authorVerified: author.verified !== false,
-    authorRole: author.role || 'System',
-    authorRoleSlug: author.roleSlug || 'system',
-    title: report.title,
-    text: report.text,
-    teaser: report.title,
-    images: [],
-    leagueId: game.leagueId || '',
-    teamIds: [game.homeTeamId, game.awayTeamId].filter(Boolean),
-    isGameReport: true,
-    gameId: game.id,
-    gameReportGeneratedAtUtc: now,
-    gameReportVariant: report.variant,
-    publishedAtUtc: existingReports[0]?.publishedAtUtc || now,
-    createdAtUtc: existingReports[0]?.createdAtUtc || now,
-    updatedAtUtc: now,
-    likesCount: existingReports[0]?.likesCount || 0,
-    commentsCount: existingReports[0]?.commentsCount || 0,
-    featured: false,
-    isHidden: false,
-    isDeleted: false,
-  };
-
-  if (existingReports[0]) {
-    await base44.entities.Post.update(existingReports[0].id, payload);
-    return existingReports[0].id;
-  }
-
-  const created = await base44.entities.Post.create(payload);
-  return created?.id || null;
+async function createOrUpdateGameReport() {
+  // Auto Game Reports wurden bewusst deaktiviert.
+  // Ergebnisse sollen nicht mehr als Community-Beiträge vom Yardline-System erstellt werden.
+  return null;
 }
 
 function sourceMatchesGame(source, roundNumber, matchupIndex) {
