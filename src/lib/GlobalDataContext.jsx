@@ -58,8 +58,8 @@ function shouldAutoSwitchToLive(game, now = new Date()) {
 
   const status = String(game.status || "scheduled").toLowerCase();
 
-  if (status !== "scheduled") return false;
   if (status === "cancelled" || status === "final" || status === "live") return false;
+  if (!["scheduled", "upcoming", "planned", "open", ""].includes(status)) return false;
 
   const kickoff = getGameDate(game);
   if (!kickoff) return false;
