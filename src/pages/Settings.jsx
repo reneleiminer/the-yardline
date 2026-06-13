@@ -23,6 +23,7 @@ import {
   enablePushNotifications,
   getPushSettingsState,
   isPushSupported,
+  syncPushSubscriptionMetadata,
 } from "@/lib/pushNotifications";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -524,6 +525,10 @@ function FavoriteTeamSettings() {
 
     try {
       await updatePublicUser({ favoriteTeamId: teamId || "" });
+      await syncPushSubscriptionMetadata({
+        appUserId: appUserSnapshot?.id || "",
+        favoriteTeamId: teamId || "",
+      });
       toast.success(teamId ? "Favoritenteam gespeichert" : "Favoritenteam entfernt");
     } catch (error) {
       toast.error(error.message || "Favoritenteam konnte nicht gespeichert werden");
@@ -603,6 +608,7 @@ function FavoriteTeamSettings() {
 }
 
 function PushNotificationSettings() {
+  const { appUserSnapshot } = useAuth();
   const [state, setState] = React.useState({
     supported: false,
     enabled: false,
@@ -634,7 +640,10 @@ function PushNotificationSettings() {
 
     try {
       if (checked) {
-        await enablePushNotifications();
+        await enablePushNotifications({
+          appUserId: appUserSnapshot?.id || "",
+          favoriteTeamId: appUserSnapshot?.favoriteTeamId || "",
+        });
         toast.success("Benachrichtigungen aktiviert");
       } else {
         await disablePushNotifications();
