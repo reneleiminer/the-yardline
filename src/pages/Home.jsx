@@ -144,51 +144,57 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
   const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
-  const showScore = status === "final";
+  const showScore = (status === "final" || status === "live") && hasPlayableScore(game);
   const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
   const awayColor = getTeamColor(away, "#c20f1a");
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className={`block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_16px_40px_rgba(0,0,0,0.32)] ${compact ? "min-w-[82vw]" : ""}`}
+      className={`block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_16px_40px_rgba(0,0,0,0.32)] ${compact ? "min-w-[86vw]" : ""}`}
     >
-      <div className="relative grid min-h-[150px] grid-cols-2 overflow-hidden">
+      <div className="relative grid min-h-[166px] grid-cols-2 overflow-hidden sm:min-h-[178px]">
         <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-35" />
-        <div
-          className="relative flex flex-col justify-between p-3"
-          style={{ background: homeColor }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/18" />
-          <div className="relative z-10 flex items-start justify-start gap-2">
-            <TeamLogo team={home} className="h-20 w-20" />
+
+        <div className="relative flex min-w-0 flex-col justify-between p-3.5" style={{ background: homeColor }}>
+          <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/22" />
+          <div className="relative z-10 flex items-start justify-start">
+            <TeamLogo team={home} className="h-16 w-16 sm:h-20 sm:w-20" />
           </div>
-          <div className="relative z-10 pr-12 text-left">
-            <p className="line-clamp-2 text-base font-black leading-tight">{homeName}</p>
+
+          <div className="relative z-10 pr-10 text-left sm:pr-14">
+            <p className="text-[15px] font-black leading-[1.08] sm:text-lg">
+              {homeName}
+            </p>
           </div>
         </div>
 
-        <div
-          className="relative flex flex-col justify-between p-3 text-right"
-          style={{ background: awayColor }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/18" />
-          <div className="relative z-10 flex items-start justify-end gap-2">
-            <TeamLogo team={away} className="h-20 w-20" />
+        <div className="relative flex min-w-0 flex-col justify-between p-3.5 text-right" style={{ background: awayColor }}>
+          <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/22" />
+          <div className="relative z-10 flex items-start justify-end">
+            <TeamLogo team={away} className="h-16 w-16 sm:h-20 sm:w-20" />
           </div>
-          <div className="relative z-10 pl-12 text-right">
-            <p className="line-clamp-2 text-base font-black leading-tight">{awayName}</p>
+
+          <div className="relative z-10 pl-10 text-right sm:pl-14">
+            <p className="text-[15px] font-black leading-[1.08] sm:text-lg">
+              {awayName}
+            </p>
           </div>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[104px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/24 bg-black px-4 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.62),0_0_0_1px_rgba(194,15,26,0.22)]">
+        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/24 bg-black px-3.5 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.62),0_0_0_1px_rgba(194,15,26,0.22)]">
           <StatusPill game={game} />
+
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
               <span>{game.scoreHome ?? 0}</span>
               <span className="text-white/35">:</span>
               <span>{game.scoreAway ?? 0}</span>
             </div>
+          ) : status === "live" ? (
+            <span className="mt-1 text-2xl font-black leading-none text-[#ff2338]">
+              LIVE
+            </span>
           ) : (
             <>
               <span className="text-2xl font-black leading-none text-[#ff2338]">
@@ -684,14 +690,14 @@ function StreakCard({ item }) {
   return (
     <Link
       to={`/team/${item.team.id}`}
-      className="block min-w-[74vw] max-w-[74vw] overflow-hidden rounded-[28px] text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)]"
+      className="block min-w-[86vw] max-w-[86vw] overflow-hidden rounded-[28px] text-white shadow-[0_12px_30px_rgba(15,23,42,0.14)] sm:min-w-[360px] sm:max-w-[360px]"
       style={{ background: color }}
     >
-      <div className="relative flex min-h-[132px] items-center gap-4 overflow-hidden p-4">
+      <div className="relative flex min-h-[148px] items-center gap-3 overflow-hidden p-4">
         <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/20" />
-        <TeamLogo team={item.team} className="relative z-10 h-20 w-20" />
+        <TeamLogo team={item.team} className="relative z-10 h-16 w-16 flex-shrink-0 sm:h-20 sm:w-20" />
         <div className="min-w-0 flex-1">
-          <p className="relative z-10 line-clamp-2 text-xl font-black leading-tight">{item.team.name}</p>
+          <p className="relative z-10 text-lg font-black leading-[1.08] sm:text-xl">{item.team.name}</p>
           <p className="relative z-10 mt-1 text-[10px] font-black uppercase tracking-wide text-white/65">
             Unbeaten Run
           </p>
