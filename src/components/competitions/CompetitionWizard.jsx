@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ImageUploadField from '@/components/common/ImageUploadField';
-import { MapPin, Plus, Save, ShieldCheck, Trash2, Trophy, X } from 'lucide-react';
+import { Loader2, MapPin, Plus, Save, ShieldCheck, Trash2, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DEFAULT_DISPLAY_SETTINGS = {
@@ -373,7 +373,7 @@ function TypeCard({ type, active, onClick }) {
   );
 }
 
-export default function CompetitionWizard({ onClose, onSuccess }) {
+export default function CompetitionWizard({ onClose, onSuccess, isSaving = false }) {
   const [formData, setFormData] = useState({
     name: '',
     publicName: '',
@@ -566,6 +566,8 @@ export default function CompetitionWizard({ onClose, onSuccess }) {
   };
 
   const handleSubmit = () => {
+    if (isSaving) return;
+
     const error = validate();
 
     if (error) {
@@ -1052,13 +1054,28 @@ export default function CompetitionWizard({ onClose, onSuccess }) {
         </div>
 
         <div className="flex gap-2 border-t border-border/50 bg-card p-4">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+            disabled={isSaving}
+          >
             Abbrechen
           </Button>
 
-          <Button onClick={handleSubmit} className="flex-1">
-            <Save className="mr-2 h-4 w-4" />
-            Wettbewerb erstellen
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            className="flex-1"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {isSaving ? 'Speichert...' : 'Playoffs erstellen'}
           </Button>
         </div>
       </Card>
