@@ -42,8 +42,18 @@ function getGameDate(game) {
 
 function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
-  if (game.status === "cancelled") return "cancelled";
-  if (game.status === "final") return "final";
+
+  const rawStatus = String(game.status || "scheduled").toLowerCase();
+
+  if (rawStatus === "cancelled") return "cancelled";
+  if (rawStatus === "final") return "final";
+  if (rawStatus === "live") return "live";
+
+  const kickoff = getGameDate(game);
+  if (kickoff && kickoff.getTime() <= Date.now()) {
+    return "live";
+  }
+
   return "scheduled";
 }
 
@@ -72,8 +82,12 @@ function StatusBadge({ game }) {
   const status = getEffectiveGameStatus(game);
   if (status === "scheduled") return null;
 
-  const label = status === "final" ? "FINAL" : "ABGESAGT";
-  const className = status === "final" ? "bg-black text-white" : "bg-[#c20f1a] text-white";
+  const label = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "ABGESAGT";
+  const className = status === "live"
+    ? "bg-[#c20f1a] text-white animate-pulse"
+    : status === "final"
+      ? "bg-black text-white"
+      : "bg-orange-600 text-white";
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[9px] font-black tracking-wide ${className}`}>
