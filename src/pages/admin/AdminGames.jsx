@@ -867,6 +867,7 @@ function GameForm({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="scheduled">Geplant</SelectItem>
+          <SelectItem value="live">Live</SelectItem>
           <SelectItem value="final">Final</SelectItem>
           <SelectItem value="cancelled">Abgesagt</SelectItem>
         </SelectContent>
