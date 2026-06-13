@@ -218,13 +218,24 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
       className="block overflow-hidden rounded-[22px] border border-white/10 bg-black/78 p-3 text-white shadow-[0_16px_36px_rgba(0,0,0,0.28)] backdrop-blur"
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-white p-2">
-          {favoriteTeam.logo ? (
-            <img src={getImageUrl(favoriteTeam.logo)} alt="" className="h-full w-full object-contain" />
-          ) : (
-            <span className="text-xs font-black text-black">{(favoriteTeam.shortName || favoriteTeam.name || "T").slice(0, 2)}</span>
-          )}
-        </div>
+        <div
+  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl p-2 shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
+  style={{
+    background: getTeamColor(favoriteTeam, "#013369"),
+  }}
+>
+  {favoriteTeam.logo ? (
+    <img
+      src={getImageUrl(favoriteTeam.logo)}
+      alt=""
+      className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
+    />
+  ) : (
+    <span className="text-xs font-black text-white">
+      {(favoriteTeam.shortName || favoriteTeam.name || "T").slice(0, 2)}
+    </span>
+  )}
+</div>
         <div className="min-w-0 flex-1">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#ff2338]">
             Dein Team
