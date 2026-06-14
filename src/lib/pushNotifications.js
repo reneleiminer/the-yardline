@@ -5,6 +5,62 @@ const VAPID_PUBLIC_KEY =
 const DISMISS_KEY = "yardline_push_prompt_dismissed";
 const DISABLED_KEY = "yardline_push_disabled";
 const VISITOR_KEY = "yardline_visitor_id";
+const PREFERENCES_KEY = "yardline_push_preferences";
+
+export const PUSH_PREFERENCE_GROUPS = [
+  { key: "todayGames", label: "Heutige Spiele", description: "Wer spielt heute gegen wen und wann.", teamAware: false },
+  { key: "liveGames", label: "Live Games", description: "Wenn Spiele live gehen.", teamAware: true },
+  { key: "favoriteTeamResults", label: "Favoriten-Ergebnisse", description: "Endstand und Updates deines Teams.", teamAware: true, favoriteLocked: true },
+  { key: "gotw", label: "Game of the Week", description: "Wenn ein neues GOTW gesetzt wird.", teamAware: true },
+  { key: "podcast", label: "Podcast", description: "Neue Podcast-Folgen.", teamAware: false },
+  { key: "gamedayShots", label: "GameDay Shots", description: "Neue Foto-Uploads von Spieltagen.", teamAware: true },
+  { key: "gameHighlights", label: "Game Highlights", description: "Neue Highlight-Videos.", teamAware: true },
+  { key: "news", label: "News", description: "Neue News-Beitraege.", teamAware: true },
+  { key: "transfers", label: "Transfers", description: "Neue Transfermeldungen.", teamAware: true },
+  { key: "weeklyStreaks", label: "Siegesserien", description: "Sonntags nach finalen Wochenendspielen.", teamAware: false },
+];
+
+export function getDefaultPushPreferences() {
+  return PUSH_PREFERENCE_GROUPS.reduce((prefs, item) => {
+    prefs[item.key] = {
+      enabled: true,
+      scope: item.favoriteLocked ? "favorite" : "all",
+    };
+    return prefs;
+  }, {});
+}
+
+export function normalizePushPreferences(value = {}) {
+  const defaults = getDefaultPushPreferences();
+
+  return PUSH_PREFERENCE_GROUPS.reduce((prefs, item) => {
+    const current = value?.[item.key] || {};
+    prefs[item.key] = {
+      enabled: current.enabled !== undefined ? current.enabled === true : defaults[item.key].enabled,
+      scope: item.favoriteLocked
+        ? "favorite"
+        : current.scope === "favorite"
+          ? "favorite"
+          : "all",
+    };
+    return prefs;
+  }, {});
+}
+
+export function getPushPreferences() {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(PREFERENCES_KEY) || "{}");
+    return normalizePushPreferences(parsed);
+  } catch {
+    return getDefaultPushPreferences();
+  }
+}
+
+export function savePushPreferences(preferences) {
+  const normalized = normalizePushPreferences(preferences);
+  window.localStorage.setItem(PREFERENCES_KEY, JSON.stringify(normalized));
+  return normalized;
+}
 
 function urlBase64ToUint8Array(value) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -64,6 +120,7 @@ async function savePushSubscription(subscription, metadata = {}) {
       subscription,
       appUserId: metadata.appUserId || "",
       favoriteTeamId: metadata.favoriteTeamId || "",
+      preferences: normalizePushPreferences(metadata.preferences || getPushPreferences()),
     }),
   });
 

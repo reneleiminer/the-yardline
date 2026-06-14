@@ -258,13 +258,21 @@ function buildKickoffAt(date, time) {
   return Number.isNaN(kickoffDate.getTime()) ? '' : kickoffDate.toISOString();
 }
 
+function cleanOptionalId(value) {
+  return String(value || '').trim() || null;
+}
+
+function hasCompleteKickoffData(value = {}) {
+  return Boolean(String(value.date || '').trim() && String(value.time || '').trim());
+}
+
 function buildCompetitionGamePayload({ competition, round, matchup, index }) {
   const matchupIndex = matchup.matchupIndex ?? index;
   const roundName = round.name || round.roundName || round.title || `Runde ${round.round || 1}`;
   const date = matchup.date || '';
   const time = matchup.time || '';
-  const homeTeamId = matchup.team1Id || '';
-  const awayTeamId = matchup.team2Id || '';
+  const homeTeamId = cleanOptionalId(matchup.team1Id);
+  const awayTeamId = cleanOptionalId(matchup.team2Id);
 
   return {
     leagueId: competition.leagueId || '',
@@ -308,6 +316,8 @@ async function createGamesForCompetition(competition) {
   for (const round of bracket) {
     for (const [index, matchup] of (round.matchups || []).entries()) {
       try {
+        if (!hasCompleteKickoffData(matchup)) continue;
+
         const created = await base44.entities.Game.create(
           buildCompetitionGamePayload({
             competition,

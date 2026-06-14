@@ -425,11 +425,19 @@ function buildKickoffAt(date, time) {
   return kickoffDate.toISOString();
 }
 
+function cleanOptionalId(value) {
+  return String(value || '').trim() || null;
+}
+
+function hasCompleteKickoffData(value = {}) {
+  return Boolean(String(value.date || '').trim() && String(value.time || '').trim());
+}
+
 function buildGamePayload({ competition, matchup, gameFormData }) {
   const date = gameFormData.date || matchup.date || '';
   const time = gameFormData.time || matchup.time || '';
-  const homeTeamId = gameFormData.homeTeamId || matchup.team1Id || '';
-  const awayTeamId = gameFormData.awayTeamId || matchup.team2Id || '';
+  const homeTeamId = cleanOptionalId(gameFormData.homeTeamId || matchup.team1Id);
+  const awayTeamId = cleanOptionalId(gameFormData.awayTeamId || matchup.team2Id);
 
   return {
     leagueId: competition.leagueId || '',
@@ -732,6 +740,34 @@ export default function AdminCompetitionDetail() {
             updates.awayTeamPlaceholder = normalizedMatchup.team2Placeholder;
           }
 
+          const nextDate = normalizedMatchup.date || '';
+          const nextTime = normalizedMatchup.time || '';
+          const nextVenue =
+            normalizedMatchup.venue ||
+            (round.venueMode === 'fixed'
+              ? (round.venue || round.roundVenue || nextCompetition.defaultVenue || '')
+              : '');
+
+          if (nextDate && existingGame.date !== nextDate) {
+            updates.date = nextDate;
+          }
+
+          if (nextTime && existingGame.time !== nextTime) {
+            updates.time = nextTime;
+            updates.kickoffTime = nextTime;
+          }
+
+          if (nextDate && nextTime) {
+            const kickoffAt = buildKickoffAt(nextDate, nextTime);
+            if (kickoffAt && existingGame.kickoffAt !== kickoffAt) {
+              updates.kickoffAt = kickoffAt;
+            }
+          }
+
+          if (nextVenue && existingGame.venue !== nextVenue) {
+            updates.venue = nextVenue;
+          }
+
           if (Object.keys(updates).length > 0) {
             await base44.entities.Game.update(existingGame.id, {
               ...updates,
@@ -746,24 +782,30 @@ export default function AdminCompetitionDetail() {
           continue;
         }
 
+        const gameFormData = {
+          homeTeamId: normalizedMatchup.team1Id || '',
+          awayTeamId: normalizedMatchup.team2Id || '',
+          date: normalizedMatchup.date || '',
+          time: normalizedMatchup.time || '',
+          venue:
+            normalizedMatchup.venue ||
+            (round.venueMode === 'fixed'
+              ? (round.venue || round.roundVenue || nextCompetition.defaultVenue || '')
+              : ''),
+          roundName: normalizedMatchup.roundName,
+          round: round.round,
+          matchupIndex: normalizedMatchup.matchupIndex,
+        };
+
+        if (!hasCompleteKickoffData(gameFormData)) {
+          continue;
+        }
+
         const created = await base44.entities.Game.create(
           buildGamePayload({
             competition: nextCompetition,
             matchup: normalizedMatchup,
-            gameFormData: {
-              homeTeamId: normalizedMatchup.team1Id || '',
-              awayTeamId: normalizedMatchup.team2Id || '',
-              date: normalizedMatchup.date || '',
-              time: normalizedMatchup.time || '',
-              venue:
-                normalizedMatchup.venue ||
-                (round.venueMode === 'fixed'
-                  ? (round.venue || round.roundVenue || nextCompetition.defaultVenue || '')
-                  : ''),
-              roundName: normalizedMatchup.roundName,
-              round: round.round,
-              matchupIndex: normalizedMatchup.matchupIndex,
-            },
+            gameFormData,
           })
         );
 

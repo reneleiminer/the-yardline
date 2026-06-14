@@ -1,15 +1,101 @@
 import {
   claimEvent,
+  configureWebPush,
   fetchTeamMap,
   getAdminClient,
   getGameTeams,
   parseUpdateMessage,
   sendJson,
-  sendToAllSubscriptions,
 } from "../_push.js";
 
 
 const LOOKBACK_HOURS = 48;
+
+const DEFAULT_PUSH_PREFERENCES = {
+  todayGames: { enabled: true, scope: "all" },
+  liveGames: { enabled: true, scope: "all" },
+  favoriteTeamResults: { enabled: true, scope: "favorite" },
+  gotw: { enabled: true, scope: "all" },
+  podcast: { enabled: true, scope: "all" },
+  gamedayShots: { enabled: true, scope: "all" },
+  gameHighlights: { enabled: true, scope: "all" },
+  news: { enabled: true, scope: "all" },
+  transfers: { enabled: true, scope: "all" },
+  weeklyStreaks: { enabled: true, scope: "all" },
+};
+
+function normalizePreferences(value = {}) {
+  return Object.entries(DEFAULT_PUSH_PREFERENCES).reduce((prefs, [key, fallback]) => {
+    const current = value?.[key] || {};
+    prefs[key] = {
+      enabled: current.enabled !== undefined ? current.enabled === true : fallback.enabled,
+      scope: current.scope === "favorite" ? "favorite" : fallback.scope,
+    };
+    return prefs;
+  }, {});
+}
+
+function getEventCategory(event) {
+  return event.category || event.type || "";
+}
+
+function getSubscriptionPayload(subscription) {
+  return {
+    endpoint: subscription?.endpoint,
+    keys: subscription?.keys,
+  };
+}
+
+function shouldReceiveEvent(subscription, event) {
+  const yardline = subscription?.yardline || {};
+  const preferences = normalizePreferences(yardline.preferences || {});
+  const category = getEventCategory(event);
+  const preference = preferences[category];
+
+  if (!preference?.enabled) return false;
+
+  const targetTeamIds = new Set((event.targetTeamIds || []).filter(Boolean));
+  if (event.favoriteOnly || (targetTeamIds.size > 0 && preference.scope === "favorite")) {
+    return Boolean(yardline.favoriteTeamId && targetTeamIds.has(yardline.favoriteTeamId));
+  }
+
+  return true;
+}
+
+async function sendEventToSubscriptions(supabase, event) {
+  const { data: subscriptions, error } = await supabase
+    .from("push_subscriptions")
+    .select("id,subscription")
+    .eq("active", true);
+
+  if (error) throw error;
+
+  const sender = configureWebPush();
+  let sent = 0;
+  let failed = 0;
+
+  await Promise.all(
+    (subscriptions || [])
+      .filter((row) => shouldReceiveEvent(row.subscription, event))
+      .map(async (row) => {
+        try {
+          await sender.sendNotification(getSubscriptionPayload(row.subscription), JSON.stringify(event.payload));
+          sent += 1;
+        } catch (error) {
+          failed += 1;
+
+          if (error.statusCode === 404 || error.statusCode === 410) {
+            await supabase
+              .from("push_subscriptions")
+              .update({ active: false, updated_at: new Date().toISOString() })
+              .eq("id", row.id);
+          }
+        }
+      })
+  );
+
+  return { sent, failed };
+}
 
 function hoursAgo(hours) {
   return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
@@ -53,6 +139,8 @@ async function buildLiveGameEvents(supabase) {
     return {
       key: `live_game:${game.id}`,
       type: "live_game",
+      category: "liveGames",
+      targetTeamIds: [game.home_team_id, game.away_team_id].filter(Boolean),
       payload: {
         title: "Spiel ist live",
         body: `${teams.homeName} vs ${teams.awayName} läuft jetzt.`,
@@ -83,6 +171,8 @@ async function buildGameOfTheWeekEvents(supabase) {
     return {
       key: `gotw:${game.id}:${selectedAt}`,
       type: "game_of_the_week",
+      category: "gotw",
+      targetTeamIds: [game.home_team_id, game.away_team_id].filter(Boolean),
       payload: {
         title: "Neues Game of the Week",
         body: `${teams.homeName} vs ${teams.awayName} wurde von ${label} ausgewählt.`,
@@ -120,6 +210,7 @@ async function buildTodaysGameEvents(supabase) {
   return [{
     key: `today_games:${today}:${games.map((game) => game.id).join(",")}`,
     type: "today_games",
+    category: "todayGames",
     payload: {
       title: games.length === 1 ? "Heute steht ein Spiel an" : `Heute stehen ${games.length} Spiele an`,
       body: `${lines.join(" · ")}${extra}`,
@@ -149,6 +240,7 @@ async function buildPodcastEvents(supabase) {
     return {
       key: `podcast:${update.id}:${getUpdateTimestamp(update)}`,
       type: "podcast_feature",
+      category: "podcast",
       payload: {
         title: "Neue Podcast-Folge",
         body: `${episodeTitle} von ${partnerName}`,
@@ -171,24 +263,69 @@ async function buildHighlightEvents(supabase) {
 
   if (error) throw error;
 
-  return (updates || []).map((update) => ({
-    key: `highlight:${update.id}:${update.created_at || update.updated_at || ""}`,
-    type: "game_highlight",
-    payload: {
-      title: "Neues Game Highlight",
-      body: update.title || "Ein neues Highlight ist online.",
-      url: "/highlights",
-      tag: `highlight:${update.id}`,
-      icon: "/yardline-icon-192.png",
-      image: update.image_url || undefined,
-    },
-  }));
+  return (updates || []).map((update) => {
+    const meta = parseUpdateMessage(update);
+    return {
+      key: `highlight:${update.id}:${update.created_at || update.updated_at || ""}`,
+      type: "game_highlight",
+      category: "gameHighlights",
+      targetTeamIds: [
+        ...(Array.isArray(meta.team_ids) ? meta.team_ids : []),
+        meta.team_id,
+        meta.home_team_id,
+        meta.away_team_id,
+      ].filter(Boolean),
+      payload: {
+        title: "Neues Game Highlight",
+        body: update.title || "Ein neues Highlight ist online.",
+        url: "/highlights",
+        tag: `highlight:${update.id}`,
+        icon: "/yardline-icon-192.png",
+        image: update.image_url || undefined,
+      },
+    };
+  });
+}
+
+async function buildGamedayShotEvents(supabase) {
+  const { data: updates, error } = await supabase
+    .from("app_updates")
+    .select("id,title,message,image_url,created_at,updated_at")
+    .eq("version", "gameday_photo")
+    .eq("is_active", true)
+    .gte("created_at", hoursAgo(LOOKBACK_HOURS))
+    .limit(20);
+
+  if (error) throw error;
+
+  return (updates || []).map((update) => {
+    const meta = parseUpdateMessage(update);
+    return {
+      key: `gameday_shot:${update.id}:${update.created_at || update.updated_at || ""}`,
+      type: "gameday_shot",
+      category: "gamedayShots",
+      targetTeamIds: [
+        ...(Array.isArray(meta.team_ids) ? meta.team_ids : []),
+        meta.team_id,
+        meta.home_team_id,
+        meta.away_team_id,
+      ].filter(Boolean),
+      payload: {
+        title: "Neue GameDay Shots",
+        body: update.title || meta.caption || "Neue Bilder vom Spieltag sind online.",
+        url: "/",
+        tag: `gameday_shot:${update.id}`,
+        icon: meta.team_logo || "/yardline-icon-192.png",
+        image: update.image_url || meta.image_url || undefined,
+      },
+    };
+  });
 }
 
 async function buildPostEvents(supabase) {
   const { data: posts, error } = await supabase
     .from("posts")
-    .select("id,type,title,teaser,text,image_url,author_username,published_at_utc,created_at,updated_at,is_hidden,is_deleted")
+    .select("id,type,title,teaser,text,image_url,author_username,published_at_utc,created_at,updated_at,is_hidden,is_deleted,team_ids,team_id,connected_team_id")
     .in("type", ["news", "transfer"])
     .or("is_hidden.is.null,is_hidden.eq.false")
     .or("is_deleted.is.null,is_deleted.eq.false")
@@ -205,6 +342,12 @@ async function buildPostEvents(supabase) {
     return {
       key: `post:${post.id}:${timestamp}`,
       type: isTransfer ? "transfer" : "news",
+      category: isTransfer ? "transfers" : "news",
+      targetTeamIds: [
+        ...(Array.isArray(post.team_ids) ? post.team_ids : []),
+        post.team_id,
+        post.connected_team_id,
+      ].filter(Boolean),
       payload: {
         title: isTransfer ? "Neuer Transfer" : "Neue News",
         body: `${post.title || (isTransfer ? "Transfer Update" : "News Update")}${author}`,
@@ -225,45 +368,6 @@ function getWinnerText(game, teams) {
   if (homeScore > awayScore) return `${teams.homeName} gewinnt`;
   if (awayScore > homeScore) return `${teams.awayName} gewinnt`;
   return "Unentschieden";
-}
-
-async function sendToFavoriteTeamSubscriptions(supabase, teamIds, notification) {
-  const wantedTeamIds = new Set(teamIds.filter(Boolean));
-  if (wantedTeamIds.size === 0) return { sent: 0, failed: 0 };
-
-  const { data: subscriptions, error } = await supabase
-    .from("push_subscriptions")
-    .select("id,subscription")
-    .eq("active", true);
-
-  if (error) throw error;
-
-  const { configureWebPush } = await import("../_push.js");
-  const sender = configureWebPush();
-  let sent = 0;
-  let failed = 0;
-
-  await Promise.all(
-    (subscriptions || [])
-      .filter((row) => wantedTeamIds.has(row.subscription?.yardline?.favoriteTeamId))
-      .map(async (row) => {
-        try {
-          await sender.sendNotification(row.subscription, JSON.stringify(notification));
-          sent += 1;
-        } catch (error) {
-          failed += 1;
-
-          if (error.statusCode === 404 || error.statusCode === 410) {
-            await supabase
-              .from("push_subscriptions")
-              .update({ active: false, updated_at: new Date().toISOString() })
-              .eq("id", row.id);
-          }
-        }
-      })
-  );
-
-  return { sent, failed };
 }
 
 async function buildFavoriteFinalScoreEvents(supabase) {
@@ -288,7 +392,9 @@ async function buildFavoriteFinalScoreEvents(supabase) {
     return {
       key: `favorite_final:${game.id}:${game.updated_at || ""}:${score}`,
       type: "favorite_final_score",
+      category: "favoriteTeamResults",
       targetTeamIds: [game.home_team_id, game.away_team_id].filter(Boolean),
+      favoriteOnly: true,
       payload: {
         title: "Endstand für dein Team",
         body: `${winnerText} · ${teams.homeName} ${score} ${teams.awayName}`,
@@ -296,6 +402,98 @@ async function buildFavoriteFinalScoreEvents(supabase) {
         tag: `favorite_final:${game.id}`,
         icon: teams.homeLogo || teams.awayLogo || "/yardline-icon-192.png",
         renotify: true,
+      },
+    };
+  });
+}
+
+async function buildWeeklyStreakEvents(supabase) {
+  const today = new Date();
+  const berlinWeekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Berlin",
+    weekday: "short",
+  }).format(today);
+
+  if (berlinWeekday !== "Sun") return [];
+
+  const weekStart = new Date(today);
+  weekStart.setUTCDate(today.getUTCDate() - 6);
+  const fromDate = getBerlinDateKey(weekStart);
+  const toDate = getBerlinDateKey(today);
+
+  const { data: games, error } = await supabase
+    .from("games")
+    .select("id,league_id,home_team_id,away_team_id,score_home,score_away,status,date")
+    .gte("date", fromDate)
+    .lte("date", toDate)
+    .neq("status", "cancelled")
+    .limit(500);
+
+  if (error) throw error;
+  if (!games?.length || games.some((game) => game.status !== "final")) return [];
+
+  const teamIds = Array.from(new Set(games.flatMap((game) => [game.home_team_id, game.away_team_id]).filter(Boolean)));
+  const leagueIds = Array.from(new Set(games.map((game) => game.league_id).filter(Boolean)));
+
+  const [{ data: teams, error: teamsError }, { data: leagues, error: leaguesError }] = await Promise.all([
+    supabase.from("teams").select("id,name,short_name,league_id").in("id", teamIds),
+    supabase.from("leagues").select("id,name,short_name").in("id", leagueIds),
+  ]);
+
+  if (teamsError) throw teamsError;
+  if (leaguesError) throw leaguesError;
+
+  const teamsById = new Map((teams || []).map((team) => [team.id, team]));
+  const leaguesById = new Map((leagues || []).map((league) => [league.id, league]));
+  const records = new Map();
+
+  games.forEach((game) => {
+    const homeScore = Number(game.score_home || 0);
+    const awayScore = Number(game.score_away || 0);
+    [game.home_team_id, game.away_team_id].filter(Boolean).forEach((teamId) => {
+      if (!records.has(teamId)) records.set(teamId, { teamId, leagueId: teamsById.get(teamId)?.league_id || game.league_id, wins: 0, losses: 0, played: 0 });
+    });
+
+    const home = records.get(game.home_team_id);
+    const away = records.get(game.away_team_id);
+    if (home) home.played += 1;
+    if (away) away.played += 1;
+
+    if (homeScore > awayScore) {
+      if (home) home.wins += 1;
+      if (away) away.losses += 1;
+    } else if (awayScore > homeScore) {
+      if (away) away.wins += 1;
+      if (home) home.losses += 1;
+    }
+  });
+
+  const byLeague = new Map();
+  Array.from(records.values())
+    .filter((record) => record.played > 0 && record.losses === 0 && record.wins > 0)
+    .forEach((record) => {
+      const current = byLeague.get(record.leagueId) || [];
+      current.push(record);
+      byLeague.set(record.leagueId, current);
+    });
+
+  return Array.from(byLeague.entries()).map(([leagueId, rows]) => {
+    const league = leaguesById.get(leagueId);
+    const names = rows
+      .sort((a, b) => b.wins - a.wins)
+      .slice(0, 4)
+      .map((record) => `${teamsById.get(record.teamId)?.short_name || teamsById.get(record.teamId)?.name || "Team"} (${record.wins}-0)`);
+
+    return {
+      key: `weekly_streaks:${toDate}:${leagueId}:${names.join("|")}`,
+      type: "weekly_streaks",
+      category: "weeklyStreaks",
+      payload: {
+        title: `Siegesserien ${league?.short_name || league?.name || ""}`.trim(),
+        body: names.length ? names.join(" · ") : "Alle Wochenendspiele sind final.",
+        url: "/",
+        tag: `weekly_streaks:${toDate}:${leagueId}`,
+        icon: "/yardline-icon-192.png",
       },
     };
   });
@@ -316,8 +514,10 @@ export default async function handler(req, res) {
       buildTodaysGameEvents(supabase),
       buildPodcastEvents(supabase),
       buildHighlightEvents(supabase),
+      buildGamedayShotEvents(supabase),
       buildPostEvents(supabase),
       buildFavoriteFinalScoreEvents(supabase),
+      buildWeeklyStreakEvents(supabase),
     ]);
 
     const events = groups.flat();
@@ -330,9 +530,7 @@ export default async function handler(req, res) {
       if (!canSend) continue;
 
       claimed += 1;
-      const result = event.type === "favorite_final_score"
-        ? await sendToFavoriteTeamSubscriptions(supabase, event.targetTeamIds || [], event.payload)
-        : await sendToAllSubscriptions(supabase, event.payload);
+      const result = await sendEventToSubscriptions(supabase, event);
 
       sent += result.sent;
       failed += result.failed;

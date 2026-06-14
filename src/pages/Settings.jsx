@@ -21,8 +21,11 @@ import { useI18n } from "@/lib/i18n";
 import {
   disablePushNotifications,
   enablePushNotifications,
+  getPushPreferences,
   getPushSettingsState,
   isPushSupported,
+  PUSH_PREFERENCE_GROUPS,
+  savePushPreferences,
   syncPushSubscriptionMetadata,
 } from "@/lib/pushNotifications";
 import { Button } from "@/components/ui/button";
@@ -534,6 +537,7 @@ function FavoriteTeamSettings() {
       await syncPushSubscriptionMetadata({
         appUserId: appUserSnapshot?.id || "",
         favoriteTeamId: teamId || "",
+        preferences: getPushPreferences(),
       });
       toast.success(teamId ? "Favoritenteam gespeichert" : "Favoritenteam entfernt");
     } catch (error) {
@@ -621,6 +625,7 @@ function PushNotificationSettings() {
     permission: "default",
     disabledByUser: false,
   });
+  const [preferences, setPreferences] = React.useState(() => getPushPreferences());
   const [saving, setSaving] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
@@ -649,6 +654,7 @@ function PushNotificationSettings() {
         await enablePushNotifications({
           appUserId: appUserSnapshot?.id || "",
           favoriteTeamId: appUserSnapshot?.favoriteTeamId || "",
+          preferences,
         });
         toast.success("Benachrichtigungen aktiviert");
       } else {
@@ -667,6 +673,37 @@ function PushNotificationSettings() {
 
   const blocked = state.permission === "denied";
   const disabled = saving || !state.supported || blocked;
+
+  const syncPreferences = async (nextPreferences) => {
+    const normalized = savePushPreferences(nextPreferences);
+    setPreferences(normalized);
+
+    if (!state.enabled) return;
+
+    setSaving(true);
+    try {
+      await syncPushSubscriptionMetadata({
+        appUserId: appUserSnapshot?.id || "",
+        favoriteTeamId: appUserSnapshot?.favoriteTeamId || "",
+        preferences: normalized,
+      });
+    } catch (error) {
+      toast.error(error.message || "Benachrichtigungen konnten nicht gespeichert werden");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setPreferenceValue = (key, patch) => {
+    const current = preferences[key] || { enabled: true, scope: "all" };
+    syncPreferences({
+      ...preferences,
+      [key]: {
+        ...current,
+        ...patch,
+      },
+    });
+  };
 
   return (
     <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
@@ -705,6 +742,51 @@ function PushNotificationSettings() {
           Du hast Benachrichtigungen im Browser blockiert. Das kannst du nur in den Website-Einstellungen deines Browsers wieder erlauben.
         </div>
       )}
+
+      <div className="border-t border-border/30 px-3 py-3 space-y-2">
+        {PUSH_PREFERENCE_GROUPS.map(item => {
+          const current = preferences[item.key] || { enabled: true, scope: "all" };
+          const scopeDisabled = disabled || saving || !item.teamAware || item.favoriteLocked;
+
+          return (
+            <div key={item.key} className="rounded-2xl border border-border/40 bg-background/40 px-3 py-3">
+              <div className="flex items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black">{item.label}</p>
+                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{item.description}</p>
+                </div>
+                <Switch
+                  checked={current.enabled}
+                  disabled={disabled || saving}
+                  onCheckedChange={checked => setPreferenceValue(item.key, { enabled: checked })}
+                  aria-label={`${item.label} umschalten`}
+                />
+              </div>
+
+              {item.teamAware && (
+                <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-xl border border-border/40 bg-black/30 p-1">
+                  <button
+                    type="button"
+                    disabled={scopeDisabled}
+                    onClick={() => setPreferenceValue(item.key, { scope: "all" })}
+                    className={`h-9 rounded-lg text-xs font-black transition ${current.scope !== "favorite" ? "bg-white text-black" : "text-muted-foreground"}`}
+                  >
+                    Alle
+                  </button>
+                  <button
+                    type="button"
+                    disabled={scopeDisabled}
+                    onClick={() => setPreferenceValue(item.key, { scope: "favorite" })}
+                    className={`h-9 rounded-lg text-xs font-black transition ${current.scope === "favorite" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                  >
+                    Nur Favorit
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

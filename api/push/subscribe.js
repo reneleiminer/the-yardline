@@ -20,6 +20,7 @@ export default async function handler(req, res) {
           yardline: {
             appUserId: body.appUserId || "",
             favoriteTeamId: body.favoriteTeamId || "",
+            preferences: body.preferences && typeof body.preferences === "object" ? body.preferences : {},
             visitorId: body.visitorId || "",
           },
         }
