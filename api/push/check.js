@@ -105,7 +105,11 @@ async function sendEventToSubscriptions(supabase, event) {
           await sender.sendNotification(
             getSubscriptionPayload(row.subscription),
             JSON.stringify(styleNotification(event.payload, {
-              urgent: event.urgent === true || event.type === "live_game" || event.type === "favorite_final_score",
+              urgent:
+                event.urgent === true ||
+                event.type === "live_game" ||
+                event.type === "favorite_live_score" ||
+                event.type === "favorite_final_score",
             }))
           );
           sent += 1;
@@ -398,6 +402,43 @@ function getWinnerText(game, teams) {
   return "Unentschieden";
 }
 
+async function buildFavoriteLiveScoreEvents(supabase) {
+  const { data: games, error } = await supabase
+    .from("games")
+    .select("id,home_team_id,away_team_id,home_team_placeholder,away_team_placeholder,score_home,score_away,status,updated_at")
+    .eq("status", "live")
+    .not("score_home", "is", null)
+    .not("score_away", "is", null)
+    .gte("updated_at", hoursAgo(LOOKBACK_HOURS))
+    .limit(50);
+
+  if (error) throw error;
+
+  const teamsById = await fetchTeamMap(supabase, games || []);
+
+  return (games || []).map((game) => {
+    const teams = getGameTeams(game, teamsById);
+    const score = `${Number(game.score_home)}:${Number(game.score_away)}`;
+
+    return {
+      key: `favorite_live_score:${game.id}:${game.updated_at || ""}:${score}`,
+      type: "favorite_live_score",
+      category: "favoriteTeamResults",
+      targetTeamIds: [game.home_team_id, game.away_team_id].filter(Boolean),
+      favoriteOnly: true,
+      urgent: true,
+      payload: {
+        title: "Neuer Score fuer dein Team",
+        body: `${teams.homeName} ${score} ${teams.awayName}`,
+        url: `/game/${game.id}`,
+        tag: `favorite_live_score:${game.id}`,
+        icon: teams.homeLogo || teams.awayLogo || "/yardline-icon-192.png",
+        renotify: true,
+      },
+    };
+  });
+}
+
 async function buildFavoriteFinalScoreEvents(supabase) {
   const { data: games, error } = await supabase
     .from("games")
@@ -544,6 +585,7 @@ export default async function handler(req, res) {
       buildHighlightEvents(supabase),
       buildGamedayShotEvents(supabase),
       buildPostEvents(supabase),
+      buildFavoriteLiveScoreEvents(supabase),
       buildFavoriteFinalScoreEvents(supabase),
       buildWeeklyStreakEvents(supabase),
     ]);
