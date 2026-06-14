@@ -477,11 +477,11 @@ function CancelledGameNotice({ game }) {
 }
 
 function PlaceholderScoreHero({ game, home, away, league }) {
-  const status = String(game.status || 'scheduled').toLowerCase();
+  const status = getEffectiveGameStatus(game);
   const isLive = status === 'live';
   const isFinal = status === 'final';
   const isCancelled = status === 'cancelled';
-  const hasScore = isLive || isFinal;
+  const hasScore = (isLive || isFinal) && hasFinalScore(game);
 
   const leagueName = league?.name
     ? `${league.name}${game.groupId ? ` · ${game.groupId}` : ''}`
