@@ -402,6 +402,43 @@ function getWinnerText(game, teams) {
   return "Unentschieden";
 }
 
+
+async function buildLiveScoreUpdateEvents(supabase) {
+  const { data: games, error } = await supabase
+    .from("games")
+    .select("id,home_team_id,away_team_id,home_team_placeholder,away_team_placeholder,score_home,score_away,status,updated_at")
+    .eq("status", "live")
+    .not("score_home", "is", null)
+    .not("score_away", "is", null)
+    .gte("updated_at", hoursAgo(LOOKBACK_HOURS))
+    .limit(50);
+
+  if (error) throw error;
+
+  const teamsById = await fetchTeamMap(supabase, games || []);
+
+  return (games || []).map((game) => {
+    const teams = getGameTeams(game, teamsById);
+    const score = `${Number(game.score_home)}:${Number(game.score_away)}`;
+
+    return {
+      key: `live_score_update:${game.id}:${game.updated_at || ""}:${score}`,
+      type: "live_score_update",
+      category: "liveGames",
+      targetTeamIds: [game.home_team_id, game.away_team_id].filter(Boolean),
+      urgent: true,
+      payload: {
+        title: "Neuer Live-Score",
+        body: `${teams.homeName} ${score} ${teams.awayName}`,
+        url: `/game/${game.id}`,
+        tag: `live_score_update:${game.id}`,
+        icon: teams.homeLogo || teams.awayLogo || "/yardline-icon-192.png",
+        renotify: true,
+      },
+    };
+  });
+}
+
 async function buildFavoriteLiveScoreEvents(supabase) {
   const { data: games, error } = await supabase
     .from("games")
@@ -585,6 +622,7 @@ export default async function handler(req, res) {
       buildHighlightEvents(supabase),
       buildGamedayShotEvents(supabase),
       buildPostEvents(supabase),
+      buildLiveScoreUpdateEvents(supabase),
       buildFavoriteLiveScoreEvents(supabase),
       buildFavoriteFinalScoreEvents(supabase),
       buildWeeklyStreakEvents(supabase),
