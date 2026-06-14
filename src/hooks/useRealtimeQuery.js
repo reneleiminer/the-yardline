@@ -18,6 +18,32 @@ import { useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
+function mergeRealtimeEvent(current, event) {
+  if (!event?.id) return current;
+
+  if (Array.isArray(current)) {
+    if (event.type === 'DELETE') {
+      return current.filter(item => item?.id !== event.id);
+    }
+
+    let found = false;
+    const next = current.map(item => {
+      if (item?.id !== event.id) return item;
+      found = true;
+      return { ...item, ...event.item };
+    });
+
+    return found ? next : [event.item, ...next].filter(Boolean);
+  }
+
+  if (current && typeof current === 'object' && current.id === event.id) {
+    if (event.type === 'DELETE') return null;
+    return { ...current, ...event.item };
+  }
+
+  return current;
+}
+
 export function useRealtimeQuery({ entity, pollInterval = 15_000, ...queryOptions }) {
   const queryClient = useQueryClient();
   const pollingRef = useRef(null);
@@ -28,8 +54,9 @@ export function useRealtimeQuery({ entity, pollInterval = 15_000, ...queryOption
 
     let unsub = null;
     try {
-      unsub = base44.entities[entity].subscribe(() => {
-        queryClient.invalidateQueries({ queryKey: queryOptions.queryKey });
+      unsub = base44.entities[entity].subscribe((event) => {
+        queryClient.setQueryData(queryOptions.queryKey, current => mergeRealtimeEvent(current, event));
+        queryClient.invalidateQueries({ queryKey: queryOptions.queryKey, refetchType: 'active' });
       });
       subscribedRef.current = true;
     } catch {

@@ -25,6 +25,61 @@ const CORE_ENTITY_CONFIG = [
 
 const AUTO_LIVE_CHECK_INTERVAL_MS = 60 * 1000;
 const AUTO_LIVE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
+const LIVE_SCORE_POLL_INTERVAL_MS = 10 * 1000;
+
+function mergeItemIntoList(list, item) {
+  if (!item?.id || !Array.isArray(list)) return list;
+
+  let found = false;
+  const next = list.map((current) => {
+    if (current?.id !== item.id) return current;
+    found = true;
+    return { ...current, ...item };
+  });
+
+  return found ? next : [item, ...next];
+}
+
+function removeItemFromList(list, itemId) {
+  if (!itemId || !Array.isArray(list)) return list;
+  return list.filter((item) => item?.id !== itemId);
+}
+
+function updateEntityCache(queryClient, key, event) {
+  if (!event?.id) return;
+
+  queryClient.setQueriesData({ queryKey: [key] }, (current) => {
+    if (!Array.isArray(current)) return current;
+    if (event.type === "DELETE") return removeItemFromList(current, event.id);
+    return mergeItemIntoList(current, event.item);
+  });
+
+  if (event.type === "DELETE") {
+    queryClient.removeQueries({ queryKey: [key, event.id], exact: true });
+    return;
+  }
+
+  if (event.item) {
+    queryClient.setQueryData([key, event.id], (current) => ({
+      ...(current && typeof current === "object" ? current : {}),
+      ...event.item,
+    }));
+  }
+}
+
+function invalidateGameDrivenQueries(queryClient, gameId) {
+  queryClient.invalidateQueries({ queryKey: ["games"], refetchType: "active" });
+  if (gameId) {
+    queryClient.invalidateQueries({ queryKey: ["game", gameId], refetchType: "active" });
+    queryClient.invalidateQueries({ queryKey: ["games", gameId], refetchType: "active" });
+  }
+  queryClient.invalidateQueries({ queryKey: ["standingsConfigs"], refetchType: "active" });
+  queryClient.invalidateQueries({ queryKey: ["home-overview-games"], refetchType: "active" });
+  queryClient.invalidateQueries({ predicate: (query) => {
+    const [first] = query.queryKey || [];
+    return typeof first === "string" && first.toLowerCase().includes("game");
+  }, refetchType: "active" });
+}
 
 function getGameDate(game) {
   if (game?.date) {
@@ -81,14 +136,15 @@ function useRealtimeSubscriptions(queryClient, enabledKeys) {
         if (!entityApi?.subscribe) return null;
 
         const unsub = entityApi.subscribe((event) => {
-          queryClient.invalidateQueries({ queryKey: [key] });
+          updateEntityCache(queryClient, key, event);
+          queryClient.invalidateQueries({ queryKey: [key], refetchType: "active" });
 
           if (event?.id) {
-            queryClient.invalidateQueries({ queryKey: [key, event.id] });
+            queryClient.invalidateQueries({ queryKey: [key, event.id], refetchType: "active" });
           }
 
           if (entity === "Game") {
-            queryClient.invalidateQueries({ queryKey: ["standingsConfigs"] });
+            invalidateGameDrivenQueries(queryClient, event?.id);
           }
         });
 
@@ -110,6 +166,18 @@ function useRealtimeSubscriptions(queryClient, enabledKeys) {
       });
     };
   }, [queryClient, enabledKeys]);
+}
+
+function useLiveScorePolling(enabled, queryClient) {
+  useEffect(() => {
+    if (!enabled || typeof window === "undefined") return undefined;
+
+    const interval = window.setInterval(() => {
+      invalidateGameDrivenQueries(queryClient);
+    }, LIVE_SCORE_POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [enabled, queryClient]);
 }
 
 function useAutomaticGameStatus(games, queryClient) {
@@ -236,6 +304,7 @@ export const GlobalDataProvider = ({ children }) => {
   ]);
 
   useRealtimeSubscriptions(queryClient, enabledRealtimeKeys);
+  useLiveScorePolling(needsCoreData, queryClient);
 
   const { data: leagues = [], isLoading: leaguesLoading } = useQuery(
     makeListQuery({
