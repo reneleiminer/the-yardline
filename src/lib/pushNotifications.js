@@ -317,10 +317,23 @@ export async function getPushSettingsState() {
 
 export async function requestPushEventCheck(reason = "client_update") {
   try {
-    await fetch(`/api/push/check?reason=${encodeURIComponent(reason)}`, {
+    const response = await fetch(`/api/push/check?reason=${encodeURIComponent(reason)}`, {
       method: "POST",
     });
-  } catch {
-    // Push is best-effort; the app action itself must never fail because of it.
+
+    const payload = await response.json().catch(() => null);
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      payload,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      payload: null,
+      error,
+    };
   }
 }
