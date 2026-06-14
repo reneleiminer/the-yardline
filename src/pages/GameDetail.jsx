@@ -204,6 +204,21 @@ function hasFinalScore(game) {
   );
 }
 
+
+function buildDisplayGame(game) {
+  if (!game) return game;
+
+  const effectiveStatus = getEffectiveGameStatus(game);
+  const hasScore = hasFinalScore(game);
+
+  return {
+    ...game,
+    status: effectiveStatus === 'live' && hasScore
+      ? 'live'
+      : effectiveStatus,
+  };
+}
+
 function isFinalGame(game) {
   return getEffectiveGameStatus(game) === 'final';
 }
@@ -1285,6 +1300,7 @@ export default function GameDetail() {
   const home = homeReal || PlaceholderTeam({ label: game?.homeTeamPlaceholder || 'Teilnehmer offen' });
   const away = awayReal || PlaceholderTeam({ label: game?.awayTeamPlaceholder || 'Teilnehmer offen' });
   const league = game ? leagueMap[game.leagueId] : null;
+  const displayGame = buildDisplayGame(game);
 
   const hasBothRealTeams = !!(game?.homeTeamId && game?.awayTeamId && homeReal && awayReal);
   const isCancelled = game?.status === 'cancelled';
@@ -1389,14 +1405,14 @@ export default function GameDetail() {
   return (
     <div className="w-full max-w-full overflow-x-hidden pb-32">
       {hasBothRealTeams ? (
-        <ScoreHero game={game} home={homeReal} away={awayReal} league={league} />
+        <ScoreHero game={displayGame} home={homeReal} away={awayReal} league={league} />
       ) : (
-        <PlaceholderScoreHero game={game} home={home} away={away} league={league} />
+        <PlaceholderScoreHero game={displayGame} home={home} away={away} league={league} />
       )}
 
-      <CancelledGameNotice game={game} />
+      <CancelledGameNotice game={displayGame} />
 
-      {!isCancelled && <StreamLinksBlock game={game} />}
+      {!isCancelled && <StreamLinksBlock game={displayGame} />}
 
       <div className="px-4 pt-4">
         <div className={`grid gap-2 rounded-[22px] border border-white/10 bg-black/72 p-1 shadow-[0_14px_30px_rgba(0,0,0,0.26)] ${showStatisticsTab ? 'grid-cols-3' : 'grid-cols-2'}`}>
