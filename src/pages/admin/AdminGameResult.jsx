@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Shield } from 'lucide-react';
 import { getImageUrl } from '@/lib/imageUtils';
 import { toast } from 'sonner';
-import { requestPushEventCheck } from '@/lib/pushNotifications';
+import { requestScorePush } from '@/lib/pushNotifications';
 import { useAuth } from '@/lib/AuthContext';
 
 const SYSTEM_AUTHOR_USERNAME = 'yardline-system';
@@ -532,11 +532,12 @@ export default function AdminGameResult() {
         ...updatedGame,
       };
 
-      const pushResult = await requestPushEventCheck(
-        isFinal
-          ? `admin_final_score:${game.id}:${payload.scoreHome}-${payload.scoreAway}`
-          : `admin_live_score:${game.id}:${payload.scoreHome}-${payload.scoreAway}`
-      );
+      const pushResult = await requestScorePush({
+        gameId: game.id,
+        status: resultStatus,
+        scoreHome: payload.scoreHome,
+        scoreAway: payload.scoreAway,
+      });
 
       if (isFinal) {
         await createOrUpdateGameReport({
@@ -580,7 +581,7 @@ export default function AdminGameResult() {
 
       const pushPayload = result?.pushResult?.payload;
       if (pushPayload) {
-        toast.info(`Push Check: ${pushPayload.sent || 0} gesendet · ${pushPayload.failed || 0} fehlgeschlagen · ${pushPayload.claimed || 0} neu`);
+        toast.info(`Score Push: ${pushPayload.sent || 0} gesendet · ${pushPayload.failed || 0} fehlgeschlagen · ${pushPayload.claimed || 0} neu`);
       } else if (result?.pushResult && result.pushResult.ok === false) {
         toast.warning('Push Check konnte nicht ausgeführt werden.');
       }
