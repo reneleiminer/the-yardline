@@ -70,6 +70,25 @@ function getEffectiveGameStatus(game) {
   return "scheduled";
 }
 
+
+function getGameUpdatedDate(game) {
+  const raw =
+    game?.updatedAtUtc ||
+    game?.updatedAt ||
+    game?.updated_date ||
+    game?.createdAtUtc ||
+    game?.created_date ||
+    "";
+
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isWithinLastHours(date, hours) {
+  if (!date) return false;
+  return Date.now() - date.getTime() <= hours * 60 * 60 * 1000;
+}
+
 function hasFinalScore(game) {
   return getEffectiveGameStatus(game) === "final" && hasPlayableScore(game);
 }
@@ -222,6 +241,24 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
   const away = teamsById.get(game.awayTeamId);
   const league = leaguesById.get(game.leagueId);
   const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
+  const showScore = (status === "live" || status === "final") && hasPlayableScore(game);
+
+  const title =
+    status === "live"
+      ? "Dein Team ist live"
+      : status === "final"
+        ? "Finale deines Teams"
+        : "Dein Team";
+
+  const subtitle =
+    status === "live"
+      ? "Live Game"
+      : status === "final"
+        ? "Final Game"
+        : kickoff
+          ? format(kickoff, "dd.MM. HH:mm", { locale: de })
+          : "Termin offen";
 
   return (
     <Link
@@ -230,37 +267,50 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
     >
       <div className="flex items-center gap-3">
         <div
-  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl p-2 shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
-  style={{
-    background: getTeamColor(favoriteTeam, "#013369"),
-  }}
->
-  {favoriteTeam.logo ? (
-    <img
-      src={getImageUrl(favoriteTeam.logo)}
-      alt=""
-      className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
-    />
-  ) : (
-    <span className="text-xs font-black text-white">
-      {(favoriteTeam.shortName || favoriteTeam.name || "T").slice(0, 2)}
-    </span>
-  )}
-</div>
+          className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl p-2 shadow-[0_10px_24px_rgba(0,0,0,0.28)]"
+          style={{ background: getTeamColor(favoriteTeam, "#013369") }}
+        >
+          {favoriteTeam.logo ? (
+            <img
+              src={getImageUrl(favoriteTeam.logo)}
+              alt=""
+              className="h-full w-full object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]"
+            />
+          ) : (
+            <span className="text-xs font-black text-white">
+              {(favoriteTeam.shortName || favoriteTeam.name || "T").slice(0, 2)}
+            </span>
+          )}
+        </div>
+
         <div className="min-w-0 flex-1">
           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#ff2338]">
-            Dein Team
+            {title}
           </p>
+
           <p className="mt-1 truncate text-sm font-black">
             {getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder)}
             {" vs "}
             {getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder)}
           </p>
+
           <p className="mt-0.5 truncate text-[11px] font-bold text-white/54">
-            {[league?.shortName || league?.name, kickoff ? format(kickoff, "dd.MM. HH:mm", { locale: de }) : "Termin offen"].filter(Boolean).join(" · ")}
+            {[league?.shortName || league?.name, subtitle].filter(Boolean).join(" · ")}
           </p>
         </div>
-        <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/36" />
+
+        {showScore ? (
+          <div className="flex flex-shrink-0 flex-col items-end">
+            <span className={`rounded-full px-2 py-0.5 text-[9px] font-black ${status === "live" ? "bg-red-700 text-white animate-pulse" : "bg-white text-black"}`}>
+              {status === "live" ? "LIVE" : "FINAL"}
+            </span>
+            <span className="mt-1 text-lg font-black tabular-nums">
+              {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
+            </span>
+          </div>
+        ) : (
+          <ChevronRight className="h-4 w-4 flex-shrink-0 text-white/36" />
+        )}
       </div>
     </Link>
   );
@@ -826,11 +876,34 @@ export default function Home() {
 
   const favoriteNextGame = useMemo(() => {
     if (!favoriteTeam?.id) return null;
+
+    const teamGames = games.filter((game) =>
+      game.homeTeamId === favoriteTeam.id ||
+      game.awayTeamId === favoriteTeam.id
+    );
+
+    const liveGame = teamGames
+      .filter((game) => getEffectiveGameStatus(game) === "live")
+      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))[0];
+
+    if (liveGame) return liveGame;
+
+    const recentFinal = teamGames
+      .filter((game) => getEffectiveGameStatus(game) === "final")
+      .map((game) => ({
+        game,
+        updatedAt: getGameUpdatedDate(game),
+        kickoff: getGameDate(game),
+      }))
+      .filter((item) => isWithinLastHours(item.updatedAt || item.kickoff, 24))
+      .sort((a, b) => (b.updatedAt?.getTime() || b.kickoff?.getTime() || 0) - (a.updatedAt?.getTime() || a.kickoff?.getTime() || 0))[0]?.game;
+
+    if (recentFinal) return recentFinal;
+
     const now = new Date();
 
-    return games
-      .filter((game) => !["final", "cancelled"].includes(getEffectiveGameStatus(game)))
-      .filter((game) => game.homeTeamId === favoriteTeam.id || game.awayTeamId === favoriteTeam.id)
+    return teamGames
+      .filter((game) => !["final", "cancelled", "live"].includes(getEffectiveGameStatus(game)))
       .map((game) => ({ game, date: getGameDate(game) }))
       .filter((item) => item.date && item.date >= now)
       .sort((a, b) => a.date.getTime() - b.date.getTime())[0]?.game || null;
