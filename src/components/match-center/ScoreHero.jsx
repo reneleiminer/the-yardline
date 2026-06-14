@@ -50,6 +50,21 @@ function getKickoffDate(game) {
   return null;
 }
 
+
+function getEffectiveStatus(game, kickoff) {
+  const rawStatus = String(game?.status || 'scheduled').toLowerCase();
+
+  if (rawStatus === 'cancelled') return 'cancelled';
+  if (rawStatus === 'final') return 'final';
+  if (rawStatus === 'live') return 'live';
+
+  if (kickoff && kickoff.getTime() <= Date.now()) {
+    return 'live';
+  }
+
+  return 'scheduled';
+}
+
 function hasPlayableScore(game) {
   return (
     game?.scoreHome !== undefined &&
@@ -67,14 +82,11 @@ export default function ScoreHero({ game, home, away, league }) {
   const [animateWinner, setAnimateWinner] = useState(false);
   const navigate = useNavigate();
 
-  const rawStatus = String(game.status || 'scheduled').toLowerCase();
   const kickoff = getKickoffDate(game);
-  const status = kickoff && kickoff.getTime() > Date.now() && rawStatus !== 'cancelled'
-    ? 'scheduled'
-    : rawStatus;
+  const status = getEffectiveStatus(game, kickoff);
   const isLive = status === 'live';
   const isFinal = status === 'final' && hasPlayableScore(game);
-  const hasScore = isLive || isFinal;
+  const hasScore = (isLive || isFinal) && hasPlayableScore(game);
 
   const homeColor = home?.primaryColor || home?.colorPrimary || '#013369';
   const awayColor = away?.primaryColor || away?.colorPrimary || '#c20f1a';
