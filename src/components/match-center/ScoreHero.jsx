@@ -62,6 +62,10 @@ function getEffectiveStatus(game, kickoff) {
     return 'live';
   }
 
+  if (hasPlayableScore(game)) {
+    return 'live';
+  }
+
   return 'scheduled';
 }
 
