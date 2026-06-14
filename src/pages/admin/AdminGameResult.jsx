@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Shield } from 'lucide-react';
 import { getImageUrl } from '@/lib/imageUtils';
 import { toast } from 'sonner';
+import { requestPushEventCheck } from '@/lib/pushNotifications';
 import { useAuth } from '@/lib/AuthContext';
 
 const SYSTEM_AUTHOR_USERNAME = 'yardline-system';
@@ -530,6 +531,12 @@ export default function AdminGameResult() {
         ...payload,
         ...updatedGame,
       };
+
+      await requestPushEventCheck(
+        resultStatus === 'final'
+          ? `admin_final_score:${game.id}`
+          : `admin_live_score:${game.id}:${payload.scoreHome}-${payload.scoreAway}`
+      );
 
       if (isFinal) {
         await createOrUpdateGameReport({
