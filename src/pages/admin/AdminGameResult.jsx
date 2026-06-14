@@ -532,9 +532,9 @@ export default function AdminGameResult() {
         ...updatedGame,
       };
 
-      await requestPushEventCheck(
-        resultStatus === 'final'
-          ? `admin_final_score:${game.id}`
+      const pushResult = await requestPushEventCheck(
+        isFinal
+          ? `admin_final_score:${game.id}:${payload.scoreHome}-${payload.scoreAway}`
           : `admin_live_score:${game.id}:${payload.scoreHome}-${payload.scoreAway}`
       );
 
@@ -551,12 +551,14 @@ export default function AdminGameResult() {
         return {
           nextGame,
           advanceInfo,
+          pushResult,
         };
       }
 
       return {
         nextGame,
         advanceInfo: null,
+        pushResult,
       };
     },
     onSuccess: async result => {
@@ -575,6 +577,13 @@ export default function AdminGameResult() {
             : 'Finales Ergebnis gespeichert'
           : 'Live-Ergebnis gespeichert'
       );
+
+      const pushPayload = result?.pushResult?.payload;
+      if (pushPayload) {
+        toast.info(`Push Check: ${pushPayload.sent || 0} gesendet · ${pushPayload.failed || 0} fehlgeschlagen · ${pushPayload.claimed || 0} neu`);
+      } else if (result?.pushResult && result.pushResult.ok === false) {
+        toast.warning('Push Check konnte nicht ausgeführt werden.');
+      }
 
       navigate(dashboardRoute, { replace: true, state: { updatedGameId: result?.nextGame?.id || gameId, resultSavedAt: Date.now() } });
     },
