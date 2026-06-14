@@ -378,3 +378,38 @@ export async function requestScorePush({ gameId, status, scoreHome, scoreAway } 
     };
   }
 }
+
+
+export async function sendTestPushNotification() {
+  if (!isPushSupported()) {
+    throw new Error("Push-Benachrichtigungen werden auf diesem Gerät nicht unterstützt.");
+  }
+
+  if (Notification.permission !== "granted") {
+    throw new Error("Benachrichtigungen sind auf diesem Gerät nicht erlaubt.");
+  }
+
+  const subscription = await getCurrentPushSubscription();
+
+  if (!subscription) {
+    throw new Error("Keine aktive Push-Subscription gefunden. Benachrichtigungen einmal aus- und wieder einschalten.");
+  }
+
+  const response = await fetch("/api/push/test", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      subscription,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload.error || "Push-Test konnte nicht gesendet werden.");
+  }
+
+  return payload;
+}
