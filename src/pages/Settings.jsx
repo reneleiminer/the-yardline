@@ -26,6 +26,7 @@ import {
   isPushSupported,
   PUSH_PREFERENCE_GROUPS,
   savePushPreferences,
+  sendTestPushNotification,
   syncPushSubscriptionMetadata,
 } from "@/lib/pushNotifications";
 import { Button } from "@/components/ui/button";
@@ -628,6 +629,7 @@ function PushNotificationSettings() {
   const [preferences, setPreferences] = React.useState(() => getPushPreferences());
   const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [testing, setTesting] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     if (!isPushSupported()) {
@@ -669,6 +671,19 @@ function PushNotificationSettings() {
       await refresh();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    setTesting(true);
+
+    try {
+      const result = await sendTestPushNotification();
+      toast.success(`Test-Push gesendet: ${result.sent || 0}`);
+    } catch (error) {
+      toast.error(error.message || "Test-Push fehlgeschlagen");
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -742,6 +757,24 @@ function PushNotificationSettings() {
       {blocked && (
         <div className="border-t border-border/30 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
           Du hast Benachrichtigungen im Browser blockiert. Das kannst du nur in den Website-Einstellungen deines Browsers wieder erlauben.
+        </div>
+      )}
+
+      {state.enabled && !blocked && (
+        <div className="border-t border-border/30 px-4 py-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleTestPush}
+            disabled={testing || saving}
+          >
+            {testing ? "Sende Test..." : "Test-Benachrichtigung senden"}
+          </Button>
+          <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+            Damit prüfst du direkt, ob dieses Handy Push empfangen kann.
+          </p>
         </div>
       )}
 
