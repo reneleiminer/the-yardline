@@ -626,6 +626,7 @@ function PushNotificationSettings() {
     disabledByUser: false,
   });
   const [preferences, setPreferences] = React.useState(() => getPushPreferences());
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
@@ -673,6 +674,7 @@ function PushNotificationSettings() {
 
   const blocked = state.permission === "denied";
   const disabled = saving || !state.supported || blocked;
+  const enabledPreferenceCount = PUSH_PREFERENCE_GROUPS.filter(item => preferences[item.key]?.enabled !== false).length;
 
   const syncPreferences = async (nextPreferences) => {
     const normalized = savePushPreferences(nextPreferences);
@@ -743,49 +745,68 @@ function PushNotificationSettings() {
         </div>
       )}
 
-      <div className="border-t border-border/30 px-3 py-3 space-y-2">
-        {PUSH_PREFERENCE_GROUPS.map(item => {
-          const current = preferences[item.key] || { enabled: true, scope: "all" };
-          const scopeDisabled = disabled || saving || !item.teamAware || item.favoriteLocked;
+      <div className="border-t border-border/30 px-3 py-3">
+        <button
+          type="button"
+          onClick={() => setDetailsOpen(open => !open)}
+          className="flex w-full items-center gap-3 rounded-2xl border border-border/40 bg-background/50 px-3 py-3 text-left transition hover:bg-background/70"
+          aria-expanded={detailsOpen}
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black">Benachrichtigungsarten</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {enabledPreferenceCount} von {PUSH_PREFERENCE_GROUPS.length} aktiviert
+            </span>
+          </span>
+          <ChevronRight className={`h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform ${detailsOpen ? "rotate-90" : ""}`} />
+        </button>
 
-          return (
-            <div key={item.key} className="rounded-2xl border border-border/40 bg-background/40 px-3 py-3">
-              <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black">{item.label}</p>
-                  <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{item.description}</p>
-                </div>
-                <Switch
-                  checked={current.enabled}
-                  disabled={disabled || saving}
-                  onCheckedChange={checked => setPreferenceValue(item.key, { enabled: checked })}
-                  aria-label={`${item.label} umschalten`}
-                />
-              </div>
+        {detailsOpen && (
+          <div className="mt-2 space-y-2">
+            {PUSH_PREFERENCE_GROUPS.map(item => {
+              const current = preferences[item.key] || { enabled: true, scope: "all" };
+              const scopeDisabled = disabled || saving || !item.teamAware || item.favoriteLocked;
 
-              {item.teamAware && (
-                <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-xl border border-border/40 bg-black/30 p-1">
-                  <button
-                    type="button"
-                    disabled={scopeDisabled}
-                    onClick={() => setPreferenceValue(item.key, { scope: "all" })}
-                    className={`h-9 rounded-lg text-xs font-black transition ${current.scope !== "favorite" ? "bg-white text-black" : "text-muted-foreground"}`}
-                  >
-                    Alle
-                  </button>
-                  <button
-                    type="button"
-                    disabled={scopeDisabled}
-                    onClick={() => setPreferenceValue(item.key, { scope: "favorite" })}
-                    className={`h-9 rounded-lg text-xs font-black transition ${current.scope === "favorite" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                  >
-                    Nur Favorit
-                  </button>
+              return (
+                <div key={item.key} className="rounded-2xl border border-border/40 bg-background/40 px-3 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black">{item.label}</p>
+                      <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{item.description}</p>
+                    </div>
+                    <Switch
+                      checked={current.enabled}
+                      disabled={disabled || saving}
+                      onCheckedChange={checked => setPreferenceValue(item.key, { enabled: checked })}
+                      aria-label={`${item.label} umschalten`}
+                    />
+                  </div>
+
+                  {item.teamAware && (
+                    <div className="mt-3 grid grid-cols-2 overflow-hidden rounded-xl border border-border/40 bg-black/30 p-1">
+                      <button
+                        type="button"
+                        disabled={scopeDisabled}
+                        onClick={() => setPreferenceValue(item.key, { scope: "all" })}
+                        className={`h-9 rounded-lg text-xs font-black transition ${current.scope !== "favorite" ? "bg-white text-black" : "text-muted-foreground"}`}
+                      >
+                        Alle
+                      </button>
+                      <button
+                        type="button"
+                        disabled={scopeDisabled}
+                        onClick={() => setPreferenceValue(item.key, { scope: "favorite" })}
+                        className={`h-9 rounded-lg text-xs font-black transition ${current.scope === "favorite" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                      >
+                        Nur Favorit
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
