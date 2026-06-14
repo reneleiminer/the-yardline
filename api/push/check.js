@@ -96,10 +96,16 @@ async function sendEventToSubscriptions(supabase, event) {
   const sender = configureWebPush();
   let sent = 0;
   let failed = 0;
+  let eligible = 0;
+  const totalSubscriptions = (subscriptions || []).length;
 
   await Promise.all(
     (subscriptions || [])
-      .filter((row) => shouldReceiveEvent(row.subscription, event))
+      .filter((row) => {
+        const allowed = shouldReceiveEvent(row.subscription, event);
+        if (allowed) eligible += 1;
+        return allowed;
+      })
       .map(async (row) => {
         try {
           await sender.sendNotification(
@@ -108,6 +114,7 @@ async function sendEventToSubscriptions(supabase, event) {
               urgent:
                 event.urgent === true ||
                 event.type === "live_game" ||
+                event.type === "live_score_update" ||
                 event.type === "favorite_live_score" ||
                 event.type === "favorite_final_score",
             }))
@@ -126,7 +133,7 @@ async function sendEventToSubscriptions(supabase, event) {
       })
   );
 
-  return { sent, failed };
+  return { sent, failed, eligible, totalSubscriptions };
 }
 
 function hoursAgo(hours) {
@@ -632,6 +639,8 @@ export default async function handler(req, res) {
     let claimed = 0;
     let sent = 0;
     let failed = 0;
+    let eligible = 0;
+    let totalSubscriptions = 0;
 
     for (const event of events) {
       const canSend = await claimEvent(supabase, event);
@@ -642,6 +651,8 @@ export default async function handler(req, res) {
 
       sent += result.sent;
       failed += result.failed;
+      eligible += result.eligible || 0;
+      totalSubscriptions = Math.max(totalSubscriptions, result.totalSubscriptions || 0);
     }
 
     return sendJson(res, 200, {
@@ -650,6 +661,8 @@ export default async function handler(req, res) {
       claimed,
       sent,
       failed,
+      eligible,
+      totalSubscriptions,
     });
   } catch (error) {
     console.error("PUSH CHECK ERROR:", error);
