@@ -24,6 +24,29 @@ const DEFAULT_PUSH_PREFERENCES = {
   weeklyStreaks: { enabled: true, scope: "all" },
 };
 
+const BRAND_ICON = "/yardline-icon-192.png";
+const BRAND_BADGE = "/yardline-icon-180.png";
+const BRAND_IMAGE = "/yardline-logo.png";
+
+function styleNotification(payload = {}, options = {}) {
+  return {
+    ...payload,
+    title: payload.title ? `THE YARDLINE | ${payload.title}` : "THE YARDLINE | Update",
+    icon: payload.icon || BRAND_ICON,
+    badge: payload.badge || BRAND_BADGE,
+    image: payload.image || options.image || BRAND_IMAGE,
+    timestamp: Date.now(),
+    vibrate: options.urgent ? [180, 80, 180, 80, 220] : [120, 60, 120],
+    requireInteraction: options.urgent === true,
+    actions: payload.actions || [
+      {
+        action: "open",
+        title: options.actionTitle || "Oeffnen",
+      },
+    ],
+  };
+}
+
 function normalizePreferences(value = {}) {
   return Object.entries(DEFAULT_PUSH_PREFERENCES).reduce((prefs, [key, fallback]) => {
     const current = value?.[key] || {};
@@ -79,7 +102,12 @@ async function sendEventToSubscriptions(supabase, event) {
       .filter((row) => shouldReceiveEvent(row.subscription, event))
       .map(async (row) => {
         try {
-          await sender.sendNotification(getSubscriptionPayload(row.subscription), JSON.stringify(event.payload));
+          await sender.sendNotification(
+            getSubscriptionPayload(row.subscription),
+            JSON.stringify(styleNotification(event.payload, {
+              urgent: event.urgent === true || event.type === "live_game" || event.type === "favorite_final_score",
+            }))
+          );
           sent += 1;
         } catch (error) {
           failed += 1;

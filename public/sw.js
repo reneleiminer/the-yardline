@@ -24,12 +24,19 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "",
     icon: data.icon || "/yardline-icon-192.png",
-    badge: data.badge || "/favicon.png",
+    badge: data.badge || "/yardline-icon-180.png",
     image: data.image || undefined,
     tag: data.tag || "yardline-update",
     renotify: data.renotify === true,
+    requireInteraction: data.requireInteraction === true,
+    timestamp: data.timestamp || Date.now(),
+    vibrate: Array.isArray(data.vibrate) ? data.vibrate : [120, 60, 120],
+    actions: Array.isArray(data.actions) && data.actions.length > 0
+      ? data.actions
+      : [{ action: "open", title: "Oeffnen" }],
     data: {
       url: data.url || "/",
+      actionUrl: data.actionUrl || data.url || "/",
     },
   };
 
@@ -39,7 +46,9 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification?.data?.url || "/";
+  const targetUrl = event.action === "open"
+    ? event.notification?.data?.actionUrl || event.notification?.data?.url || "/"
+    : event.notification?.data?.url || "/";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
