@@ -193,7 +193,7 @@ function GameCard({ game, teamsById, leaguesById }) {
           <div className="flex flex-col items-center min-w-0">
             <TeamLogo team={home} fallback={homeName} />
 
-            <p className="mt-2 text-[11px] font-black text-center leading-tight whitespace-normal break-words line-clamp-2">
+            <p className="mt-2 text-[11px] font-black text-center leading-tight whitespace-normal break-words">
               {homeName}
             </p>
           </div>
@@ -219,7 +219,7 @@ function GameCard({ game, teamsById, leaguesById }) {
           <div className="flex flex-col items-center min-w-0">
             <TeamLogo team={away} fallback={awayName} />
 
-            <p className="mt-2 text-[11px] font-black text-center leading-tight whitespace-normal break-words line-clamp-2">
+            <p className="mt-2 text-[11px] font-black text-center leading-tight whitespace-normal break-words">
               {awayName}
             </p>
           </div>
