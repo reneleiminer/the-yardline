@@ -79,6 +79,13 @@ function normalizeHighlight(item) {
   };
 }
 
+function isNewHighlight(highlight, hours = 24) {
+  const createdAt = new Date(highlight.createdAt || highlight.date || 0);
+  if (Number.isNaN(createdAt.getTime())) return false;
+
+  return Date.now() - createdAt.getTime() <= hours * 60 * 60 * 1000;
+}
+
 function isFreshHighlight(highlight, minDate) {
   const createdAt = new Date(highlight.createdAt || highlight.date || 0);
   return Number.isNaN(createdAt.getTime()) || !isBefore(createdAt, minDate);
@@ -92,6 +99,7 @@ function openExternalUrl(url) {
 }
 
 function HighlightCard({ highlight, leaguesById }) {
+  const isNew = isNewHighlight(highlight);
   const externalUrl = normalizeUrl(highlight.external_video_url);
   const previewVideoUrl = normalizeUrl(highlight.preview_video_url);
   const thumbnailUrl = normalizeUrl(highlight.thumbnail_url);
@@ -151,8 +159,14 @@ function HighlightCard({ highlight, leaguesById }) {
         )}
       </div>
 
+      {isNew && (
+        <span className="absolute right-3 top-3 z-10 rounded-full border border-red-400/40 bg-red-600 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-[0_8px_20px_rgba(194,15,26,0.36)]">
+          Neu
+        </span>
+      )}
+
       {clickable && (
-        <div className="absolute right-3 top-3 w-11 h-11 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center shadow-[0_0_24px_rgba(0,91,255,0.28)] transition-transform duration-300 group-hover:scale-105">
+        <div className={`absolute ${isNew ? "right-3 top-12" : "right-3 top-3"} w-11 h-11 rounded-full bg-black/55 border border-white/20 backdrop-blur flex items-center justify-center shadow-[0_0_24px_rgba(0,91,255,0.28)] transition-transform duration-300 group-hover:scale-105`}>
           <Play className="w-5 h-5 text-white fill-white ml-0.5" />
         </div>
       )}
@@ -256,6 +270,10 @@ export default function Highlights() {
         .map(normalizeHighlight)
         .filter(item => item.active !== false);
     },
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   useEffect(() => {
