@@ -25,6 +25,32 @@ function TeamLogo({ logo, name }) {
   );
 }
 
+
+
+function hexToRgba(color, alpha) {
+  if (!color) return `rgba(255,255,255,${alpha})`;
+  const normalized = String(color).trim();
+
+  if (normalized.startsWith('#')) {
+    let hex = normalized.slice(1);
+    if (hex.length === 3) {
+      hex = hex
+        .split('')
+        .map((char) => char + char)
+        .join('');
+    }
+    if (hex.length === 6) {
+      const value = Number.parseInt(hex, 16);
+      const r = (value >> 16) & 255;
+      const g = (value >> 8) & 255;
+      const b = value & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+  }
+
+  return normalized;
+}
+
 function getKickoffDate(game) {
   if (game?.date) {
     const rawTime = game.time || game.kickoffTime || '00:00';
@@ -148,32 +174,40 @@ export default function ScoreHero({ game, home, away, league }) {
               </span>
             </button>
 
-            <div className="flex min-w-[108px] flex-shrink-0 flex-col items-center gap-1.5 rounded-[22px] border border-white/22 bg-black/78 px-3 py-3 shadow-[0_12px_30px_rgba(0,0,0,0.54)] backdrop-blur">
-              {hasScore ? (
-                <div className="flex items-center gap-2 text-white">
-                  <ScorePill score={homeScore} size="lg" />
-                  <span className="text-xl font-light text-white/42">:</span>
-                  <ScorePill score={awayScore} size="lg" />
-                </div>
-              ) : (
-                <span className="text-2xl font-black text-[#ff2338] tabular-nums">
-                  {game.time || game.kickoffTime || '--:--'}
-                </span>
-              )}
-
-              {isLive ? (
-                <div className="flex items-center gap-1.5">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+            <div
+              className="relative flex min-w-[116px] flex-shrink-0 flex-col items-center gap-1.5 overflow-hidden rounded-[24px] border border-white/26 px-4 py-3 shadow-[0_10px_26px_rgba(0,0,0,0.16)] backdrop-blur-md"
+              style={{
+                background: `linear-gradient(90deg, ${hexToRgba(homeColor, 0.28)} 0%, ${hexToRgba(homeColor, 0.18)} 50%, ${hexToRgba(awayColor, 0.18)} 50%, ${hexToRgba(awayColor, 0.28)} 100%)`,
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-white/18 via-white/8 to-black/10" />
+              <div className="relative z-10 flex flex-col items-center gap-1.5">
+                {hasScore ? (
+                  <div className="flex items-center gap-2 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
+                    <ScorePill score={homeScore} size="lg" />
+                    <span className="text-xl font-light text-white/58">:</span>
+                    <ScorePill score={awayScore} size="lg" />
+                  </div>
+                ) : (
+                  <span className="text-2xl font-black text-white tabular-nums drop-shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
+                    {game.time || game.kickoffTime || '--:--'}
                   </span>
-                  <span className="text-[10px] font-black tracking-widest text-red-400">LIVE</span>
-                </div>
-              ) : isFinal ? (
-                <span className="text-[10px] font-black tracking-wider text-white/68">FINAL</span>
-              ) : (
-                <span className="text-[10px] font-black tracking-wider text-white/58">KICKOFF</span>
-              )}
+                )}
+
+                {isLive ? (
+                  <div className="flex items-center gap-1.5 rounded-full border border-red-400/35 bg-red-500/18 px-2 py-0.5">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+                    </span>
+                    <span className="text-[10px] font-black tracking-widest text-red-100">LIVE</span>
+                  </div>
+                ) : isFinal ? (
+                  <span className="rounded-full border border-white/16 bg-white/14 px-2 py-0.5 text-[10px] font-black tracking-wider text-white/86">FINAL</span>
+                ) : (
+                  <span className="rounded-full border border-white/16 bg-white/12 px-2 py-0.5 text-[10px] font-black tracking-wider text-white/82">KICKOFF</span>
+                )}
+              </div>
             </div>
 
             <button
