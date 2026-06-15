@@ -204,7 +204,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={home?.logo} name={home?.name} />
               </div>
 
-              <span className="w-full max-w-[150px] whitespace-normal break-words text-center text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-3xl">
+              <span className="line-clamp-2 w-full max-w-[160px] whitespace-normal break-words text-center text-[18px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[230px] sm:text-2xl">
                 {homeName}
               </span>
             </button>
@@ -257,7 +257,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={away?.logo} name={away?.name} />
               </div>
 
-              <span className="w-full max-w-[150px] whitespace-normal break-words text-center text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-3xl">
+              <span className="line-clamp-2 w-full max-w-[160px] whitespace-normal break-words text-center text-[18px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[230px] sm:text-2xl">
                 {awayName}
               </span>
             </button>
