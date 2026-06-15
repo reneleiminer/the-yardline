@@ -6,6 +6,7 @@ import { ChevronLeft, Search } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
+import { getEffectiveGameStatus, getGameDate } from "@/lib/gameStatusUtils";
 import StandingsTable from "@/components/standings/StandingsTable";
 const MATCH_TABS = [
   { key: "games", label: "Games" },
@@ -19,42 +20,6 @@ const GAME_FILTER_TABS = [
 
 function normalizeId(value) {
   return String(value || "").trim();
-}
-
-function getGameDate(game) {
-  if (game?.date) {
-    const rawTime = game.time || game.kickoffTime || "00:00";
-    const [year, month, day] = String(game.date).split("-").map(Number);
-    const [hour, minute] = String(rawTime).split(":").map(Number);
-
-    if (year && month && day) {
-      return new Date(year, month - 1, day, Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0);
-    }
-  }
-
-  if (game?.kickoffAt) {
-    const kickoff = new Date(game.kickoffAt);
-    if (!Number.isNaN(kickoff.getTime())) return kickoff;
-  }
-
-  return null;
-}
-
-function getEffectiveGameStatus(game) {
-  if (!game) return "scheduled";
-
-  const rawStatus = String(game.status || "scheduled").toLowerCase();
-
-  if (rawStatus === "cancelled") return "cancelled";
-  if (rawStatus === "final") return "final";
-  if (rawStatus === "live") return "live";
-
-  const kickoff = getGameDate(game);
-  if (kickoff && kickoff.getTime() <= Date.now()) {
-    return "live";
-  }
-
-  return "scheduled";
 }
 
 function getTeamName(team, fallback) {

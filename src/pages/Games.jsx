@@ -21,7 +21,16 @@ import { getImageUrl } from "@/lib/imageUtils";
 function getGameDate(game) {
   if (game?.date) {
     const rawTime = game.time || game.kickoffTime || "00:00";
-    const [year, month, day] = String(game.date).split("-").map(Number);
+    const rawDate = String(game.date);
+    let year;
+    let month;
+    let day;
+
+    if (rawDate.includes("-")) {
+      [year, month, day] = rawDate.split("-").map(Number);
+    } else if (rawDate.includes(".")) {
+      [day, month, year] = rawDate.split(".").map(Number);
+    }
     const [hour, minute] = String(rawTime).split(":").map(Number);
 
     if (year && month && day) {
@@ -49,10 +58,10 @@ function getEffectiveGameStatus(game) {
   if (!game) return "scheduled";
   if (game.status === "cancelled") return "cancelled";
   if (game.status === "final") return "final";
-  if (game.status === "live") return "live";
-
   const date = getGameDate(game);
   if (!date) return game.status || "scheduled";
+  if (date.getTime() > Date.now()) return "scheduled";
+  if (game.status === "live") return "live";
 
   // UI-Fallback: Wenn die Function verzögert läuft, zeigt die App trotzdem Live an.
   // Abgesagte Spiele bleiben aber immer abgesagt und dürfen nie automatisch Live werden.
