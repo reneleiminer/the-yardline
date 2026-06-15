@@ -596,7 +596,7 @@ function StreamLinksBlock({ game }) {
             >
               <StreamProviderLogo stream={stream} size="w-11 h-11" />
 
-              <span className="mt-2 text-[10px] font-black leading-tight line-clamp-2 min-h-[24px]">
+              <span className="mt-2 text-[10px] font-black leading-tight min-h-[24px]">
                 {getStreamName(stream)}
               </span>
             </a>
@@ -708,7 +708,7 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
           Mein Tipp
         </p>
 
-        <p className="text-sm font-black leading-tight mt-1 line-clamp-2">
+        <p className="text-sm font-black leading-tight mt-1">
           {homeName} gewinnt
         </p>
       </button>
@@ -723,7 +723,7 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
           Mein Tipp
         </p>
 
-        <p className="text-sm font-black leading-tight mt-1 line-clamp-2">
+        <p className="text-sm font-black leading-tight mt-1">
           {awayName} gewinnt
         </p>
       </button>
@@ -1155,7 +1155,7 @@ function GameDayShotsBlock({ photos }) {
                         </div>
                       )}
                       {caption && (
-                        <p className="text-[11px] font-semibold line-clamp-2">
+                        <p className="text-[11px] font-semibold">
                           {caption}
                         </p>
                       )}
