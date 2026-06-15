@@ -137,16 +137,7 @@ function getOrCreateVisitorId() {
 function getGameDate(game) {
   if (game?.date) {
     const rawTime = game.time || game.kickoffTime || '00:00';
-    const rawDate = String(game.date);
-    let year;
-    let month;
-    let day;
-
-    if (rawDate.includes('-')) {
-      [year, month, day] = rawDate.split('-').map(Number);
-    } else if (rawDate.includes('.')) {
-      [day, month, year] = rawDate.split('.').map(Number);
-    }
+    const [year, month, day] = String(game.date).split('-').map(Number);
     const [hour, minute] = String(rawTime).split(':').map(Number);
 
     if (year && month && day) {
@@ -177,9 +168,9 @@ function getEffectiveGameStatus(game) {
 
   if (rawStatus === 'cancelled') return 'cancelled';
   if (rawStatus === 'final') return 'final';
-  const kickoff = getGameDate(game);
-  if (kickoff && kickoff.getTime() > Date.now()) return 'scheduled';
   if (rawStatus === 'live') return 'live';
+
+  const kickoff = getGameDate(game);
   if (kickoff && kickoff.getTime() <= Date.now()) {
     return 'live';
   }
@@ -217,14 +208,9 @@ function hasFinalScore(game) {
 function buildDisplayGame(game) {
   if (!game) return game;
 
-  const effectiveStatus = getEffectiveGameStatus(game);
-  const hasScore = hasFinalScore(game);
-
   return {
     ...game,
-    status: effectiveStatus === 'live' && hasScore
-      ? 'live'
-      : effectiveStatus,
+    status: getEffectiveGameStatus(game),
   };
 }
 
