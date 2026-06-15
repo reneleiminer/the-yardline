@@ -9,6 +9,7 @@ import { base44 } from "@/api/base44Client";
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
 import { useAuth } from "@/lib/AuthContext";
+import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
 const HIGHLIGHT_VERSION = "game_highlight";
 const GAMEDAY_SHOT_VERSION = "gameday_photo";
@@ -236,11 +237,12 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
             </>
           ) : showScore ? (
             <>
-              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:gap-2.5">
-                <span className="min-w-[34px] text-right text-[28px] font-black leading-none tabular-nums sm:min-w-[44px] sm:text-[40px]">{game.scoreHome ?? 0}</span>
-                <span className="text-center text-[18px] font-black leading-none text-white/90 sm:text-[22px]">:</span>
-                <span className="min-w-[34px] text-left text-[28px] font-black leading-none tabular-nums sm:min-w-[44px] sm:text-[40px]">{game.scoreAway ?? 0}</span>
-              </div>
+              <ScoreDisplay
+                homeScore={game.scoreHome ?? 0}
+                awayScore={game.scoreAway ?? 0}
+                dark
+                size="lg"
+              />
               <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/74"}`}>
                 {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
                 {statusLabel}
@@ -306,11 +308,12 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
 
         <div className="relative z-10 flex min-w-[110px] flex-col items-center justify-center px-1 text-center">
           {showScore ? (
-            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)]">
-              <span className="text-right text-[22px] font-black leading-none tabular-nums">{game.scoreHome ?? 0}</span>
-              <span className="text-[18px] font-black leading-none text-white/90">:</span>
-              <span className="text-left text-[22px] font-black leading-none tabular-nums">{game.scoreAway ?? 0}</span>
-            </div>
+            <ScoreDisplay
+              homeScore={game.scoreHome ?? 0}
+              awayScore={game.scoreAway ?? 0}
+              dark
+              size="sm"
+            />
           ) : (<span className="text-[24px] font-black leading-none tabular-nums">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "--:--"}</span>)}
           <span className={`mt-1 text-[9px] font-black uppercase tracking-[0.18em] ${status === "live" ? "text-[#ff2338]" : "text-white/72"}`}>
             {status === "live" ? "LIVE" : status === "final" ? "FINAL" : kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "KICKOFF"}
