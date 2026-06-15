@@ -53,8 +53,13 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none bg-black px-3"
-      style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+      className="fixed inset-x-0 bottom-0 z-[80] pointer-events-none bg-black px-3 transform-gpu"
+      style={{
+        paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+        transform: "translate3d(0,0,0)",
+        willChange: "transform",
+        contain: "layout paint",
+      }}
       aria-label="Hauptnavigation"
     >
       <div className="absolute inset-0 pointer-events-none border-t border-white/12 bg-black" />
