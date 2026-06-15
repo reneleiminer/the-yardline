@@ -147,6 +147,53 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
   const league = leaguesById.get(game.leagueId);
   const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
+  const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
+  const showScore = (status === "final" || status === "live") && hasPlayableScore(game);
+  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
+  const awayColor = getTeamColor(away, "#c20f1a");
+  const statusLabel = status === "live" ? "LIVE" : status === "final" ? "FINAL" : status === "cancelled" ? "ABGESAGT" : "KICKOFF";
+
+  return (
+    <Link to={`/game/${game.id}`} className="group block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.34)] active:scale-[0.99] transition-transform">
+      <div className="relative grid min-h-[172px] grid-cols-[1fr_auto_1fr] overflow-hidden sm:min-h-[190px]">
+        <div className="absolute inset-0 z-0 grid grid-cols-2">
+          <div style={{ background: homeColor }} />
+          <div style={{ background: awayColor }} />
+        </div>
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-transparent to-black/12" />
+        <div className="pointer-events-none absolute inset-y-5 left-1/2 z-10 w-px -translate-x-1/2 bg-white/18" />
+
+        <div className="relative z-20 flex min-w-0 items-center gap-3 pl-2 pr-3 py-4 sm:gap-4 sm:pl-3 sm:pr-5 sm:py-5 text-left">
+          <TeamLogo team={home} className="h-[110px] w-[88px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)] sm:h-[132px] sm:w-[102px]" />
+          <div className="min-w-0 flex-1"><p className="line-clamp-2 whitespace-normal break-words text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)] sm:text-[30px]">{homeName}</p></div>
+        </div>
+
+        <div className="relative z-20 flex min-w-[120px] flex-col items-center justify-center px-2 text-center sm:min-w-[138px]">
+          {status === "cancelled" ? (
+            <><span className="text-[14px] font-black uppercase tracking-[0.18em] text-white/72">VS</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-orange-200">ABGESAGT</span></>
+          ) : showScore ? (
+            <><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:gap-2.5"><span className="min-w-[34px] text-right text-[28px] font-black leading-none tabular-nums sm:min-w-[44px] sm:text-[40px]">{game.scoreHome ?? 0}</span><span className="text-center text-[18px] font-black leading-none text-white/90 sm:text-[22px]">:</span><span className="min-w-[34px] text-left text-[28px] font-black leading-none tabular-nums sm:min-w-[44px] sm:text-[40px]">{game.scoreAway ?? 0}</span></div><span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/74"}`}>{status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}{statusLabel}</span></>
+          ) : (
+            <><span className="text-[28px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[36px]">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "--:--"}</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/72">{kickoff ? format(kickoff, "dd.MM.", { locale: de }) : statusLabel}</span></>
+          )}
+        </div>
+
+        <div className="relative z-20 flex min-w-0 items-center justify-end gap-3 pl-3 pr-2 py-4 text-right sm:gap-4 sm:pl-5 sm:pr-3 sm:py-5">
+          <div className="min-w-0 flex-1"><p className="line-clamp-2 whitespace-normal break-words text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)] sm:text-[30px]">{awayName}</p></div>
+          <TeamLogo team={away} className="h-[110px] w-[88px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)] sm:h-[132px] sm:w-[102px]" />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+) {
+  const home = teamsById.get(game.homeTeamId);
+  const away = teamsById.get(game.awayTeamId);
+  const league = leaguesById.get(game.leagueId);
+  const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
   const homeAbbr = getTeamAbbreviation(home, homeName);
   const awayAbbr = getTeamAbbreviation(away, awayName);
   const kickoff = getGameDate(game);
