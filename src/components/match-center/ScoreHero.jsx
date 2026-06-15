@@ -9,7 +9,7 @@ function TeamLogo({ logo, name, className = "h-20 w-20" }) {
       <img
         src={getImageUrl(logo)}
         alt={name || ""}
-        className={`${className} object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)]`}
+        className={`${className} object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.42)]`}
         onError={event => {
           event.currentTarget.style.display = "none";
         }}
@@ -114,12 +114,13 @@ export default function ScoreHero({ game, home, away, league }) {
   return (
     <div className="px-4 pt-4 pb-2">
       <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.36)]">
-        <div className="absolute inset-0 grid grid-cols-2">
+        <div className="absolute inset-0 grid grid-cols-[1fr_58px_1fr] sm:grid-cols-[1fr_70px_1fr]">
           <div style={{ background: homeColor }} />
+          <div className="bg-black/82" />
           <div style={{ background: awayColor }} />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-white/12 via-transparent to-black/12" />
-        <div className="absolute inset-y-6 left-1/2 z-10 w-px -translate-x-1/2 bg-white/18" />
+        <div className="absolute inset-y-0 left-1/2 z-10 w-[58px] -translate-x-1/2 border-x border-white/14 bg-black/46 sm:w-[70px]" />
 
         <div className="relative px-5 py-5 sm:px-7 sm:py-6">
           {(leagueName || weekLabel || roundLabel) && (
@@ -128,73 +129,91 @@ export default function ScoreHero({ game, home, away, league }) {
             </div>
           )}
 
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 sm:gap-6">
+          <div className="grid grid-cols-[minmax(0,1fr)_58px_minmax(0,1fr)] items-center sm:grid-cols-[minmax(0,1fr)_70px_minmax(0,1fr)]">
             <button
               type="button"
-              className={`min-w-0 flex items-center gap-3 text-left transition-opacity ${homeDimmed ? "opacity-55" : "opacity-100"}`}
+              className={`min-w-0 flex items-center gap-3 pr-3 text-left transition-opacity sm:gap-4 sm:pr-5 ${homeDimmed ? "opacity-55" : "opacity-100"}`}
               onClick={() => game.homeTeamId && navigate(`/team/${game.homeTeamId}`)}
             >
               <div
                 className={`shrink-0 transition-all ${homeWins && animateWinner ? "winner-animation" : ""} ${homeWins && isFinal ? "winner-glow" : ""}`}
                 style={homeWins ? { "--winner-color": homeColor } : {}}
               >
-                <TeamLogo logo={home?.logo} name={home?.name} className="h-[74px] w-[74px] sm:h-[96px] sm:w-[96px]" />
+                <TeamLogo logo={home?.logo} name={home?.name} className="h-[138px] w-[92px] sm:h-[164px] sm:w-[118px]" />
               </div>
 
-              <span className="w-full max-w-[220px] whitespace-normal break-words text-left text-[24px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[320px] sm:text-[34px]">
-                {homeName}
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block whitespace-normal break-words text-left text-[23px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:text-[34px]">
+                  {homeName}
+                </span>
+
+                {hasScore && (
+                  <span className="mt-3 block text-left text-[38px] font-black leading-none tabular-nums text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.44)] sm:text-[56px]">
+                    {homeScore}
+                  </span>
+                )}
+              </div>
             </button>
 
-            <div className="relative z-20 flex min-w-[132px] flex-shrink-0 flex-col items-center justify-center gap-1.5 px-2 text-center sm:min-w-[184px]">
-              {status === "cancelled" ? (
-                <>
-                  <span className="text-[18px] font-black uppercase tracking-[0.22em] text-orange-200 sm:text-[22px]">VS</span>
-                  <span className="mt-2 text-[11px] font-black uppercase tracking-[0.22em] text-orange-200">ABGESAGT</span>
-                </>
-              ) : hasScore ? (
-                <>
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.34)] sm:gap-4">
-                    <span className="text-right text-[34px] font-black leading-none tabular-nums sm:text-[52px]">{homeScore}</span>
-                    <span className="text-center text-[15px] font-black uppercase tracking-[0.25em] text-white/72 sm:text-[18px]">VS</span>
-                    <span className="text-left text-[34px] font-black leading-none tabular-nums sm:text-[52px]">{awayScore}</span>
-                  </div>
-                  <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${isLive ? "text-[#ff2338]" : "text-white/72"}`}>
-                    {isLive && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
-                    {isLive ? "LIVE" : "FINAL"}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-[13px] font-black uppercase tracking-[0.24em] text-white/72">VS</span>
-                  <span className="mt-1 text-[36px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.36)] sm:text-[52px]">
-                    {game.time || game.kickoffTime || "--:--"}
-                  </span>
-                  <span className="mt-1 text-[10px] font-black uppercase tracking-[0.22em] text-white/72">
-                    {kickoff ? kickoff.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "KICKOFF"}
-                  </span>
-                  <span className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/56">KICKOFF</span>
-                </>
-              )}
+            <div className="relative z-20 flex min-w-0 flex-col items-center justify-center px-1 text-center">
+              <span className="text-[17px] font-black uppercase tracking-[0.18em] text-white/86 sm:text-[20px]">VS</span>
+              <span className={`mt-2 writing-mode-vertical text-[9px] font-black uppercase tracking-[0.16em] ${
+                isLive
+                  ? "text-[#ff2338]"
+                  : status === "cancelled"
+                    ? "text-orange-200"
+                    : "text-white/64"
+              }`}>
+                {isLive ? "LIVE" : isFinal ? "FINAL" : status === "cancelled" ? "ABGESAGT" : "KICKOFF"}
+              </span>
             </div>
 
             <button
               type="button"
-              className={`min-w-0 flex items-center justify-end gap-3 text-right transition-opacity ${awayDimmed ? "opacity-55" : "opacity-100"}`}
+              className={`min-w-0 flex items-center justify-end gap-3 pl-3 text-right transition-opacity sm:gap-4 sm:pl-5 ${awayDimmed ? "opacity-55" : "opacity-100"}`}
               onClick={() => game.awayTeamId && navigate(`/team/${game.awayTeamId}`)}
             >
-              <span className="w-full max-w-[220px] whitespace-normal break-words text-right text-[24px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[320px] sm:text-[34px]">
-                {awayName}
-              </span>
+              <div className="min-w-0 flex-1">
+                <span className="block whitespace-normal break-words text-right text-[23px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:text-[34px]">
+                  {awayName}
+                </span>
+
+                {hasScore && (
+                  <span className="mt-3 block text-right text-[38px] font-black leading-none tabular-nums text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.44)] sm:text-[56px]">
+                    {awayScore}
+                  </span>
+                )}
+              </div>
 
               <div
                 className={`shrink-0 transition-all ${awayWins && animateWinner ? "winner-animation" : ""} ${awayWins && isFinal ? "winner-glow" : ""}`}
                 style={awayWins ? { "--winner-color": awayColor } : {}}
               >
-                <TeamLogo logo={away?.logo} name={away?.name} className="h-[74px] w-[74px] sm:h-[96px] sm:w-[96px]" />
+                <TeamLogo logo={away?.logo} name={away?.name} className="h-[138px] w-[92px] sm:h-[164px] sm:w-[118px]" />
               </div>
             </button>
           </div>
+
+          {!hasScore && status !== "cancelled" && (
+            <div className="pointer-events-none absolute inset-x-0 top-[58px] z-30 flex justify-center sm:top-[66px]">
+              <div className="rounded-full bg-black/34 px-3 py-1.5 text-center shadow-[0_6px_18px_rgba(0,0,0,0.24)]">
+                <span className="block text-[26px] font-black leading-none tabular-nums text-white sm:text-[34px]">
+                  {game.time || game.kickoffTime || "--:--"}
+                </span>
+                <span className="mt-1 block text-[9px] font-black uppercase tracking-[0.18em] text-white/70">
+                  {kickoff ? kickoff.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "KICKOFF"}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {status === "cancelled" && (
+            <div className="pointer-events-none absolute inset-x-0 top-[58px] z-30 flex justify-center sm:top-[66px]">
+              <div className="rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white">
+                Abgesagt
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
