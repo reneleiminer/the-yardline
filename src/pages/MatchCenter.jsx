@@ -6,7 +6,6 @@ import { ChevronLeft, Search } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
-import { getEffectiveGameStatus, getGameDate } from "@/lib/gameStatusUtils";
 import StandingsTable from "@/components/standings/StandingsTable";
 const MATCH_TABS = [
   { key: "games", label: "Games" },
@@ -20,6 +19,42 @@ const GAME_FILTER_TABS = [
 
 function normalizeId(value) {
   return String(value || "").trim();
+}
+
+function getGameDate(game) {
+  if (game?.date) {
+    const rawTime = game.time || game.kickoffTime || "00:00";
+    const [year, month, day] = String(game.date).split("-").map(Number);
+    const [hour, minute] = String(rawTime).split(":").map(Number);
+
+    if (year && month && day) {
+      return new Date(year, month - 1, day, Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0);
+    }
+  }
+
+  if (game?.kickoffAt) {
+    const kickoff = new Date(game.kickoffAt);
+    if (!Number.isNaN(kickoff.getTime())) return kickoff;
+  }
+
+  return null;
+}
+
+function getEffectiveGameStatus(game) {
+  if (!game) return "scheduled";
+
+  const rawStatus = String(game.status || "scheduled").toLowerCase();
+
+  if (rawStatus === "cancelled") return "cancelled";
+  if (rawStatus === "final") return "final";
+  if (rawStatus === "live") return "live";
+
+  const kickoff = getGameDate(game);
+  if (kickoff && kickoff.getTime() <= Date.now()) {
+    return "live";
+  }
+
+  return "scheduled";
 }
 
 function getTeamName(team, fallback) {
@@ -49,10 +84,10 @@ function StatusBadge({ game }) {
 
   const label = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "ABGESAGT";
   const className = status === "live"
-    ? "bg-[#c20f1a] text-white animate-pulse"
+    ? "border border-red-400/35 bg-[#c20f1a]/85 text-white animate-pulse"
     : status === "final"
-      ? "bg-black text-white"
-      : "bg-orange-600 text-white";
+      ? "border border-white/18 bg-white/14 text-white"
+      : "border border-orange-400/35 bg-orange-600/85 text-white";
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[9px] font-black tracking-wide ${className}`}>
@@ -101,7 +136,14 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
           </p>
         </div>
 
-        <div className="absolute left-1/2 top-1/2 z-20 flex min-w-[112px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[18px] border border-white/24 bg-black px-3.5 py-3 text-white shadow-[0_12px_30px_rgba(0,0,0,0.62),0_0_0_1px_rgba(194,15,26,0.22)]">
+        <div
+          className="absolute left-1/2 top-1/2 z-20 flex min-w-[116px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center overflow-hidden rounded-[20px] border border-white/24 px-4 py-3 text-white shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-md"
+          style={{
+            background: `linear-gradient(90deg, ${homeColor}33 0%, ${homeColor}22 50%, ${awayColor}22 50%, ${awayColor}33 100%)`,
+          }}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/18 via-white/8 to-black/10" />
+          <div className="relative z-10 flex flex-col items-center">
           <StatusBadge game={game} />
           {showScore ? (
             <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
@@ -111,14 +153,15 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
             </div>
           ) : (
             <>
-              <span className="text-2xl font-black leading-none text-[#ff2338]">
+              <span className="text-2xl font-black leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
                 {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
               </span>
-              <span className="mt-1 text-[9px] font-black uppercase text-white/82">
+              <span className="mt-1 text-[10px] font-black uppercase tracking-wider text-white/84">
                 {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
               </span>
             </>
           )}
+          </div>
         </div>
       </div>
     </Link>
