@@ -444,33 +444,36 @@ function TeamGameCard({ game, home, away, league }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2">
-          <div className="flex flex-col items-center min-w-0">
-            <TeamLogo logo={home?.logo} name={homeName} />
+        <div className="space-y-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+            <div className="flex min-w-0 justify-center">
+              <TeamLogo logo={home?.logo} name={homeName} />
+            </div>
 
-            <p className="mt-2 min-h-[36px] text-center text-[12px] font-black leading-[1.08] whitespace-normal break-words">
+            <div className="flex min-w-[92px] justify-center">
+              {showScore ? (
+                <ScoreDisplay
+                  homeScore={game.scoreHome ?? 0}
+                  awayScore={game.scoreAway ?? 0}
+                  size="sm"
+                />
+              ) : (
+                <span className="inline-flex rounded-xl bg-secondary/70 border border-border/50 px-4 py-1.5 text-xs font-black">
+                  VS
+                </span>
+              )}
+            </div>
+
+            <div className="flex min-w-0 justify-center">
+              <TeamLogo logo={away?.logo} name={awayName} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <p className="hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12]">
               {homeName}
             </p>
-          </div>
-
-          <div className="flex justify-center min-w-0">
-            {showScore ? (
-              <ScoreDisplay
-                homeScore={game.scoreHome ?? 0}
-                awayScore={game.scoreAway ?? 0}
-                size="sm"
-              />
-            ) : (
-              <span className="inline-flex rounded-xl bg-secondary/70 border border-border/50 px-4 py-1.5 text-xs font-black">
-                VS
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-col items-center min-w-0">
-            <TeamLogo logo={away?.logo} name={awayName} />
-
-            <p className="mt-2 min-h-[36px] text-center text-[12px] font-black leading-[1.08] whitespace-normal break-words">
+            <p className="hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12]">
               {awayName}
             </p>
           </div>
