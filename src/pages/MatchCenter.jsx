@@ -209,7 +209,7 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
         <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-black/4 to-black/34" />
 
         <div
-          className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[118px] -translate-x-1/2"
+          className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[154px] -translate-x-1/2"
           style={{
             background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.16)} 28%, rgba(0,0,0,0.16) 50%, ${toRgba(awayColor, 0.16)} 72%, ${toRgba(awayColor, 0)} 100%)`,
           }}
@@ -237,7 +237,7 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
           ) : showScore ? (
             <div className="grid grid-cols-[minmax(34px,1fr)_16px_minmax(34px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)]">
               <span className="text-right text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreHome ?? 0}</span>
-              <span className="inline-flex items-center justify-center rounded-md bg-black/72 px-1 text-center text-[26px] font-black leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.38)] sm:text-[32px]">:</span>
+              <span className="text-center text-2xl font-black text-[#111827] drop-shadow-[0_1px_0_rgba(255,255,255,0.34)]">:</span>
               <span className="text-left text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreAway ?? 0}</span>
             </div>
           ) : (
