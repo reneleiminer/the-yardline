@@ -395,25 +395,25 @@ function LeagueTitle({ group }) {
 
 function SectionHeader({ title, action }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="yardline-heading truncate text-[22px] sm:text-2xl">{title}</h2>
-      {action ? <div className="flex-shrink-0">{action}</div> : null}
+    <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h2 className="yardline-heading text-[22px] sm:text-2xl">{title}</h2>
+      {action ? <div className="w-full sm:w-auto">{action}</div> : null}
     </div>
   );
 }
 
 function GameDateSwitch({ value, onChange }) {
   return (
-    <div className="grid grid-cols-2 rounded-2xl border border-white/12 bg-black/72 p-1 shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
+    <div className="grid w-full grid-cols-3 gap-1 rounded-2xl border border-white/12 bg-black/72 p-1 shadow-[0_14px_34px_rgba(0,0,0,0.28)] sm:w-auto sm:min-w-[320px]">
       {GAME_FILTER_TABS.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`h-9 min-w-[82px] rounded-xl px-3 text-[10px] font-black uppercase tracking-wide transition-colors ${
+          className={`h-11 min-w-0 rounded-xl px-2 text-[11px] font-black uppercase tracking-wide transition-colors ${
             value === tab.key
               ? "bg-[#c20f1a] text-white shadow-[0_8px_20px_rgba(194,15,26,0.28)]"
-              : "text-white/54 hover:text-white"
+              : "text-white/60 hover:text-white"
           }`}
         >
           {tab.label}
