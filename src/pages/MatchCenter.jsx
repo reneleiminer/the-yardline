@@ -237,7 +237,7 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
           ) : showScore ? (
             <div className="grid grid-cols-[minmax(34px,1fr)_16px_minmax(34px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)]">
               <span className="text-right text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreHome ?? 0}</span>
-              <span className="text-center text-2xl font-black text-[#111827] drop-shadow-[0_1px_0_rgba(255,255,255,0.34)]">:</span>
+              <span className="text-center text-[30px] font-black leading-none text-[#05070d] [text-shadow:0_0_1px_rgba(255,255,255,0.95),0_0_8px_rgba(255,255,255,0.45),0_2px_8px_rgba(0,0,0,0.35)] sm:text-[38px]">:</span>
               <span className="text-left text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreAway ?? 0}</span>
             </div>
           ) : (
