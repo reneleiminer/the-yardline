@@ -107,6 +107,10 @@ function hasPlayableScore(game) {
 
 function getTeamAbbreviation(team, fallback) {
   const raw =
+    team?.gameCardAbbr ||
+    team?.game_card_abbr ||
+    team?.cardAbbreviation ||
+    team?.card_abbreviation ||
     team?.shortName ||
     team?.abbr ||
     team?.abbreviation ||
