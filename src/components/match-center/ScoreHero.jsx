@@ -220,7 +220,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 {hasScore ? (
                   <div className="grid grid-cols-[minmax(42px,1fr)_18px_minmax(42px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.34)]">
                     <span className="text-right"><ScorePill score={homeScore} size="lg" /></span>
-                    <span className="inline-flex h-8 min-w-6 items-center justify-center rounded-xl border border-white/18 bg-black/82 px-1.5 text-center text-2xl font-black leading-none text-white shadow-[0_6px_16px_rgba(0,0,0,0.42)] sm:h-9 sm:min-w-7 sm:text-3xl">:</span>
+                    <span className="inline-flex items-center justify-center rounded-md bg-black/72 px-1 text-center text-[26px] font-black leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.38)] sm:text-[32px]">:</span>
                     <span className="text-left"><ScorePill score={awayScore} size="lg" /></span>
                   </div>
                 ) : (
