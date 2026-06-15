@@ -213,7 +213,6 @@ const ENTITY_COLUMNS = {
     'id',
     'name',
     'short_name',
-    'game_card_abbr',
     'logo',
     'banner',
     'primary_color',
@@ -481,7 +480,6 @@ const FIELD_TO_COLUMN = {
   },
   League: {
     shortName: 'short_name',
-    gameCardAbbr: 'game_card_abbr',
     primaryColor: 'primary_color',
     secondaryColor: 'secondary_color',
     accentColor: 'accent_color',
