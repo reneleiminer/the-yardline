@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "@/lib/imageUtils";
+import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
 function TeamLogo({ logo, name, className = "h-20 w-20" }) {
   if (logo) {
@@ -77,7 +78,18 @@ export default function ScoreHero({ game, home, away, league }) {
               <span className="block max-w-[260px] whitespace-normal break-words text-left text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[32px]">{homeName}</span>
             </button>
             <div className="flex min-w-[118px] flex-col items-center justify-center px-2 text-center sm:min-w-[140px]">
-              {status === "cancelled" ? (<><span className="text-[14px] font-black uppercase tracking-[0.18em] text-white/72">VS</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-orange-200">ABGESAGT</span></>) : hasScore ? (<><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:gap-2.5"><span className="min-w-[36px] text-right text-[30px] font-black leading-none tabular-nums sm:min-w-[46px] sm:text-[44px]">{homeScore}</span><span className="text-center text-[18px] font-black leading-none text-white/90 sm:text-[24px]">:</span><span className="min-w-[36px] text-left text-[30px] font-black leading-none tabular-nums sm:min-w-[46px] sm:text-[44px]">{awayScore}</span></div><span className={`mt-2 text-[10px] font-black uppercase tracking-[0.2em] ${isLive ? "text-[#ff2338]" : "text-white/74"}`}>{isLive && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}{isLive ? "LIVE" : "FINAL"}</span></>) : (<><span className="text-[30px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[40px]">{game.time || game.kickoffTime || "--:--"}</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/72">{kickoff ? kickoff.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "KICKOFF"}</span></>)}
+              {status === "cancelled" ? (<><span className="text-[14px] font-black uppercase tracking-[0.18em] text-white/72">VS</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-orange-200">ABGESAGT</span></>) : hasScore ? (<>
+                <ScoreDisplay
+                  homeScore={homeScore}
+                  awayScore={awayScore}
+                  dark
+                  size="lg"
+                />
+                <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.2em] ${isLive ? "text-[#ff2338]" : "text-white/74"}`}>
+                  {isLive && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
+                  {isLive ? "LIVE" : "FINAL"}
+                </span>
+              </>) : (<><span className="text-[30px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[40px]">{game.time || game.kickoffTime || "--:--"}</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/72">{kickoff ? kickoff.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" }) : "KICKOFF"}</span></>)}
             </div>
             <button type="button" className={`min-w-0 flex items-center justify-end gap-3 text-right transition-opacity ${awayDimmed ? "opacity-55" : "opacity-100"}`} onClick={() => game.awayTeamId && navigate(`/team/${game.awayTeamId}`)}>
               <span className="block max-w-[260px] whitespace-normal break-words text-right text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[32px]">{awayName}</span>
