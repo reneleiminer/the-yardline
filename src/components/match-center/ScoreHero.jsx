@@ -158,8 +158,6 @@ export default function ScoreHero({ game, home, away, league }) {
 
   const homeName = home?.name || home?.shortName || 'Heimteam';
   const awayName = away?.name || away?.shortName || 'Gastteam';
-  const homeAbbr = getTeamAbbreviation(home, homeName);
-  const awayAbbr = getTeamAbbreviation(away, awayName);
 
   const homeScore = game.scoreHome ?? 0;
   const awayScore = game.scoreAway ?? 0;
@@ -206,10 +204,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={home?.logo} name={home?.name} />
               </div>
 
-              <span className="text-[42px] font-black italic leading-none tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)]">
-                {homeAbbr}
-              </span>
-              <span className="w-full max-w-[118px] truncate text-center text-[11px] font-black uppercase tracking-wide text-white/72">
+              <span className="w-full max-w-[150px] whitespace-normal break-words text-center text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-3xl">
                 {homeName}
               </span>
             </button>
@@ -223,10 +218,10 @@ export default function ScoreHero({ game, home, away, league }) {
               />
               <div className="relative z-10 flex flex-col items-center">
                 {hasScore ? (
-                  <div className="flex items-center gap-2 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.34)]">
-                    <ScorePill score={homeScore} size="lg" />
-                    <span className="text-xl font-light text-white/58">:</span>
-                    <ScorePill score={awayScore} size="lg" />
+                  <div className="grid grid-cols-[minmax(42px,1fr)_18px_minmax(42px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.34)]">
+                    <span className="text-right"><ScorePill score={homeScore} size="lg" /></span>
+                    <span className="text-center text-2xl font-black text-[#111827] drop-shadow-[0_1px_0_rgba(255,255,255,0.34)]">:</span>
+                    <span className="text-left"><ScorePill score={awayScore} size="lg" /></span>
                   </div>
                 ) : (
                   <span className="text-4xl font-black text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.36)]">
@@ -262,10 +257,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={away?.logo} name={away?.name} />
               </div>
 
-              <span className="text-[42px] font-black italic leading-none tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)]">
-                {awayAbbr}
-              </span>
-              <span className="w-full max-w-[118px] truncate text-center text-[11px] font-black uppercase tracking-wide text-white/72">
+              <span className="w-full max-w-[150px] whitespace-normal break-words text-center text-[22px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-3xl">
                 {awayName}
               </span>
             </button>
