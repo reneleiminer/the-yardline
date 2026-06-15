@@ -7,6 +7,7 @@ import { ChevronLeft, Search } from "lucide-react";
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
 import StandingsTable from "@/components/standings/StandingsTable";
+import ScoreDisplay from "@/components/ui/ScoreDisplay";
 const MATCH_TABS = [
   { key: "games", label: "Games" },
   { key: "standings", label: "Standings" },
@@ -173,7 +174,18 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
           {status === "cancelled" ? (
             <><span className="text-[14px] font-black uppercase tracking-[0.18em] text-white/72">VS</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-orange-200">ABGESAGT</span></>
           ) : showScore ? (
-            <><div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1.5 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:gap-2.5"><span className="min-w-[34px] text-right text-[28px] font-black leading-none tabular-nums sm:min-w-[44px] sm:text-[40px]">{game.scoreHome ?? 0}</span><span className="text-center text-[18px] font-black leading-none text-white/90 sm:text-[22px]">:</span><span className="min-w-[34px] text-left text-[28px] font-black leading-none tabular-nums sm:min-w-[44px] sm:text-[40px]">{game.scoreAway ?? 0}</span></div><span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/74"}`}>{status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}{statusLabel}</span></>
+            <>
+              <ScoreDisplay
+                homeScore={game.scoreHome ?? 0}
+                awayScore={game.scoreAway ?? 0}
+                dark
+                size="lg"
+              />
+              <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/74"}`}>
+                {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
+                {statusLabel}
+              </span>
+            </>
           ) : (
             <><span className="text-[28px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[36px]">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "--:--"}</span><span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/72">{kickoff ? format(kickoff, "dd.MM.", { locale: de }) : statusLabel}</span></>
           )}
