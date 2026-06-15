@@ -172,18 +172,19 @@ function StatusBadge({ game }) {
   );
 }
 
-function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
+function MatchScoreCard({ game, teamsById, leaguesById }) {
   const home = teamsById.get(game.homeTeamId);
   const away = teamsById.get(game.awayTeamId);
   const league = leaguesById.get(game.leagueId);
-
   const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
-  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
-  const awayColor = getTeamColor(away, "#c20f1a");
+  const homeAbbr = getTeamAbbreviation(home, homeName);
+  const awayAbbr = getTeamAbbreviation(away, awayName);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
   const showScore = (status === "final" || status === "live") && hasPlayableScore(game);
+  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
+  const awayColor = getTeamColor(away, "#c20f1a");
 
   const statusLabel =
     status === "live"
@@ -191,71 +192,67 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
       : status === "final"
         ? "FINAL"
         : status === "cancelled"
-          ? "CANCELLED"
+          ? "ABGESAGT"
           : "KICKOFF";
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className={`block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.34)] active:scale-[0.99] transition-transform ${compact ? "min-w-[86vw]" : ""}`}
+      className="group block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.34)] active:scale-[0.99] transition-transform"
     >
-      <div className="relative grid min-h-[156px] grid-cols-2 overflow-hidden sm:min-h-[182px]">
+      <div className="relative grid min-h-[170px] grid-cols-[1fr_auto_1fr] overflow-hidden sm:min-h-[190px]">
         <div className="absolute inset-0 z-0 grid grid-cols-2">
           <div style={{ background: homeColor }} />
           <div style={{ background: awayColor }} />
         </div>
 
         <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-30" />
-        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-black/4 to-black/34" />
-
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-black/4 to-black/28" />
         <div
-          className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[154px] -translate-x-1/2"
+          className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[170px] -translate-x-1/2 sm:w-[220px]"
           style={{
-            background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.16)} 28%, rgba(0,0,0,0.16) 50%, ${toRgba(awayColor, 0.16)} 72%, ${toRgba(awayColor, 0)} 100%)`,
+            background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, rgba(0,0,0,0.22) 18%, rgba(0,0,0,0.52) 40%, rgba(0,0,0,0.76) 50%, rgba(0,0,0,0.52) 60%, rgba(0,0,0,0.22) 82%, ${toRgba(awayColor, 0)} 100%)`,
           }}
         />
 
-        <div className="relative z-30 flex min-w-0 flex-col items-center justify-center gap-2 px-3 py-4 text-center">
-          <TeamLogo team={home} className="h-12 w-12 sm:h-16 sm:w-16" />
-          <p className="line-clamp-2 w-full max-w-[150px] whitespace-normal break-words text-center text-[17px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-2xl">
-            {homeName}
-          </p>
+        <div className="relative z-30 flex min-w-0 flex-col items-start justify-between px-4 py-5 sm:px-6">
+          <div className="flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20">
+            <TeamLogo team={home} className="h-16 w-16 sm:h-20 sm:w-20" />
+          </div>
+          <div className="mt-5 min-w-0">
+            <p className="truncate text-[34px] font-black italic leading-none tracking-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.42)] sm:text-[44px]">
+              {homeAbbr}
+            </p>
+          </div>
         </div>
 
-        <div className="relative z-30 flex min-w-0 flex-col items-center justify-center gap-2 px-3 py-4 text-center">
-          <TeamLogo team={away} className="h-12 w-12 sm:h-16 sm:w-16" />
-          <p className="line-clamp-2 w-full max-w-[150px] whitespace-normal break-words text-center text-[17px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-2xl">
-            {awayName}
-          </p>
-        </div>
-
-        <div className="absolute inset-y-0 left-1/2 z-40 flex w-[116px] -translate-x-1/2 flex-col items-center justify-center text-center">
+        <div className="relative z-40 flex min-w-[140px] flex-col items-center justify-center px-1 text-center sm:min-w-[180px]">
           {status === "cancelled" ? (
-            <span className="text-[15px] font-black uppercase tracking-wide text-orange-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.32)]">
-              Cancelled
+            <span className="text-[16px] font-black uppercase tracking-wide text-orange-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.32)] sm:text-lg">
+              Abgesagt
             </span>
           ) : showScore ? (
-            <div className="grid grid-cols-[minmax(34px,1fr)_16px_minmax(34px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)]">
-              <span className="text-right text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreHome ?? 0}</span>
-              <span className="text-center text-2xl font-black text-[#111827] drop-shadow-[0_1px_0_rgba(255,255,255,0.34)]">:</span>
-              <span className="text-left text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreAway ?? 0}</span>
+            <div className="grid grid-cols-[52px_auto_52px] items-center justify-center gap-2 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:grid-cols-[64px_auto_64px] sm:gap-3">
+              <span className="text-right text-[34px] font-black leading-none tabular-nums sm:text-[42px]">{game.scoreHome ?? 0}</span>
+              <span className="inline-flex items-center justify-center rounded-sm bg-black/72 px-1.5 text-[28px] font-black leading-none text-white sm:px-2 sm:text-[34px]">:</span>
+              <span className="text-left text-[34px] font-black leading-none tabular-nums sm:text-[42px]">{game.scoreAway ?? 0}</span>
             </div>
           ) : (
             <>
-              <span className="text-[28px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-4xl">
+              <span className="text-[34px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.4)] sm:text-[42px]">
                 {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
               </span>
-              <span className="mt-1 text-[14px] font-black leading-none text-white/88 tabular-nums sm:text-base">
+              <span className="mt-1 text-[17px] font-black leading-none text-white/90 tabular-nums sm:text-[18px]">
                 {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : ""}
               </span>
             </>
           )}
 
-          <span className={`mt-2 text-[9px] font-black uppercase tracking-[0.22em] ${
+          <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${
             status === "live"
               ? "text-[#ff2338]"
               : status === "final"
-                ? "text-white/74"
+                ? "text-white/72"
                 : status === "cancelled"
                   ? "text-orange-200"
                   : "text-white/70"
@@ -265,7 +262,18 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
           </span>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 grid h-1 grid-cols-2">
+        <div className="relative z-30 flex min-w-0 flex-col items-end justify-between px-4 py-5 text-right sm:px-6">
+          <div className="flex h-16 w-16 items-center justify-center self-end sm:h-20 sm:w-20">
+            <TeamLogo team={away} className="h-16 w-16 sm:h-20 sm:w-20" />
+          </div>
+          <div className="mt-5 min-w-0">
+            <p className="truncate text-[34px] font-black italic leading-none tracking-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.42)] sm:text-[44px]">
+              {awayAbbr}
+            </p>
+          </div>
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 grid h-1 grid-cols-2">
           <div className="bg-[#ff2338]/90" />
           <div className="bg-[#2f7dff]/90" />
         </div>
