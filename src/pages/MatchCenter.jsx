@@ -59,37 +59,6 @@ function getEffectiveGameStatus(game) {
 }
 
 
-function getTeamAbbreviation(team, fallback) {
-  const raw =
-    team?.gameCardAbbr ||
-    team?.game_card_abbr ||
-    team?.cardAbbreviation ||
-    team?.card_abbreviation ||
-    team?.shortName ||
-    team?.abbr ||
-    team?.abbreviation ||
-    team?.name ||
-    fallback ||
-    "TBD";
-
-  const clean = String(raw)
-    .replace(/[^A-Za-zÄÖÜäöü0-9\s-]/g, " ")
-    .trim();
-
-  if (!clean) return "TBD";
-
-  const compact = clean.replace(/[^A-Za-zÄÖÜäöü0-9]/g, "").toUpperCase();
-  if (compact.length <= 3) return compact.padEnd(3, compact[0] || "X").slice(0, 3);
-
-  const words = clean.split(/[\s-]+/).filter(Boolean);
-  if (words.length >= 2) {
-    const initials = words.map(word => word[0]).join("").toUpperCase();
-    if (initials.length >= 3) return initials.slice(0, 3);
-    return (initials + compact).slice(0, 3);
-  }
-
-  return compact.slice(0, 3);
-}
 
 function toRgba(color, alpha) {
   if (!color) return `rgba(255,255,255,${alpha})`;
@@ -120,7 +89,7 @@ function toRgba(color, alpha) {
 }
 
 function getTeamName(team, fallback) {
-  return team?.shortName || team?.name || fallback || "Offen";
+  return team?.name || team?.shortName || fallback || "Offen";
 }
 
 
@@ -172,18 +141,19 @@ function StatusBadge({ game }) {
   );
 }
 
-function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
+function MatchScoreCard({ game, teamsById, leaguesById }) {
   const home = teamsById.get(game.homeTeamId);
   const away = teamsById.get(game.awayTeamId);
   const league = leaguesById.get(game.leagueId);
-
   const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
-  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
-  const awayColor = getTeamColor(away, "#c20f1a");
+  const homeAbbr = getTeamAbbreviation(home, homeName);
+  const awayAbbr = getTeamAbbreviation(away, awayName);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
   const showScore = (status === "final" || status === "live") && hasPlayableScore(game);
+  const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
+  const awayColor = getTeamColor(away, "#c20f1a");
 
   const statusLabel =
     status === "live"
@@ -191,81 +161,103 @@ function MatchScoreCard({ game, teamsById, leaguesById, compact = false }) {
       : status === "final"
         ? "FINAL"
         : status === "cancelled"
-          ? "CANCELLED"
+          ? "ABGESAGT"
           : "KICKOFF";
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className={`block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.34)] active:scale-[0.99] transition-transform ${compact ? "min-w-[86vw]" : ""}`}
+      className={`group block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.34)] active:scale-[0.99] transition-transform`}
     >
-      <div className="relative grid min-h-[156px] grid-cols-2 overflow-hidden sm:min-h-[182px]">
+      <div className="relative grid min-h-[172px] grid-cols-2 overflow-hidden sm:min-h-[190px]">
         <div className="absolute inset-0 z-0 grid grid-cols-2">
           <div style={{ background: homeColor }} />
           <div style={{ background: awayColor }} />
         </div>
 
-        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-30" />
-        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-black/4 to-black/34" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-35" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-black/4 to-black/32" />
 
-        <div
-          className="pointer-events-none absolute inset-y-0 left-1/2 z-20 w-[154px] -translate-x-1/2"
-          style={{
-            background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.16)} 28%, rgba(0,0,0,0.16) 50%, ${toRgba(awayColor, 0.16)} 72%, ${toRgba(awayColor, 0)} 100%)`,
-          }}
-        />
-
-        <div className="relative z-30 flex min-w-0 flex-col items-center justify-center gap-2 px-3 py-4 text-center">
-          <TeamLogo team={home} className="h-12 w-12 sm:h-16 sm:w-16" />
-          <p className="line-clamp-2 w-full max-w-[150px] whitespace-normal break-words text-center text-[17px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-2xl">
-            {homeName}
-          </p>
+        <div className="pointer-events-none absolute inset-y-5 left-0 z-10 w-8 border-y border-white/10 opacity-35">
+          <div className="h-full bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.35)_0_2px,transparent_2px_18px)]" />
+        </div>
+        <div className="pointer-events-none absolute inset-y-5 right-0 z-10 w-8 border-y border-white/10 opacity-35">
+          <div className="h-full bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.35)_0_2px,transparent_2px_18px)]" />
         </div>
 
-        <div className="relative z-30 flex min-w-0 flex-col items-center justify-center gap-2 px-3 py-4 text-center">
-          <TeamLogo team={away} className="h-12 w-12 sm:h-16 sm:w-16" />
-          <p className="line-clamp-2 w-full max-w-[150px] whitespace-normal break-words text-center text-[17px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-2xl">
-            {awayName}
-          </p>
+        <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-9 w-12 -translate-x-1/2 rounded-b-[18px] bg-black/14" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 z-10 h-9 w-16 -translate-x-1/2 rounded-t-[20px] bg-black/16" />
+
+        <div className="relative z-20 flex min-w-0 flex-col justify-center gap-3 px-5 py-5 text-left">
+          <div className="flex items-center gap-3">
+            <TeamLogo team={home} className="h-14 w-14 sm:h-16 sm:w-16" />
+          </div>
+
+          <div>
+            <p className="text-[42px] font-black italic leading-none tracking-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-5xl">
+              {homeAbbr}
+            </p>
+          </div>
         </div>
 
-        <div className="absolute inset-y-0 left-1/2 z-40 flex w-[116px] -translate-x-1/2 flex-col items-center justify-center text-center">
-          {status === "cancelled" ? (
-            <span className="text-[15px] font-black uppercase tracking-wide text-orange-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.32)]">
-              Cancelled
+        <div className="relative z-20 flex min-w-0 flex-col justify-center gap-3 px-5 py-5 text-right">
+          <div className="flex items-center justify-end gap-3">
+            <TeamLogo team={away} className="h-14 w-14 sm:h-16 sm:w-16" />
+          </div>
+
+          <div>
+            <p className="text-[42px] font-black italic leading-none tracking-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-5xl">
+              {awayAbbr}
+            </p>
+          </div>
+        </div>
+
+        <div className="absolute inset-y-0 left-1/2 z-30 flex w-[128px] -translate-x-1/2 flex-col items-center justify-center text-center">
+          <div
+            className="absolute inset-y-0 left-1/2 w-full -translate-x-1/2"
+            style={{
+              background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.18)} 34%, rgba(0,0,0,0.18) 50%, ${toRgba(awayColor, 0.18)} 66%, ${toRgba(awayColor, 0)} 100%)`,
+            }}
+          />
+
+          <div className="relative z-10 flex flex-col items-center">
+            {status === "cancelled" ? (
+              <span className="text-[17px] font-black uppercase tracking-wide text-orange-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.32)]">
+                Abgesagt
+              </span>
+            ) : showScore ? (
+              <div className="flex items-center gap-2 text-[34px] font-black leading-none tabular-nums text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-4xl">
+                <span>{game.scoreHome ?? 0}</span>
+                <span className="text-white/60">:</span>
+                <span>{game.scoreAway ?? 0}</span>
+              </div>
+            ) : (
+              <>
+                <span className="text-[34px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-4xl">
+                  {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
+                </span>
+                <span className="mt-1 text-[17px] font-black leading-none text-white/88 tabular-nums">
+                  {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : ""}
+                </span>
+              </>
+            )}
+
+            <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${
+              status === "live"
+                ? "text-[#ff2338]"
+                : status === "final"
+                  ? "text-white/72"
+                  : status === "cancelled"
+                    ? "text-orange-200"
+                    : "text-white/70"
+            }`}>
+              {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
+              {statusLabel}
             </span>
-          ) : showScore ? (
-            <div className="grid grid-cols-[minmax(34px,1fr)_16px_minmax(34px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)]">
-              <span className="text-right text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreHome ?? 0}</span>
-              <span className="text-center text-2xl font-black text-[#111827] drop-shadow-[0_1px_0_rgba(255,255,255,0.34)]">:</span>
-              <span className="text-left text-[28px] font-black leading-none tabular-nums sm:text-4xl">{game.scoreAway ?? 0}</span>
-            </div>
-          ) : (
-            <>
-              <span className="text-[28px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-4xl">
-                {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
-              </span>
-              <span className="mt-1 text-[14px] font-black leading-none text-white/88 tabular-nums sm:text-base">
-                {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : ""}
-              </span>
-            </>
-          )}
-
-          <span className={`mt-2 text-[9px] font-black uppercase tracking-[0.22em] ${
-            status === "live"
-              ? "text-[#ff2338]"
-              : status === "final"
-                ? "text-white/74"
-                : status === "cancelled"
-                  ? "text-orange-200"
-                  : "text-white/70"
-          }`}>
-            {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
-            {statusLabel}
-          </span>
+          </div>
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 grid h-1 grid-cols-2">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 grid h-1 grid-cols-2">
           <div className="bg-[#ff2338]/90" />
           <div className="bg-[#2f7dff]/90" />
         </div>
