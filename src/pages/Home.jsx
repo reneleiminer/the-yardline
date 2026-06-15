@@ -261,14 +261,14 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
 
         <div className="relative z-30 flex min-w-0 flex-col items-center justify-center gap-2 px-3 py-4 text-center">
           <TeamLogo team={home} className="h-12 w-12 sm:h-16 sm:w-16" />
-          <p className="w-full max-w-[142px] whitespace-normal break-words text-center text-[20px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-3xl">
+          <p className="line-clamp-2 w-full max-w-[150px] whitespace-normal break-words text-center text-[17px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-2xl">
             {homeName}
           </p>
         </div>
 
         <div className="relative z-30 flex min-w-0 flex-col items-center justify-center gap-2 px-3 py-4 text-center">
           <TeamLogo team={away} className="h-12 w-12 sm:h-16 sm:w-16" />
-          <p className="w-full max-w-[142px] whitespace-normal break-words text-center text-[20px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-3xl">
+          <p className="line-clamp-2 w-full max-w-[150px] whitespace-normal break-words text-center text-[17px] font-black italic leading-[1.02] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)] sm:max-w-[220px] sm:text-2xl">
             {awayName}
           </p>
         </div>
@@ -334,8 +334,6 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
   const showScore = (status === "live" || status === "final") && hasPlayableScore(game);
   const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
-  const homeAbbr = getTeamAbbreviation(home, homeName);
-  const awayAbbr = getTeamAbbreviation(away, awayName);
   const homeColor = getTeamColor(home, "#013369");
   const awayColor = getTeamColor(away, "#c20f1a");
 
@@ -362,7 +360,7 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
           {home?.logo && <img src={getImageUrl(home.logo)} alt="" className="h-9 w-9 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]" />}
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/64">{title}</p>
-            <p className="text-2xl font-black italic leading-none">{homeAbbr}</p>
+            <p className="text-2xl font-black italic leading-none">{homeName}</p>
           </div>
         </div>
 
@@ -380,7 +378,7 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
         <div className="relative z-10 flex items-center justify-end gap-2 px-3 text-right">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/64">{league?.shortName || league?.name || ""}</p>
-            <p className="text-2xl font-black italic leading-none">{awayAbbr}</p>
+            <p className="text-2xl font-black italic leading-none">{awayName}</p>
           </div>
           {away?.logo && <img src={getImageUrl(away.logo)} alt="" className="h-9 w-9 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]" />}
         </div>
