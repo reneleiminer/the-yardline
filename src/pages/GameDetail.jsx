@@ -492,6 +492,24 @@ function CancelledGameNotice({ game }) {
   );
 }
 
+function PlaceholderTeamLogo({ team, name }) {
+  if (team?.logo) {
+    return (
+      <img
+        src={getImageUrl(team.logo)}
+        alt={name || ''}
+        className="h-[70px] w-[70px] rounded-2xl object-contain bg-secondary/60 p-1 sm:h-[86px] sm:w-[86px]"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-[70px] w-[70px] items-center justify-center rounded-2xl bg-secondary sm:h-[86px] sm:w-[86px]">
+      <Shield className="w-8 h-8 text-muted-foreground" />
+    </div>
+  );
+}
+
 function PlaceholderScoreHero({ game, home, away, league }) {
   const status = getEffectiveGameStatus(game);
   const isLive = status === 'live';
@@ -505,66 +523,67 @@ function PlaceholderScoreHero({ game, home, away, league }) {
 
   const weekLabel = game.week ? `Spieltag ${game.week}` : '';
   const homeName = home?.name || home?.shortName || game.homeTeamPlaceholder || 'Teilnehmer offen';
-const awayName = away?.name || away?.shortName || game.awayTeamPlaceholder || 'Teilnehmer offen';
+  const awayName = away?.name || away?.shortName || game.awayTeamPlaceholder || 'Teilnehmer offen';
 
   return (
     <div className="px-4 pt-4 pb-2">
       <div className="bg-card rounded-2xl px-4 py-4 border border-border/60">
         {(leagueName || weekLabel || game.roundName) && (
-          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-3">
+          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-4 text-center whitespace-normal break-words">
             {[leagueName, weekLabel, game.roundName].filter(Boolean).join(' · ')}
           </div>
         )}
 
-        <div className="flex items-center gap-3">
-          <div className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-              <Shield className="w-6 h-6 text-muted-foreground" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+            <div className="flex min-w-0 justify-center">
+              <PlaceholderTeamLogo team={home} name={homeName} />
             </div>
-            <span className="text-xs font-bold text-center leading-tight whitespace-normal break-words w-full">
-  {homeName}
-</span>
+
+            <div className="flex min-w-[100px] flex-col items-center flex-shrink-0 gap-1 text-center">
+              {isCancelled ? (
+                <span className="text-lg font-black text-orange-300 uppercase tracking-wider">
+                  Abgesagt
+                </span>
+              ) : hasScore ? (
+                <ScoreDisplay
+                  homeScore={game.scoreHome ?? 0}
+                  awayScore={game.scoreAway ?? 0}
+                  size="sm"
+                />
+              ) : (
+                <span className="text-2xl font-black text-primary tabular-nums">
+                  {game.time || '--:--'}
+                </span>
+              )}
+
+              {isLive ? (
+                <span className="text-[10px] font-bold text-red-400 tracking-widest">
+                  LIVE
+                </span>
+              ) : isFinal ? (
+                <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">
+                  FINAL
+                </span>
+              ) : isCancelled ? (
+                <span className="text-[10px] font-bold text-orange-300 tracking-widest">
+                  ABGESAGT
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex min-w-0 justify-center">
+              <PlaceholderTeamLogo team={away} name={awayName} />
+            </div>
           </div>
 
-          <div className="flex flex-col items-center flex-shrink-0 gap-1">
-            {isCancelled ? (
-              <span className="text-lg font-black text-orange-300 uppercase tracking-wider">
-                Abgesagt
-              </span>
-            ) : hasScore ? (
-              <ScoreDisplay
-                homeScore={game.scoreHome ?? 0}
-                awayScore={game.scoreAway ?? 0}
-                size="sm"
-              />
-            ) : (
-              <span className="text-2xl font-black text-primary tabular-nums">
-                {game.time || '--:--'}
-              </span>
-            )}
-
-            {isLive ? (
-              <span className="text-[10px] font-bold text-red-400 tracking-widest">
-                LIVE
-              </span>
-            ) : isFinal ? (
-              <span className="text-[10px] font-semibold text-muted-foreground tracking-wider">
-                FINAL
-              </span>
-            ) : isCancelled ? (
-              <span className="text-[10px] font-bold text-orange-300 tracking-widest">
-                ABGESAGT
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-              <Shield className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <span className="text-xs font-bold text-center leading-tight whitespace-normal break-words w-full">
-  {awayName}
-</span>
+          <div className="grid grid-cols-2 gap-3">
+            <span className="hyphens-auto whitespace-normal break-words text-center text-[15px] font-black leading-[1.12] sm:text-lg">
+              {homeName}
+            </span>
+            <span className="hyphens-auto whitespace-normal break-words text-center text-[15px] font-black leading-[1.12] sm:text-lg">
+              {awayName}
+            </span>
           </div>
         </div>
       </div>
