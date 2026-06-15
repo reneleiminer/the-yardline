@@ -26,29 +26,60 @@ function TeamLogo({ logo, name }) {
 }
 
 
+function getTeamAbbreviation(team, fallback) {
+  const raw =
+    team?.shortName ||
+    team?.abbr ||
+    team?.abbreviation ||
+    team?.name ||
+    fallback ||
+    "TBD";
 
-function hexToRgba(color, alpha) {
+  const clean = String(raw)
+    .replace(/[^A-Za-zÄÖÜäöü0-9\s-]/g, " ")
+    .trim();
+
+  if (!clean) return "TBD";
+
+  const compact = clean.replace(/[^A-Za-zÄÖÜäöü0-9]/g, "").toUpperCase();
+  if (compact.length <= 3) return compact.padEnd(3, compact[0] || "X").slice(0, 3);
+
+  const words = clean.split(/[\s-]+/).filter(Boolean);
+  if (words.length >= 2) {
+    const initials = words.map(word => word[0]).join("").toUpperCase();
+    if (initials.length >= 3) return initials.slice(0, 3);
+    return (initials + compact).slice(0, 3);
+  }
+
+  return compact.slice(0, 3);
+}
+
+function toRgba(color, alpha) {
   if (!color) return `rgba(255,255,255,${alpha})`;
-  const normalized = String(color).trim();
+  const value = String(color).trim();
 
-  if (normalized.startsWith('#')) {
-    let hex = normalized.slice(1);
+  if (value.startsWith("#")) {
+    let hex = value.slice(1);
     if (hex.length === 3) {
-      hex = hex
-        .split('')
-        .map((char) => char + char)
-        .join('');
+      hex = hex.split("").map(char => char + char).join("");
     }
+
     if (hex.length === 6) {
-      const value = Number.parseInt(hex, 16);
-      const r = (value >> 16) & 255;
-      const g = (value >> 8) & 255;
-      const b = value & 255;
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      const parsed = Number.parseInt(hex, 16);
+      if (Number.isFinite(parsed)) {
+        const r = (parsed >> 16) & 255;
+        const g = (parsed >> 8) & 255;
+        const b = parsed & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
     }
   }
 
-  return normalized;
+  if (value.startsWith("rgb(")) {
+    return value.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
+  }
+
+  return value;
 }
 
 function getKickoffDate(game) {
@@ -123,6 +154,8 @@ export default function ScoreHero({ game, home, away, league }) {
 
   const homeName = home?.name || home?.shortName || 'Heimteam';
   const awayName = away?.name || away?.shortName || 'Gastteam';
+  const homeAbbr = getTeamAbbreviation(home, homeName);
+  const awayAbbr = getTeamAbbreviation(away, awayName);
 
   const homeScore = game.scoreHome ?? 0;
   const awayScore = game.scoreAway ?? 0;
@@ -149,14 +182,14 @@ export default function ScoreHero({ game, home, away, league }) {
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_0_1px,transparent_1px_18px)] opacity-25" />
         <div className="absolute inset-0 bg-gradient-to-b from-white/12 via-black/8 to-black/28" />
 
-        <div className="relative px-4 py-4">
+        <div className="relative px-5 py-5">
           {(leagueName || weekLabel || roundLabel) && (
             <div className="mb-4 text-center text-[10px] font-black uppercase tracking-wider text-white/78 whitespace-normal break-words">
               {[leagueName, weekLabel, roundLabel].filter(Boolean).join(' - ')}
             </div>
           )}
 
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4">
             <button
               type="button"
               className={`min-w-0 flex flex-col items-center gap-2 transition-opacity ${homeDimmed ? 'opacity-55' : 'opacity-100'}`}
@@ -169,43 +202,46 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={home?.logo} name={home?.name} />
               </div>
 
-              <span className="w-full max-w-[118px] whitespace-normal break-words text-center text-sm font-black leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.58)]">
+              <span className="text-[42px] font-black italic leading-none tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)]">
+                {homeAbbr}
+              </span>
+              <span className="w-full max-w-[118px] truncate text-center text-[11px] font-black uppercase tracking-wide text-white/72">
                 {homeName}
               </span>
             </button>
 
-            <div
-              className="relative flex min-w-[116px] flex-shrink-0 flex-col items-center gap-1.5 overflow-hidden rounded-[24px] border border-white/26 px-4 py-3 shadow-[0_10px_26px_rgba(0,0,0,0.16)] backdrop-blur-md"
-              style={{
-                background: `linear-gradient(90deg, ${hexToRgba(homeColor, 0.28)} 0%, ${hexToRgba(homeColor, 0.18)} 50%, ${hexToRgba(awayColor, 0.18)} 50%, ${hexToRgba(awayColor, 0.28)} 100%)`,
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/18 via-white/8 to-black/10" />
-              <div className="relative z-10 flex flex-col items-center gap-1.5">
+            <div className="relative flex min-w-[118px] flex-shrink-0 flex-col items-center justify-center gap-1.5 text-center">
+              <div
+                className="absolute inset-y-[-34px] left-1/2 w-[136px] -translate-x-1/2"
+                style={{
+                  background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.18)} 34%, rgba(0,0,0,0.18) 50%, ${toRgba(awayColor, 0.18)} 66%, ${toRgba(awayColor, 0)} 100%)`,
+                }}
+              />
+              <div className="relative z-10 flex flex-col items-center">
                 {hasScore ? (
-                  <div className="flex items-center gap-2 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
+                  <div className="flex items-center gap-2 text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.34)]">
                     <ScorePill score={homeScore} size="lg" />
                     <span className="text-xl font-light text-white/58">:</span>
                     <ScorePill score={awayScore} size="lg" />
                   </div>
                 ) : (
-                  <span className="text-2xl font-black text-white tabular-nums drop-shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
+                  <span className="text-4xl font-black text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.36)]">
                     {game.time || game.kickoffTime || '--:--'}
                   </span>
                 )}
 
                 {isLive ? (
-                  <div className="flex items-center gap-1.5 rounded-full border border-red-400/35 bg-red-500/18 px-2 py-0.5">
+                  <div className="mt-2 flex items-center gap-1.5">
                     <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-500" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#ff2338] opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#ff2338]" />
                     </span>
-                    <span className="text-[10px] font-black tracking-widest text-red-100">LIVE</span>
+                    <span className="text-[10px] font-black tracking-[0.22em] text-[#ff2338]">LIVE</span>
                   </div>
                 ) : isFinal ? (
-                  <span className="rounded-full border border-white/16 bg-white/14 px-2 py-0.5 text-[10px] font-black tracking-wider text-white/86">FINAL</span>
+                  <span className="mt-2 text-[10px] font-black tracking-[0.22em] text-white/70">FINAL</span>
                 ) : (
-                  <span className="rounded-full border border-white/16 bg-white/12 px-2 py-0.5 text-[10px] font-black tracking-wider text-white/82">KICKOFF</span>
+                  <span className="mt-2 text-[10px] font-black tracking-[0.22em] text-white/70">KICKOFF</span>
                 )}
               </div>
             </div>
@@ -222,7 +258,10 @@ export default function ScoreHero({ game, home, away, league }) {
                 <TeamLogo logo={away?.logo} name={away?.name} />
               </div>
 
-              <span className="w-full max-w-[118px] whitespace-normal break-words text-center text-sm font-black leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.58)]">
+              <span className="text-[42px] font-black italic leading-none tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.42)]">
+                {awayAbbr}
+              </span>
+              <span className="w-full max-w-[118px] truncate text-center text-[11px] font-black uppercase tracking-wide text-white/72">
                 {awayName}
               </span>
             </button>
