@@ -476,7 +476,7 @@ function CancelledGameNotice({ game }) {
             </h2>
 
             <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-              Das Spiel wird nicht live geschaltet, nicht gewertet und zaehlt nicht fuer Tabellen oder Statistics.
+              Das Spiel wird nicht live geschaltet, nicht gewertet und zaehlt nicht fuer Tabellen oder Statistiken.
             </p>
 
             {game.notes && (
@@ -937,7 +937,7 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
             </h2>
 
             <p className="text-xs text-white/56 mt-0.5">
-              Team Stats und Spieler-Statistics aus der App.
+              Team Stats und Spieler-Statistiken aus der App.
             </p>
           </div>
         </div>
@@ -1015,7 +1015,7 @@ function AfterGameStatisticsBlock({ game, stat, home, away }) {
           <div className="flex items-center gap-2 mb-4">
             <Trophy className="w-4 h-4 text-red-500" />
             <h2 className="text-sm font-black">
-              Spieler Statistics
+              Spieler Statistiken
             </h2>
           </div>
 
@@ -1425,7 +1425,7 @@ export default function GameDetail() {
                 : 'text-white/52 hover:text-white'
             }`}
           >
-            Overview
+            Uebersicht
           </button>
 
           {showStatisticsTab && (
@@ -1438,7 +1438,7 @@ export default function GameDetail() {
                   : 'text-white/52 hover:text-white'
               }`}
             >
-              Statistics
+              Statistiken
             </button>
           )}
 
