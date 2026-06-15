@@ -444,20 +444,13 @@ function BracketPlaceholder({ seasonGames }) {
   );
 }
 
-function TeamLine({ team, fallback, align = 'left', winner = false }) {
+function TeamLine({ team, fallback, winner = false }) {
   return (
-    <div
-      className={`flex items-center gap-2 min-w-0 ${align === 'right' ? 'justify-end text-right' : ''}`}
-    >
-      {align === 'left' && <TeamLogo team={team} fallback={fallback} />}
-
-      <div className="min-w-0">
-        <p className={`text-sm font-black truncate ${winner ? 'text-green-300' : ''}`}>
-          {getTeamName(team, fallback)}
-        </p>
-      </div>
-
-      {align === 'right' && <TeamLogo team={team} fallback={fallback} />}
+    <div className="flex min-w-0 flex-col items-center gap-2 text-center">
+      <TeamLogo team={team} fallback={fallback} />
+      <p className={`hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12] ${winner ? 'text-green-300' : ''}`}>
+        {getTeamName(team, fallback)}
+      </p>
     </div>
   );
 }
@@ -499,30 +492,45 @@ function CompetitionGameCard({ game, teamsById }) {
         </Badge>
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-        <TeamLine team={home} fallback={homeName} winner={homeWinner} />
+      <div className="space-y-3">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-3 items-center">
+          <div className="flex min-w-0 justify-center">
+            <TeamLogo team={home} fallback={homeName} />
+          </div>
 
-        <div className="text-center min-w-[58px]">
-          {game.status === 'live' || game.status === 'final' ? (
-            <ScoreDisplay
-              homeScore={game.scoreHome ?? 0}
-              awayScore={game.scoreAway ?? 0}
-              size="sm"
-            />
-          ) : (
-            <p className="text-xs font-black text-muted-foreground">
-              VS
-            </p>
-          )}
+          <div className="text-center min-w-[92px]">
+            {game.status === 'live' || game.status === 'final' ? (
+              <ScoreDisplay
+                homeScore={game.scoreHome ?? 0}
+                awayScore={game.scoreAway ?? 0}
+                size="sm"
+              />
+            ) : (
+              <p className="text-xs font-black text-muted-foreground">
+                VS
+              </p>
+            )}
 
-          {isFinal && winnerId && (
-            <p className="text-[9px] text-green-300 mt-0.5">
-              Winner
-            </p>
-          )}
+            {isFinal && winnerId && (
+              <p className="text-[9px] text-green-300 mt-0.5">
+                Winner
+              </p>
+            )}
+          </div>
+
+          <div className="flex min-w-0 justify-center">
+            <TeamLogo team={away} fallback={awayName} />
+          </div>
         </div>
 
-        <TeamLine team={away} fallback={awayName} align="right" winner={awayWinner} />
+        <div className="grid grid-cols-2 gap-3">
+          <p className={`hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12] ${homeWinner ? 'text-green-300' : ''}`}>
+            {homeName}
+          </p>
+          <p className={`hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12] ${awayWinner ? 'text-green-300' : ''}`}>
+            {awayName}
+          </p>
+        </div>
       </div>
 
       {(game.venue || game.city) && (
