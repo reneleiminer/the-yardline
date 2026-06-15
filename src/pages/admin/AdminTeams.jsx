@@ -30,7 +30,6 @@ import { applyWithdrawnTeamForfeit } from '@/lib/gameForfeitUtils';
 const EMPTY = {
   name: '',
   shortName: '',
-  gameCardAbbr: '',
   leagueId: '',
   groupId: '',
   city: '',
@@ -327,7 +326,6 @@ function TeamForm({ initial = EMPTY, leagues = [], onSave, onCancel, isSaving })
     onSave({
       name: form.name.trim(),
       shortName: form.shortName?.trim() || '',
-      gameCardAbbr: String(form.gameCardAbbr || '').trim().toUpperCase().slice(0, 3),
       leagueId: form.leagueId || '',
       groupId: form.groupId || '',
 
@@ -373,13 +371,6 @@ function TeamForm({ initial = EMPTY, leagues = [], onSave, onCancel, isSaving })
             placeholder="Teamname*"
             value={form.name}
             onChange={event => set('name', event.target.value)}
-          />
-
-          <Input
-            className="sm:col-span-2"
-            placeholder="GameCard-Abkürzung, z. B. MUC"
-            value={form.gameCardAbbr || ''}
-            onChange={event => set('gameCardAbbr', event.target.value.toUpperCase().slice(0, 3))}
           />
 
           <Select value={form.leagueId} onValueChange={handleLeagueChange}>
@@ -866,7 +857,6 @@ export default function AdminTeams() {
                       initial={{
                         name: team.name || '',
                         shortName: team.shortName || '',
-                        gameCardAbbr: team.gameCardAbbr || team.game_card_abbr || '',
                         leagueId: team.leagueId || '',
                         groupId: team.groupId || '',
                         city: team.city || '',
