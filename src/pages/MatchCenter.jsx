@@ -163,20 +163,20 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
         dark
         size="lg"
       />
-      <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/74"}`}>
+      <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/78"}`}>
         {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
         {statusLabel}
       </span>
     </>
   ) : status === "cancelled" ? (
     <>
-      <span className="text-[14px] font-black uppercase tracking-[0.18em] text-white/72">VS</span>
+      <span className="text-[18px] font-black uppercase tracking-[0.18em] text-white/82">VS</span>
       <span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-orange-200">ABGESAGT</span>
     </>
   ) : (
     <>
-      <span className="text-[28px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[36px]">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "--:--"}</span>
-      <span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/72">{kickoff ? format(kickoff, "dd.MM.", { locale: de }) : statusLabel}</span>
+      <span className="text-[32px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-[42px]">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "--:--"}</span>
+      <span className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/78">{kickoff ? format(kickoff, "dd.MM.", { locale: de }) : statusLabel}</span>
     </>
   );
 
@@ -190,48 +190,28 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
         <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-transparent to-black/12" />
         <div className="pointer-events-none absolute inset-y-5 left-1/2 z-10 w-px -translate-x-1/2 bg-white/18" />
 
-        <div className="relative z-20 flex min-h-[180px] flex-col justify-center gap-3 px-4 py-4 sm:hidden">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div className="flex min-w-0 justify-start">
-              <TeamLogo team={home} className="h-[78px] w-[70px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)]" />
+        <div className="relative z-20 flex min-h-[188px] flex-col justify-center gap-4 px-4 py-5 sm:min-h-[218px] sm:px-6 sm:py-6">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:gap-5">
+            <div className="flex min-w-0 justify-center">
+              <TeamLogo team={home} className="h-[82px] w-[84px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)] sm:h-[124px] sm:w-[122px]" />
             </div>
 
-            <div className="flex min-w-[112px] flex-col items-center justify-center px-1 text-center">
+            <div className="flex min-w-[116px] flex-col items-center justify-center px-1 text-center sm:min-w-[148px]">
               {centerBlock}
             </div>
 
-            <div className="flex min-w-0 justify-end">
-              <TeamLogo team={away} className="h-[78px] w-[70px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)]" />
+            <div className="flex min-w-0 justify-center">
+              <TeamLogo team={away} className="h-[82px] w-[84px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)] sm:h-[124px] sm:w-[122px]" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <p className="whitespace-normal break-words text-left text-[19px] font-black italic leading-[1.04] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)]">
+          <div className="grid grid-cols-2 gap-3 sm:gap-6">
+            <p className="hyphens-auto whitespace-normal break-words text-center text-[18px] font-black italic leading-[1.06] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)] sm:text-[28px]">
               {homeName}
             </p>
-            <p className="whitespace-normal break-words text-right text-[19px] font-black italic leading-[1.04] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)]">
+            <p className="hyphens-auto whitespace-normal break-words text-center text-[18px] font-black italic leading-[1.06] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)] sm:text-[28px]">
               {awayName}
             </p>
-          </div>
-        </div>
-
-        <div className="relative z-20 hidden min-h-[190px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] overflow-hidden sm:grid">
-          <div className="flex min-w-0 items-center gap-4 pl-3 pr-5 py-5 text-left">
-            <TeamLogo team={home} className="h-[132px] w-[102px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)]" />
-            <div className="min-w-0 flex-1">
-              <p className="whitespace-normal break-words text-[30px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)]">{homeName}</p>
-            </div>
-          </div>
-
-          <div className="flex min-w-[138px] flex-col items-center justify-center px-2 text-center">
-            {centerBlock}
-          </div>
-
-          <div className="flex min-w-0 items-center justify-end gap-4 pl-5 pr-3 py-5 text-right">
-            <div className="min-w-0 flex-1">
-              <p className="whitespace-normal break-words text-[30px] font-black italic leading-[0.98] tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.35)]">{awayName}</p>
-            </div>
-            <TeamLogo team={away} className="h-[132px] w-[102px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)]" />
           </div>
         </div>
       </div>
