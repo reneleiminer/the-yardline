@@ -682,13 +682,21 @@ export default function AdminHighlights() {
     setShowForm(false);
   };
 
+  const invalidateHighlights = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["admin-game-highlights"] }),
+      queryClient.invalidateQueries({ queryKey: ["game-highlights"] }),
+      queryClient.invalidateQueries({ queryKey: ["home-overview-updates"] }),
+      queryClient.invalidateQueries({ queryKey: ["home-game-highlights"] }),
+      queryClient.invalidateQueries({ queryKey: ["appUpdates"] }),
+      queryClient.invalidateQueries({ queryKey: ["admin-count-highlights"] }),
+    ]);
+  };
+
   const createMutation = useMutation({
     mutationFn: data => base44.entities.AppUpdate.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["home-game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["appUpdates"] });
+    onSuccess: async () => {
+      await invalidateHighlights();
       toast.success("Highlight gepostet");
       resetForm();
     },
@@ -699,11 +707,8 @@ export default function AdminHighlights() {
 
   const updateMutation = useMutation({
     mutationFn: data => base44.entities.AppUpdate.update(editingId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["home-game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["appUpdates"] });
+    onSuccess: async () => {
+      await invalidateHighlights();
       toast.success("Highlight gespeichert");
       resetForm();
     },
@@ -714,11 +719,8 @@ export default function AdminHighlights() {
 
   const deleteMutation = useMutation({
     mutationFn: id => base44.entities.AppUpdate.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin-game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["home-game-highlights"] });
-      queryClient.invalidateQueries({ queryKey: ["appUpdates"] });
+    onSuccess: async () => {
+      await invalidateHighlights();
       toast.success("Highlight gelöscht");
     },
     onError: error => {
@@ -743,6 +745,8 @@ export default function AdminHighlights() {
       return;
     }
 
+    const nowIso = new Date().toISOString();
+
     const meta = {
       description,
       thumbnail_url: thumbnailUrl || getCloudinaryThumbnail(previewVideoUrl),
@@ -754,6 +758,8 @@ export default function AdminHighlights() {
       date: formData.date,
       active: formData.active,
       preview_video_url: previewVideoUrl,
+      created_at: editingId ? undefined : nowIso,
+      updated_at: nowIso,
     };
 
     const payload = {
