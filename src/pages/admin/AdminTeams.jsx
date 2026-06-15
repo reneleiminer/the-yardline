@@ -30,6 +30,7 @@ import { applyWithdrawnTeamForfeit } from '@/lib/gameForfeitUtils';
 const EMPTY = {
   name: '',
   shortName: '',
+  gameCardAbbr: '',
   leagueId: '',
   groupId: '',
   city: '',
@@ -326,6 +327,7 @@ function TeamForm({ initial = EMPTY, leagues = [], onSave, onCancel, isSaving })
     onSave({
       name: form.name.trim(),
       shortName: form.shortName?.trim() || '',
+      gameCardAbbr: String(form.gameCardAbbr || '').trim().toUpperCase().slice(0, 3),
       leagueId: form.leagueId || '',
       groupId: form.groupId || '',
 
@@ -377,6 +379,12 @@ function TeamForm({ initial = EMPTY, leagues = [], onSave, onCancel, isSaving })
             placeholder="Kurzname / Kürzel"
             value={form.shortName}
             onChange={event => set('shortName', event.target.value)}
+          />
+
+          <Input
+            placeholder="GameCard-Abkürzung, z. B. MUC"
+            value={form.gameCardAbbr || ''}
+            onChange={event => set('gameCardAbbr', event.target.value.toUpperCase().slice(0, 3))}
           />
 
           <Select value={form.leagueId} onValueChange={handleLeagueChange}>
@@ -909,7 +917,7 @@ export default function AdminTeams() {
                       <div className={`w-11 h-11 rounded-lg bg-secondary flex-shrink-0 flex items-center justify-center text-xs font-bold text-muted-foreground ${
                         team.withdrawn ? 'opacity-60' : ''
                       }`}>
-                        {team.shortName || team.name?.[0] || '?'}
+                        {team.gameCardAbbr || team.shortName || team.name?.[0] || '?'}
                       </div>
                     )}
 
