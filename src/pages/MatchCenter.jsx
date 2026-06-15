@@ -57,8 +57,79 @@ function getEffectiveGameStatus(game) {
   return "scheduled";
 }
 
+
+function getTeamAbbreviation(team, fallback) {
+  const raw =
+    team?.shortName ||
+    team?.abbr ||
+    team?.abbreviation ||
+    team?.name ||
+    fallback ||
+    "TBD";
+
+  const clean = String(raw)
+    .replace(/[^A-Za-zÄÖÜäöü0-9\s-]/g, " ")
+    .trim();
+
+  if (!clean) return "TBD";
+
+  const compact = clean.replace(/[^A-Za-zÄÖÜäöü0-9]/g, "").toUpperCase();
+  if (compact.length <= 3) return compact.padEnd(3, compact[0] || "X").slice(0, 3);
+
+  const words = clean.split(/[\s-]+/).filter(Boolean);
+  if (words.length >= 2) {
+    const initials = words.map(word => word[0]).join("").toUpperCase();
+    if (initials.length >= 3) return initials.slice(0, 3);
+    return (initials + compact).slice(0, 3);
+  }
+
+  return compact.slice(0, 3);
+}
+
+function toRgba(color, alpha) {
+  if (!color) return `rgba(255,255,255,${alpha})`;
+  const value = String(color).trim();
+
+  if (value.startsWith("#")) {
+    let hex = value.slice(1);
+    if (hex.length === 3) {
+      hex = hex.split("").map(char => char + char).join("");
+    }
+
+    if (hex.length === 6) {
+      const parsed = Number.parseInt(hex, 16);
+      if (Number.isFinite(parsed)) {
+        const r = (parsed >> 16) & 255;
+        const g = (parsed >> 8) & 255;
+        const b = parsed & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      }
+    }
+  }
+
+  if (value.startsWith("rgb(")) {
+    return value.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
+  }
+
+  return value;
+}
+
 function getTeamName(team, fallback) {
   return team?.shortName || team?.name || fallback || "Offen";
+}
+
+
+function hasPlayableScore(game) {
+  return (
+    game?.scoreHome !== undefined &&
+    game?.scoreAway !== undefined &&
+    game?.scoreHome !== null &&
+    game?.scoreAway !== null &&
+    game?.scoreHome !== "" &&
+    game?.scoreAway !== "" &&
+    Number.isFinite(Number(game.scoreHome)) &&
+    Number.isFinite(Number(game.scoreAway))
+  );
 }
 
 function getTeamColor(team, fallback) {
@@ -84,10 +155,10 @@ function StatusBadge({ game }) {
 
   const label = status === "live" ? "LIVE" : status === "final" ? "FINAL" : "ABGESAGT";
   const className = status === "live"
-    ? "border border-red-400/35 bg-[#c20f1a]/85 text-white animate-pulse"
+    ? "bg-[#c20f1a] text-white animate-pulse"
     : status === "final"
-      ? "border border-white/18 bg-white/14 text-white"
-      : "border border-orange-400/35 bg-orange-600/85 text-white";
+      ? "bg-black text-white"
+      : "bg-orange-600 text-white";
 
   return (
     <span className={`rounded-full px-2.5 py-1 text-[9px] font-black tracking-wide ${className}`}>
@@ -100,73 +171,133 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
   const home = teamsById.get(game.homeTeamId);
   const away = teamsById.get(game.awayTeamId);
   const league = leaguesById.get(game.leagueId);
-  const homeName = getTeamName(home, game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamPlaceholder);
+  const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
+  const homeAbbr = getTeamAbbreviation(home, homeName);
+  const awayAbbr = getTeamAbbreviation(away, awayName);
+  const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
+  const showScore = (status === "final" || status === "live") && hasPlayableScore(game);
   const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
   const awayColor = getTeamColor(away, "#c20f1a");
-  const status = getEffectiveGameStatus(game);
-  const showScore = status === "final" || status === "live";
-  const kickoff = getGameDate(game);
+
+  const statusLabel =
+    status === "live"
+      ? "LIVE"
+      : status === "final"
+        ? "FINAL"
+        : status === "cancelled"
+          ? "ABGESAGT"
+          : "KICKOFF";
 
   return (
     <Link
       to={`/game/${game.id}`}
-      className="block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_16px_40px_rgba(0,0,0,0.32)] active:scale-[0.99] transition-transform"
+      className={`group block overflow-hidden rounded-[28px] border border-white/10 bg-black text-white shadow-[0_18px_44px_rgba(0,0,0,0.34)] active:scale-[0.99] transition-transform`}
     >
-      <div className="relative grid min-h-[166px] grid-cols-2 overflow-hidden sm:min-h-[178px]">
+      <div className="relative grid min-h-[172px] grid-cols-2 overflow-hidden sm:min-h-[190px]">
+        <div className="absolute inset-0 z-0 grid grid-cols-2">
+          <div style={{ background: homeColor }} />
+          <div style={{ background: awayColor }} />
+        </div>
+
         <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.10)_0_1px,transparent_1px_18px)] opacity-35" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/12 via-black/4 to-black/32" />
 
-        <div className="relative flex min-w-0 flex-col justify-between p-3.5" style={{ background: homeColor }}>
-          <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-black/22" />
-          <div className="relative z-10 flex items-start justify-start">
-            <TeamLogo team={home} className="h-16 w-16 sm:h-20 sm:w-20" />
-          </div>
-          <p className="relative z-10 pr-10 text-left text-[15px] font-black leading-[1.08] sm:pr-14 sm:text-lg">
-            {homeName}
-          </p>
+        <div className="pointer-events-none absolute inset-y-5 left-0 z-10 w-8 border-y border-white/10 opacity-35">
+          <div className="h-full bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.35)_0_2px,transparent_2px_18px)]" />
+        </div>
+        <div className="pointer-events-none absolute inset-y-5 right-0 z-10 w-8 border-y border-white/10 opacity-35">
+          <div className="h-full bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.35)_0_2px,transparent_2px_18px)]" />
         </div>
 
-        <div className="relative flex min-w-0 flex-col justify-between p-3.5 text-right" style={{ background: awayColor }}>
-          <div className="absolute inset-0 bg-gradient-to-bl from-white/18 via-transparent to-black/22" />
-          <div className="relative z-10 flex items-start justify-end">
-            <TeamLogo team={away} className="h-16 w-16 sm:h-20 sm:w-20" />
+        <div className="pointer-events-none absolute left-1/2 top-0 z-10 h-9 w-12 -translate-x-1/2 rounded-b-[18px] bg-black/14" />
+        <div className="pointer-events-none absolute bottom-0 left-1/2 z-10 h-9 w-16 -translate-x-1/2 rounded-t-[20px] bg-black/16" />
+
+        <div className="relative z-20 flex min-w-0 flex-col justify-center gap-3 px-5 py-5 text-left">
+          <div className="flex items-center gap-3">
+            <TeamLogo team={home} className="h-14 w-14 sm:h-16 sm:w-16" />
           </div>
-          <p className="relative z-10 pl-10 text-right text-[15px] font-black leading-[1.08] sm:pl-14 sm:text-lg">
-            {awayName}
-          </p>
+
+          <div>
+            <p className="text-[42px] font-black italic leading-none tracking-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-5xl">
+              {homeAbbr}
+            </p>
+            <p className="mt-1 line-clamp-1 text-[11px] font-black uppercase tracking-wide text-white/76">
+              {homeName}
+            </p>
+          </div>
         </div>
 
-        <div
-          className="absolute left-1/2 top-1/2 z-20 flex min-w-[116px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center overflow-hidden rounded-[20px] border border-white/24 px-4 py-3 text-white shadow-[0_10px_24px_rgba(0,0,0,0.18)] backdrop-blur-md"
-          style={{
-            background: `linear-gradient(90deg, ${homeColor}33 0%, ${homeColor}22 50%, ${awayColor}22 50%, ${awayColor}33 100%)`,
-          }}
-        >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/18 via-white/8 to-black/10" />
+        <div className="relative z-20 flex min-w-0 flex-col justify-center gap-3 px-5 py-5 text-right">
+          <div className="flex items-center justify-end gap-3">
+            <TeamLogo team={away} className="h-14 w-14 sm:h-16 sm:w-16" />
+          </div>
+
+          <div>
+            <p className="text-[42px] font-black italic leading-none tracking-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-5xl">
+              {awayAbbr}
+            </p>
+            <p className="mt-1 line-clamp-1 text-[11px] font-black uppercase tracking-wide text-white/76">
+              {awayName}
+            </p>
+          </div>
+        </div>
+
+        <div className="absolute inset-y-0 left-1/2 z-30 flex w-[128px] -translate-x-1/2 flex-col items-center justify-center text-center">
+          <div
+            className="absolute inset-y-0 left-1/2 w-full -translate-x-1/2"
+            style={{
+              background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.18)} 34%, rgba(0,0,0,0.18) 50%, ${toRgba(awayColor, 0.18)} 66%, ${toRgba(awayColor, 0)} 100%)`,
+            }}
+          />
+
           <div className="relative z-10 flex flex-col items-center">
-          <StatusBadge game={game} />
-          {showScore ? (
-            <div className="mt-1 flex items-center gap-2 text-3xl font-black tabular-nums leading-none">
-              <span>{game.scoreHome ?? 0}</span>
-              <span className="text-white/35">:</span>
-              <span>{game.scoreAway ?? 0}</span>
-            </div>
-          ) : (
-            <>
-              <span className="text-2xl font-black leading-none text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.16)]">
-                {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
+            {status === "cancelled" ? (
+              <span className="text-[17px] font-black uppercase tracking-wide text-orange-200 drop-shadow-[0_2px_8px_rgba(0,0,0,0.32)]">
+                Abgesagt
               </span>
-              <span className="mt-1 text-[10px] font-black uppercase tracking-wider text-white/84">
-                {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "Offen"}
-              </span>
-            </>
-          )}
+            ) : showScore ? (
+              <div className="flex items-center gap-2 text-[34px] font-black leading-none tabular-nums text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-4xl">
+                <span>{game.scoreHome ?? 0}</span>
+                <span className="text-white/60">:</span>
+                <span>{game.scoreAway ?? 0}</span>
+              </div>
+            ) : (
+              <>
+                <span className="text-[34px] font-black leading-none text-white tabular-nums drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-4xl">
+                  {kickoff ? format(kickoff, "HH:mm", { locale: de }) : "VS"}
+                </span>
+                <span className="mt-1 text-[17px] font-black leading-none text-white/88 tabular-nums">
+                  {kickoff ? format(kickoff, "dd.MM.", { locale: de }) : ""}
+                </span>
+              </>
+            )}
+
+            <span className={`mt-2 text-[10px] font-black uppercase tracking-[0.22em] ${
+              status === "live"
+                ? "text-[#ff2338]"
+                : status === "final"
+                  ? "text-white/72"
+                  : status === "cancelled"
+                    ? "text-orange-200"
+                    : "text-white/70"
+            }`}>
+              {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
+              {statusLabel}
+            </span>
           </div>
+        </div>
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 grid h-1 grid-cols-2">
+          <div className="bg-[#ff2338]/90" />
+          <div className="bg-[#2f7dff]/90" />
         </div>
       </div>
     </Link>
   );
 }
+
 
 function isGameToday(date, today) {
   return date >= today && date < addDays(today, 1);
