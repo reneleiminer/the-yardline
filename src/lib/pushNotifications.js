@@ -400,9 +400,7 @@ export async function sendTestPushNotification() {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      subscription,
-    }),
+    body: JSON.stringify({ subscription }),
   });
 
   const payload = await response.json().catch(() => ({}));
