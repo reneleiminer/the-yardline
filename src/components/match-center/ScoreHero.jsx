@@ -209,9 +209,9 @@ export default function ScoreHero({ game, home, away, league }) {
               </span>
             </button>
 
-            <div className="relative flex min-w-[118px] flex-shrink-0 flex-col items-center justify-center gap-1.5 text-center">
+            <div className="relative flex min-w-[154px] flex-shrink-0 flex-col items-center justify-center gap-1.5 text-center">
               <div
-                className="absolute inset-y-[-34px] left-1/2 w-[136px] -translate-x-1/2"
+                className="absolute inset-y-[-34px] left-1/2 w-[168px] -translate-x-1/2"
                 style={{
                   background: `linear-gradient(90deg, ${toRgba(homeColor, 0)} 0%, ${toRgba(homeColor, 0.18)} 34%, rgba(0,0,0,0.18) 50%, ${toRgba(awayColor, 0.18)} 66%, ${toRgba(awayColor, 0)} 100%)`,
                 }}
@@ -220,7 +220,7 @@ export default function ScoreHero({ game, home, away, league }) {
                 {hasScore ? (
                   <div className="grid grid-cols-[minmax(42px,1fr)_18px_minmax(42px,1fr)] items-center text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.34)]">
                     <span className="text-right"><ScorePill score={homeScore} size="lg" /></span>
-                    <span className="inline-flex items-center justify-center rounded-md bg-black/72 px-1 text-center text-[26px] font-black leading-none text-white shadow-[0_2px_8px_rgba(0,0,0,0.38)] sm:text-[32px]">:</span>
+                    <span className="inline-flex h-[34px] w-[30px] items-center justify-center rounded-md bg-black/88 text-center text-[28px] font-black leading-none text-white shadow-[0_5px_14px_rgba(0,0,0,0.55)] sm:h-[40px] sm:w-[36px] sm:text-[34px]">:</span>
                     <span className="text-left"><ScorePill score={awayScore} size="lg" /></span>
                   </div>
                 ) : (
