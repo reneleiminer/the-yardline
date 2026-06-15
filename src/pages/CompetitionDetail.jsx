@@ -16,6 +16,7 @@ import { base44 } from '@/api/base44Client';
 import useSetHeader from '@/hooks/useSetHeader';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ScoreDisplay from '@/components/ui/ScoreDisplay';
 import { getImageUrl } from '@/lib/imageUtils';
 import BracketView from '@/components/tournaments/BracketView';
 
@@ -503,9 +504,11 @@ function CompetitionGameCard({ game, teamsById }) {
 
         <div className="text-center min-w-[58px]">
           {game.status === 'live' || game.status === 'final' ? (
-            <p className="text-base font-black tabular-nums">
-              {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
-            </p>
+            <ScoreDisplay
+              homeScore={game.scoreHome ?? 0}
+              awayScore={game.scoreAway ?? 0}
+              size="sm"
+            />
           ) : (
             <p className="text-xs font-black text-muted-foreground">
               VS
