@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRealtimeQuery } from '@/hooks/useRealtimeQuery';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
+import ScoreDisplay from '@/components/ui/ScoreDisplay';
 import ScoreHero from '@/components/match-center/ScoreHero';
 import TeamForm from '@/components/match-center/TeamForm';
 import MatchInfo from '@/components/match-center/MatchInfo';
@@ -531,11 +532,11 @@ const awayName = away?.name || away?.shortName || game.awayTeamPlaceholder || 'T
                 Abgesagt
               </span>
             ) : hasScore ? (
-              <div className="flex items-center gap-2.5">
-                <span className="text-xl font-black tabular-nums">{game.scoreHome ?? 0}</span>
-                <span className="text-xl font-light text-muted-foreground">-</span>
-                <span className="text-xl font-black tabular-nums">{game.scoreAway ?? 0}</span>
-              </div>
+              <ScoreDisplay
+                homeScore={game.scoreHome ?? 0}
+                awayScore={game.scoreAway ?? 0}
+                size="sm"
+              />
             ) : (
               <span className="text-2xl font-black text-primary tabular-nums">
                 {game.time || '--:--'}
