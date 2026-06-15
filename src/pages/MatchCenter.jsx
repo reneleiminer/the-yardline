@@ -13,6 +13,7 @@ const MATCH_TABS = [
 ];
 
 const GAME_FILTER_TABS = [
+  { key: "previous", label: "Previous" },
   { key: "today", label: "Today" },
   { key: "upcoming", label: "Upcoming" },
 ];
@@ -60,6 +61,10 @@ function getEffectiveGameStatus(game) {
 
 function getTeamAbbreviation(team, fallback) {
   const raw =
+    team?.gameCardAbbr ||
+    team?.game_card_abbr ||
+    team?.cardAbbreviation ||
+    team?.card_abbreviation ||
     team?.shortName ||
     team?.abbr ||
     team?.abbreviation ||
@@ -307,6 +312,10 @@ function isGameUpcoming(date, today) {
   return date >= addDays(today, 1) && date < addDays(today, 8);
 }
 
+function isGamePrevious(date, today) {
+  return date < today && date >= addDays(today, -7);
+}
+
 function selectRelevantGames(games, mode = "today") {
   const today = startOfDay(new Date());
 
@@ -324,6 +333,10 @@ function selectRelevantGames(games, mode = "today") {
         return isGameUpcoming(item.date, today);
       }
 
+      if (mode === "previous") {
+        return isGamePrevious(item.date, today) || item.status === "final";
+      }
+
       return isGameToday(item.date, today);
     })
     .sort((a, b) => {
@@ -334,6 +347,10 @@ function selectRelevantGames(games, mode = "today") {
       const finalA = a.status === "final" ? 1 : 0;
       const finalB = b.status === "final" ? 1 : 0;
       if (finalA !== finalB) return finalA - finalB;
+
+      if (mode === "previous") {
+        return b.date.getTime() - a.date.getTime();
+      }
 
       return a.date.getTime() - b.date.getTime();
     })
@@ -413,7 +430,7 @@ function GameDateSwitch({ value, onChange }) {
 }
 
 function GamesPanel({ games, teamsById, leaguesById }) {
-  const [gameFilter, setGameFilter] = useState("today");
+  const [gameFilter, setGameFilter] = useState("previous");
 
   const selectedGames = useMemo(
     () => selectRelevantGames(games, gameFilter),
