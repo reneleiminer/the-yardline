@@ -17,6 +17,7 @@ import {
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
 import { getImageUrl } from "@/lib/imageUtils";
+import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
 function getGameDate(game) {
   if (game?.date) {
@@ -203,19 +204,11 @@ function GameCard({ game, teamsById, leaguesById }) {
                 Abgesagt
               </span>
             ) : showScore ? (
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-black leading-none tabular-nums whitespace-nowrap">
-                  {game.scoreHome ?? 0}
-                </span>
-
-                <span className="text-lg font-black text-muted-foreground">
-                  :
-                </span>
-
-                <span className="text-2xl font-black leading-none tabular-nums whitespace-nowrap">
-                  {game.scoreAway ?? 0}
-                </span>
-              </div>
+              <ScoreDisplay
+                homeScore={game.scoreHome ?? 0}
+                awayScore={game.scoreAway ?? 0}
+                size="sm"
+              />
             ) : (
               <span className="inline-flex rounded-xl bg-secondary/70 border border-border/50 px-4 py-1.5 text-xs font-black">
                 VS
