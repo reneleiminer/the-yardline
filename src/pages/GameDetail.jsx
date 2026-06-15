@@ -208,9 +208,14 @@ function hasFinalScore(game) {
 function buildDisplayGame(game) {
   if (!game) return game;
 
+  const effectiveStatus = getEffectiveGameStatus(game);
+  const hasScore = hasFinalScore(game);
+
   return {
     ...game,
-    status: getEffectiveGameStatus(game),
+    status: effectiveStatus === 'live' && hasScore
+      ? 'live'
+      : effectiveStatus,
   };
 }
 
@@ -1446,7 +1451,7 @@ export default function GameDetail() {
                 : 'text-white/52 hover:text-white'
             } ${showStatisticsTab ? '' : 'col-span-1'}`}
           >
-            Infos
+            Info
           </button>
         </div>
       </div>
