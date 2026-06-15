@@ -28,16 +28,7 @@ function TeamLogo({ logo, name }) {
 function getKickoffDate(game) {
   if (game?.date) {
     const rawTime = game.time || game.kickoffTime || '00:00';
-    const rawDate = String(game.date);
-    let year;
-    let month;
-    let day;
-
-    if (rawDate.includes('-')) {
-      [year, month, day] = rawDate.split('-').map(Number);
-    } else if (rawDate.includes('.')) {
-      [day, month, year] = rawDate.split('.').map(Number);
-    }
+    const [year, month, day] = String(game.date).split('-').map(Number);
     const [hour, minute] = String(rawTime).split(':').map(Number);
 
     if (year && month && day) {
@@ -68,10 +59,6 @@ function getEffectiveStatus(game, kickoff) {
   if (rawStatus === 'live') return 'live';
 
   if (kickoff && kickoff.getTime() <= Date.now()) {
-    return 'live';
-  }
-
-  if (hasPlayableScore(game)) {
     return 'live';
   }
 
