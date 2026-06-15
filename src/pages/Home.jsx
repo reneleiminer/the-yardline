@@ -272,9 +272,6 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
             <p className="text-[42px] font-black italic leading-none tracking-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-5xl">
               {homeAbbr}
             </p>
-            <p className="mt-1 line-clamp-1 text-[11px] font-black uppercase tracking-wide text-white/76">
-              {homeName}
-            </p>
           </div>
         </div>
 
@@ -286,9 +283,6 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
           <div>
             <p className="text-[42px] font-black italic leading-none tracking-tight drop-shadow-[0_3px_10px_rgba(0,0,0,0.38)] sm:text-5xl">
               {awayAbbr}
-            </p>
-            <p className="mt-1 line-clamp-1 text-[11px] font-black uppercase tracking-wide text-white/76">
-              {awayName}
             </p>
           </div>
         </div>
