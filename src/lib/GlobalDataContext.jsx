@@ -21,6 +21,7 @@ const CORE_ENTITY_CONFIG = [
   { key: "clubs", entity: "Club" },
   { key: "standingsConfigs", entity: "StandingsConfig" },
   { key: "legalPages", entity: "LegalPage" },
+  { key: "appUpdates", entity: "AppUpdate" },
 ];
 
 const AUTO_LIVE_CHECK_INTERVAL_MS = 60 * 1000;
@@ -65,6 +66,19 @@ function updateEntityCache(queryClient, key, event) {
       ...event.item,
     }));
   }
+}
+
+function invalidateAppUpdateDrivenQueries(queryClient) {
+  [
+    "appUpdates",
+    "home-overview-updates",
+    "game-highlights",
+    "admin-game-highlights",
+    "admin-count-highlights",
+    "home-game-highlights",
+  ].forEach((key) => {
+    queryClient.invalidateQueries({ queryKey: [key], refetchType: "active" });
+  });
 }
 
 function invalidateGameDrivenQueries(queryClient, gameId) {
@@ -145,6 +159,10 @@ function useRealtimeSubscriptions(queryClient, enabledKeys) {
 
           if (entity === "Game") {
             invalidateGameDrivenQueries(queryClient, event?.id);
+          }
+
+          if (entity === "AppUpdate") {
+            invalidateAppUpdateDrivenQueries(queryClient);
           }
         });
 
@@ -285,6 +303,7 @@ export const GlobalDataProvider = ({ children }) => {
       keys.add("leagues");
       keys.add("teams");
       keys.add("games");
+      keys.add("appUpdates");
     }
 
     if (needsPartnerData) keys.add("partners");
