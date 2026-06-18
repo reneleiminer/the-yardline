@@ -26,10 +26,9 @@ export default function LikeButton({ postId, initialLiked = false, initialCount 
     setLoading(true);
     const previousLiked = liked;
     const previousCount = count;
+    let resolvedCount = previousCount;
 
     try {
-      console.log("LIKE CLICK", postId, appUser.id);
-      
       // Optimistic update
       const newLiked = !liked;
       setLiked(newLiked);
@@ -37,17 +36,16 @@ export default function LikeButton({ postId, initialLiked = false, initialCount 
 
       if (newLiked) {
         // Create like record in database
-        const likeResult = await base44.entities.Like.create({
+        await base44.entities.Like.create({
           postId,
           userId: appUser.id,
           createdAtUtc: new Date().toISOString()
         });
-        console.log("LIKE CREATED", likeResult);
         
         // Fetch all likes for this post to get accurate count
         const allLikes = await base44.entities.Like.filter({ postId });
         const newCount = allLikes.length;
-        console.log("LIKES AFTER CREATE", allLikes.length);
+        resolvedCount = newCount;
         
         // Update post with real count
         await base44.entities.Post.update(postId, { likesCount: newCount });
@@ -64,12 +62,11 @@ export default function LikeButton({ postId, initialLiked = false, initialCount 
         
         if (existingLikes.length > 0) {
           await base44.entities.Like.delete(existingLikes[0].id);
-          console.log("LIKE DELETED", existingLikes[0].id);
           
           // Fetch all remaining likes for this post
           const allLikes = await base44.entities.Like.filter({ postId });
           const newCount = allLikes.length;
-          console.log("LIKES AFTER DELETE", newCount);
+          resolvedCount = newCount;
           
           // Update post with real count
           await base44.entities.Post.update(postId, { likesCount: newCount });
@@ -77,7 +74,7 @@ export default function LikeButton({ postId, initialLiked = false, initialCount 
         }
       }
 
-      onCountChange?.(count);
+      onCountChange?.(resolvedCount);
     } catch (err) {
       console.error('Like error:', err);
       // Revert on error

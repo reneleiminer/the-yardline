@@ -41,6 +41,10 @@ function normalizeRole(value) {
   return getRoleSlug(value || "fan");
 }
 
+function normalizeUsername(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function getLoginTitle() {
   return "Interner Login";
 }

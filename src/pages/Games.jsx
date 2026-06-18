@@ -16,62 +16,10 @@ import {
 } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
+import { getEffectiveGameStatus, getGameDate } from "@/lib/gameStatusUtils";
 import { getImageUrl } from "@/lib/imageUtils";
 import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
-function getGameDate(game) {
-  if (game?.date) {
-    const rawTime = game.time || game.kickoffTime || "00:00";
-    const rawDate = String(game.date);
-    let year;
-    let month;
-    let day;
-
-    if (rawDate.includes("-")) {
-      [year, month, day] = rawDate.split("-").map(Number);
-    } else if (rawDate.includes(".")) {
-      [day, month, year] = rawDate.split(".").map(Number);
-    }
-    const [hour, minute] = String(rawTime).split(":").map(Number);
-
-    if (year && month && day) {
-      return new Date(
-        year,
-        month - 1,
-        day,
-        Number.isFinite(hour) ? hour : 0,
-        Number.isFinite(minute) ? minute : 0,
-        0,
-        0
-      );
-    }
-  }
-
-  if (game?.kickoffAt) {
-    const kickoff = new Date(game.kickoffAt);
-    if (!Number.isNaN(kickoff.getTime())) return kickoff;
-  }
-
-  return null;
-}
-
-function getEffectiveGameStatus(game) {
-  if (!game) return "scheduled";
-  if (game.status === "cancelled") return "cancelled";
-  if (game.status === "final") return "final";
-  const date = getGameDate(game);
-  if (!date) return game.status || "scheduled";
-  if (date.getTime() > Date.now()) return "scheduled";
-  if (game.status === "live") return "live";
-
-  // UI-Fallback: Wenn die Function verzögert läuft, zeigt die App trotzdem Live an.
-  // Abgesagte Spiele bleiben aber immer abgesagt und dürfen nie automatisch Live werden.
-  if ((game.status || "scheduled") === "scheduled" && new Date().getTime() >= date.getTime()) {
-    return "live";
-  }
-
-  return game.status || "scheduled";
-}
 
 function hasStream(game) {
   const status = getEffectiveGameStatus(game);
@@ -160,7 +108,7 @@ function GameCard({ game, teamsById, leaguesById }) {
   return (
     <Link
       to={`/game/${game.id}`}
-      className={`relative block rounded-2xl border overflow-hidden active:scale-[0.99] transition-transform ${
+      className={`relative block overflow-hidden rounded-2xl border transition-transform active:scale-[0.99] ${
         isCancelled
           ? "border-orange-500/30 bg-orange-500/5"
           : "border-border/50 bg-card"
@@ -169,9 +117,9 @@ function GameCard({ game, teamsById, leaguesById }) {
         boxShadow: `inset 4px 0 0 ${homeColor}, inset -4px 0 0 ${awayColor}`,
       }}
     >
-      <div className="px-3 pt-3 pb-3">
-        <div className="relative mb-2 min-h-9">
-          <p className="text-[10px] font-semibold text-muted-foreground truncate pr-16">
+      <div className="px-3 pb-2.5 pt-2.5 sm:pb-3 sm:pt-3">
+        <div className="relative mb-2 min-h-8 sm:min-h-9">
+          <p className="truncate pr-16 text-[10px] font-semibold text-muted-foreground">
             {getGameDate(game)
               ? format(getGameDate(game), "HH:mm", { locale: de })
               : game.time || game.kickoffTime || "Uhrzeit offen"}
@@ -182,22 +130,22 @@ function GameCard({ game, teamsById, leaguesById }) {
           </div>
 
           <div className="absolute right-0 top-0 flex items-center gap-2">
-            {hasStream(game) && <Radio className="w-[18px] h-[18px] text-primary" />}
+            {hasStream(game) && <Radio className="h-[18px] w-[18px] text-primary" />}
             {(game.isCompetitionGame || game.competitionId || game.tournamentId) && (
-              <Trophy className="w-4 h-4 text-yellow-400" />
+              <Trophy className="h-4 w-4 text-yellow-400" />
             )}
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
             <div className="flex min-w-0 justify-center">
               <TeamLogo team={home} fallback={homeName} />
             </div>
 
-            <div className="flex min-w-[92px] justify-center">
+            <div className="flex min-w-[86px] justify-center sm:min-w-[92px]">
               {isCancelled ? (
-                <span className="inline-flex rounded-xl bg-orange-500/15 border border-orange-500/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-orange-300">
+                <span className="inline-flex rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-orange-300">
                   Abgesagt
                 </span>
               ) : showScore ? (
@@ -207,7 +155,7 @@ function GameCard({ game, teamsById, leaguesById }) {
                   size="sm"
                 />
               ) : (
-                <span className="inline-flex rounded-xl bg-secondary/70 border border-border/50 px-4 py-1.5 text-xs font-black">
+                <span className="inline-flex rounded-xl border border-border/50 bg-secondary/70 px-4 py-1.5 text-xs font-black">
                   VS
                 </span>
               )}
@@ -218,11 +166,11 @@ function GameCard({ game, teamsById, leaguesById }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <p className="hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12]">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <p className="line-clamp-2 hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12]">
               {homeName}
             </p>
-            <p className="hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12]">
+            <p className="line-clamp-2 hyphens-auto whitespace-normal break-words text-center text-[12px] font-black leading-[1.12]">
               {awayName}
             </p>
           </div>
@@ -231,7 +179,6 @@ function GameCard({ game, teamsById, leaguesById }) {
     </Link>
   );
 }
-
 function CompactEmptyState() {
   return (
     <div className="px-4 py-8 text-center text-muted-foreground text-sm">

@@ -19,7 +19,6 @@ async function uploadToCloudinary(file) {
   );
 
   const result = await response.json();
-  console.log('CLOUDINARY IMAGE RESULT:', result);
 
   if (!response.ok || !result.secure_url) {
     throw new Error(result?.error?.message || 'Upload fehlgeschlagen');
