@@ -337,7 +337,7 @@ export default function NewsDashboard() {
             <Input value={form.title} onChange={(event) => set("title", event.target.value)} placeholder="Titel" className="h-12 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/42" />
             <textarea value={form.teaser} onChange={(event) => set("teaser", event.target.value)} placeholder="Kurzer Teaser" className="min-h-[76px] w-full rounded-2xl border border-white/10 bg-white/10 p-3 text-sm font-semibold text-white outline-none placeholder:text-white/42" />
             <ImageUploadField value={form.coverImageUrl} onChange={(value) => set("coverImageUrl", value)} label="Cover-Bild" />
-            <Input value={form.coverImageUrl} onChange={(event) => set("coverImageUrl", event.target.value)} placeholder="oder Cover-URL einfuegen" className="h-11 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/42" />
+            <Input value={form.coverImageUrl} onChange={(event) => set("coverImageUrl", event.target.value)} placeholder="oder Cover-URL einfügen" className="h-11 rounded-2xl border-white/10 bg-white/10 text-white placeholder:text-white/42" />
           </div>
 
           {form.type === "transfer" && (
@@ -442,10 +442,10 @@ export default function NewsDashboard() {
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-black/72 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.32)] backdrop-blur">
-            <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-white/70">Deine Beitraege</p>
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-white/70">Deine Beiträge</p>
             <div className="space-y-3">
               {ownPosts.length === 0 ? (
-                <p className="py-8 text-center text-sm font-black uppercase text-white/55">Noch keine Beitraege</p>
+                <p className="py-8 text-center text-sm font-black uppercase text-white/55">Noch keine Beiträge</p>
               ) : ownPosts.map((post) => (
                 <div key={post.id} className="rounded-[22px] border border-white/10 bg-white/6 p-3">
                   <PostPreview post={post} />

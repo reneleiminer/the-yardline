@@ -274,6 +274,15 @@ function AppRoutes() {
             />
 
             <Route
+              path="/admin/news"
+              element={
+                <AdminRoute>
+                  <NewsDashboard />
+                </AdminRoute>
+              }
+            />
+
+            <Route
               path="/admin/highlights"
               element={
                 <AdminRoute>

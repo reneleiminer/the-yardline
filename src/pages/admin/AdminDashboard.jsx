@@ -1217,6 +1217,12 @@ export default function AdminDashboard() {
     item.isActive !== false
   );
 
+  const activeEditorialPosts = posts.filter(item =>
+    ['news', 'transfer'].includes(item.type) &&
+    item.isDeleted !== true &&
+    item.isHidden !== true
+  );
+
   const sections = [
     {
       icon: UserCog,
@@ -1234,6 +1240,15 @@ export default function AdminDashboard() {
       route: '__app_branding__',
       color: 'text-blue-400',
       bg: 'bg-blue-400/10',
+    },
+    {
+      icon: Newspaper,
+      title: 'News erstellen',
+      description: 'News und Transfers schreiben, bearbeiten und veröffentlichen',
+      route: '/admin/news',
+      count: activeEditorialPosts.length,
+      color: 'text-red-400',
+      bg: 'bg-red-400/10',
     },
     {
       icon: Newspaper,
