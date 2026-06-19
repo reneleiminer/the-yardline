@@ -307,7 +307,7 @@ function GameDateSwitch({ value, onChange }) {
 }
 
 function GamesPanel({ games, teamsById, leaguesById }) {
-  const [gameFilter, setGameFilter] = useState("previous");
+  const [gameFilter, setGameFilter] = useState("today");
 
   const selectedGames = useMemo(
     () => selectRelevantGames(games, gameFilter),
