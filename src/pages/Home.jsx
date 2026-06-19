@@ -323,8 +323,8 @@ function SectionTitle({ title, to }) {
 
 function HorizontalRail({ children }) {
   return (
-    <div className="-mx-4 overflow-x-auto px-4 pb-2 hide-scrollbar">
-      <div className="flex gap-4">
+    <div className="-mx-4 overflow-x-auto overscroll-x-contain scroll-px-4 snap-x snap-mandatory px-4 pb-2 hide-scrollbar">
+      <div className="flex items-stretch gap-4">
         {children}
       </div>
     </div>
@@ -471,7 +471,9 @@ function AdBannerSlot({ banners, position }) {
   );
 }
 
-function HighlightCard({ item }) {
+function HighlightCard({ item, priority = false }) {
+  const wrapperClass = "block shrink-0 snap-start basis-[82vw] max-w-[82vw] sm:basis-[520px] sm:max-w-[520px]";
+
   const content = (
     <div className="group relative aspect-video overflow-hidden rounded-[24px] border border-white/10 bg-black text-white shadow-[0_18px_36px_rgba(0,0,0,0.34)]">
       {item.imageUrl ? (
@@ -479,7 +481,8 @@ function HighlightCard({ item }) {
           src={getImageUrl(item.imageUrl)}
           alt=""
           className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          decoding="async"
         />
       ) : (
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,91,255,0.35),transparent_35%),linear-gradient(135deg,#000,#07111f)]" />
@@ -532,13 +535,13 @@ function HighlightCard({ item }) {
 
   if (item.url) {
     return (
-      <a href={item.url} target="_blank" rel="noopener noreferrer" className="block min-w-[82vw] max-w-[82vw] sm:min-w-[520px] sm:max-w-[520px]">
+      <a href={item.url} target="_blank" rel="noopener noreferrer" className={wrapperClass}>
         {content}
       </a>
     );
   }
 
-  return <div className="min-w-[82vw] max-w-[82vw] sm:min-w-[520px] sm:max-w-[520px]">{content}</div>;
+  return <div className={wrapperClass}>{content}</div>;
 }
 
 function NewsCard({ post }) {
@@ -1075,7 +1078,7 @@ export default function Home() {
           <SectionTitle title="Game Highlights" to="/highlights" />
           {highlights.length > 0 ? (
             <HorizontalRail>
-              {highlights.map((item) => <HighlightCard key={item.id} item={item} />)}
+              {highlights.map((item, index) => <HighlightCard key={item.id} item={item} priority={index === 0} />)}
             </HorizontalRail>
           ) : (
             <EmptyCard label="Keine Highlights" />
