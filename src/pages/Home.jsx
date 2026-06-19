@@ -233,7 +233,7 @@ function SmallGameCard({ game, teamsById, leaguesById }) {
   return <ColorGameCard game={game} teamsById={teamsById} leaguesById={leaguesById} compact />;
 }
 
-function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
+function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById, favoriteRecord, favoriteRank }) {
   if (!game || !favoriteTeam) return null;
 
   const home = teamsById.get(game.homeTeamId);
@@ -242,60 +242,85 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById }) {
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
   const showScore = (status === "live" || status === "final") && hasPlayableScore(game);
-  const homeName = getTeamName(home, game.homeTeamNameSnapshot || game.homeTeamPlaceholder);
-  const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
-  const homeColor = getTeamColor(home, "#013369");
-  const awayColor = getTeamColor(away, "#c20f1a");
-
-  const title = status === "live" ? "Dein Team ist live" : status === "final" ? "Finale deines Teams" : "Dein Team";
-
-  const centerBlock = showScore ? (
-    <ScoreDisplay
-      homeScore={game.scoreHome ?? 0}
-      awayScore={game.scoreAway ?? 0}
-      dark
-      size="sm"
-    />
-  ) : (
-    <span className="text-[24px] font-black leading-none tabular-nums">{kickoff ? format(kickoff, "HH:mm", { locale: de }) : "--:--"}</span>
+  const isFavoriteHome = game.homeTeamId === favoriteTeam.id;
+  const opponent = isFavoriteHome ? away : home;
+  const opponentName = getTeamName(
+    opponent,
+    isFavoriteHome
+      ? game.awayTeamNameSnapshot || game.awayTeamPlaceholder
+      : game.homeTeamNameSnapshot || game.homeTeamPlaceholder
   );
+  const favoriteColor = getTeamColor(favoriteTeam, league?.primaryColor || "#013369");
+  const opponentColor = getTeamColor(opponent, "#c20f1a");
+  const record = favoriteRecord || { wins: 0, losses: 0, ties: 0, played: 0 };
+  const recordLabel = `${record.wins || 0}-${record.losses || 0}${record.ties ? `-${record.ties}` : ""}`;
+  const rankLabel = favoriteRank ? `#${favoriteRank}` : "-";
+  const nextLabel = status === "live" ? "Live" : status === "final" ? "Letztes Spiel" : "Nächstes Spiel";
+  const opponentPrefix = isFavoriteHome ? "vs" : "@";
 
   return (
-    <Link to={`/game/${game.id}`} className="block overflow-hidden rounded-[22px] border border-white/10 bg-black text-white shadow-[0_16px_36px_rgba(0,0,0,0.28)]">
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 grid grid-cols-2">
-          <div style={{ background: homeColor }} />
-          <div style={{ background: awayColor }} />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/10" />
-        <div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 bg-white/18" />
-
-        <div className="relative z-10 flex min-h-[142px] flex-col justify-center gap-3 px-3 py-4 sm:min-h-[156px]">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-4">
-            <div className="flex min-w-0 justify-center">
-              {home?.logo && <img src={getImageUrl(home.logo)} alt="" className="h-[60px] w-[58px] shrink-0 object-contain opacity-95 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)] sm:h-[72px] sm:w-[70px]" />}
-            </div>
-
-            <div className="flex min-w-[100px] flex-col items-center justify-center px-1 text-center sm:min-w-[112px]">
-              {centerBlock}
-              <span className={`mt-1 text-[9px] font-black uppercase tracking-[0.18em] ${status === "live" ? "text-[#ff2338]" : "text-white/72"}`}>
-                {status === "live" ? "LIVE" : status === "final" ? "FINAL" : kickoff ? format(kickoff, "dd.MM.", { locale: de }) : "KICKOFF"}
-              </span>
-            </div>
-
-            <div className="flex min-w-0 justify-center">
-              {away?.logo && <img src={getImageUrl(away.logo)} alt="" className="h-[60px] w-[58px] shrink-0 object-contain opacity-95 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)] sm:h-[72px] sm:w-[70px]" />}
+    <Link
+      to={`/game/${game.id}`}
+      className="block overflow-hidden rounded-[20px] border border-white/10 bg-black text-white shadow-[0_14px_30px_rgba(0,0,0,0.26)] active:scale-[0.99]"
+    >
+      <div
+        className="relative min-h-[96px] overflow-hidden px-3 py-3 sm:min-h-[112px] sm:px-4"
+        style={{
+          background: `linear-gradient(135deg, ${toRgba(favoriteColor, 0.72)}, rgba(0,0,0,0.88) 54%, ${toRgba(opponentColor, 0.46)})`,
+        }}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.14)_0_1px,transparent_1px_22px)] opacity-30" />
+        <div className="relative z-10 grid grid-cols-[minmax(0,1.2fr)_auto_minmax(0,1fr)] items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            {favoriteTeam.logo && (
+              <img
+                src={getImageUrl(favoriteTeam.logo)}
+                alt=""
+                className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_7px_16px_rgba(0,0,0,0.38)] sm:h-14 sm:w-14"
+                loading="lazy"
+              />
+            )}
+            <div className="min-w-0">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">Dein Team</p>
+              <p className="truncate text-[15px] font-black italic leading-tight sm:text-[17px]">
+                {favoriteTeam.name}
+              </p>
+              <p className="mt-0.5 truncate text-[10px] font-bold text-white/48">
+                {league?.shortName || league?.name || "Liga"}
+              </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="min-w-0 text-center">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/70">{title}</p>
-              <p className="hyphens-auto whitespace-normal break-words text-[16px] font-black italic leading-[1.08] sm:text-[18px]">{homeName}</p>
+          <div className="grid min-w-[86px] grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-black/46 text-center backdrop-blur">
+            <div className="px-2 py-2">
+              <p className="text-[9px] font-black uppercase text-white/45">Platz</p>
+              <p className="text-lg font-black leading-none text-white">{rankLabel}</p>
             </div>
-            <div className="min-w-0 text-center">
-              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/70">{league?.shortName || league?.name || ""}</p>
-              <p className="hyphens-auto whitespace-normal break-words text-[16px] font-black italic leading-[1.08] sm:text-[18px]">{awayName}</p>
+            <div className="border-l border-white/10 px-2 py-2">
+              <p className="text-[9px] font-black uppercase text-white/45">Bilanz</p>
+              <p className="text-lg font-black leading-none text-white">{recordLabel}</p>
+            </div>
+          </div>
+
+          <div className="min-w-0 text-right">
+            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff2338]">{nextLabel}</p>
+            <div className="mt-1 flex items-center justify-end gap-2">
+              <div className="min-w-0">
+                <p className="truncate text-[13px] font-black italic leading-tight sm:text-[15px]">
+                  {opponentPrefix} {opponentName}
+                </p>
+                <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-white/58">
+                  {showScore ? `${game.scoreHome ?? 0}:${game.scoreAway ?? 0}` : kickoff ? `${format(kickoff, "dd.MM.", { locale: de })} · ${format(kickoff, "HH:mm", { locale: de })}` : "Kickoff offen"}
+                </p>
+              </div>
+              {opponent?.logo && (
+                <img
+                  src={getImageUrl(opponent.logo)}
+                  alt=""
+                  className="h-9 w-9 shrink-0 object-contain opacity-95 drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)] sm:h-10 sm:w-10"
+                  loading="lazy"
+                />
+              )}
             </div>
           </div>
         </div>
@@ -702,7 +727,7 @@ function buildTeamRecords(games) {
 
   const ensure = (teamId) => {
     if (!teamId) return null;
-    if (!records.has(teamId)) records.set(teamId, { teamId, wins: 0, losses: 0, played: 0 });
+    if (!records.has(teamId)) records.set(teamId, { teamId, wins: 0, losses: 0, ties: 0, played: 0 });
     return records.get(teamId);
   };
 
@@ -720,6 +745,9 @@ function buildTeamRecords(games) {
     } else if (Number(game.scoreAway) > Number(game.scoreHome)) {
       away.wins += 1;
       home.losses += 1;
+    } else {
+      home.ties += 1;
+      away.ties += 1;
     }
   });
 
@@ -841,6 +869,7 @@ export default function Home() {
   const leaguesById = useMemo(() => new Map(leagues.map((league) => [league.id, league])), [leagues]);
   const appUsersById = useMemo(() => new Map(appUsers.map((user) => [user.id, user])), [appUsers]);
   const sevenDaysAgo = useMemo(() => subDays(new Date(), 7), []);
+  const teamRecords = useMemo(() => buildTeamRecords(games), [games]);
 
   const gameOfTheWeek = useMemo(() => {
     return [...games]
@@ -865,6 +894,33 @@ export default function Home() {
   const favoriteTeam = useMemo(() => {
     return teamsById.get(appUserSnapshot?.favoriteTeamId || "") || null;
   }, [appUserSnapshot?.favoriteTeamId, teamsById]);
+
+  const favoriteRecord = useMemo(() => {
+    if (!favoriteTeam?.id) return null;
+    return teamRecords.get(favoriteTeam.id) || { teamId: favoriteTeam.id, wins: 0, losses: 0, ties: 0, played: 0 };
+  }, [favoriteTeam?.id, teamRecords]);
+
+  const favoriteRank = useMemo(() => {
+    if (!favoriteTeam?.id || !favoriteTeam?.leagueId) return null;
+
+    const leagueTeams = teams.filter((team) => team.leagueId === favoriteTeam.leagueId);
+    const rankedTeams = leagueTeams
+      .map((team) => ({
+        team,
+        record: teamRecords.get(team.id) || { wins: 0, losses: 0, ties: 0, played: 0 },
+      }))
+      .sort((a, b) => {
+        const pctA = a.record.played > 0 ? a.record.wins / a.record.played : 0;
+        const pctB = b.record.played > 0 ? b.record.wins / b.record.played : 0;
+        if (pctB !== pctA) return pctB - pctA;
+        if (b.record.wins !== a.record.wins) return b.record.wins - a.record.wins;
+        if (a.record.losses !== b.record.losses) return a.record.losses - b.record.losses;
+        return String(a.team.name || "").localeCompare(String(b.team.name || ""));
+      });
+
+    const index = rankedTeams.findIndex((item) => item.team.id === favoriteTeam.id);
+    return index >= 0 ? index + 1 : null;
+  }, [favoriteTeam?.id, favoriteTeam?.leagueId, teamRecords, teams]);
 
   const favoriteNextGame = useMemo(() => {
     if (!favoriteTeam?.id) return null;
@@ -988,15 +1044,13 @@ export default function Home() {
   }, [appUpdates, queryClient, sevenDaysAgo]);
 
   const undefeatedTeams = useMemo(() => {
-    const records = buildTeamRecords(games);
-
-    return Array.from(records.values())
+    return Array.from(teamRecords.values())
       .filter((record) => record.played > 0 && record.losses === 0)
       .map((record) => ({ record, team: teamsById.get(record.teamId) }))
       .filter((item) => item.team)
       .sort((a, b) => b.record.wins - a.record.wins)
       .slice(0, 4);
-  }, [games, teamsById]);
+  }, [teamRecords, teamsById]);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
@@ -1005,6 +1059,8 @@ export default function Home() {
           <FavoriteNextGameCard
             game={favoriteNextGame}
             favoriteTeam={favoriteTeam}
+            favoriteRecord={favoriteRecord}
+            favoriteRank={favoriteRank}
             teamsById={teamsById}
             leaguesById={leaguesById}
           />
