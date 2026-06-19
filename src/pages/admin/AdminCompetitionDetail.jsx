@@ -43,13 +43,9 @@ const STATUS_OPTIONS = ['upcoming', 'active', 'completed', 'inactive'];
 
 const COMPETITION_TYPES = [
   { value: 'playoffs', label: 'Playoffs', tone: 'bg-blue-500/10 text-blue-300 border-blue-500/30' },
-  { value: 'cup', label: 'Cup / Sonderturnier', tone: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' },
-  { value: 'playdowns', label: 'Playdowns', tone: 'bg-orange-500/10 text-orange-300 border-orange-500/30' },
-  { value: 'relegation', label: 'Relegation / Aufstieg', tone: 'bg-purple-500/10 text-purple-300 border-purple-500/30' },
 ];
 
-const BRACKET_COMPETITION_TYPES = new Set(['playoffs', 'cup']);
-const GAME_LIST_COMPETITION_TYPES = new Set(['playdowns', 'relegation', 'promotion']);
+const BRACKET_COMPETITION_TYPES = new Set(['playoffs']);
 
 function isBracketCompetitionType(type) {
   return BRACKET_COMPETITION_TYPES.has(type || 'playoffs');
@@ -724,27 +720,32 @@ export default function AdminCompetitionDetail() {
             updates.roundName = normalizedMatchup.roundName;
           }
 
-          if (!existingGame.homeTeamId && normalizedMatchup.team1Id) {
+          if (normalizedMatchup.team1Id && existingGame.homeTeamId !== normalizedMatchup.team1Id) {
             updates.homeTeamId = normalizedMatchup.team1Id;
           }
 
-          if (!existingGame.awayTeamId && normalizedMatchup.team2Id) {
+          if (normalizedMatchup.team2Id && existingGame.awayTeamId !== normalizedMatchup.team2Id) {
             updates.awayTeamId = normalizedMatchup.team2Id;
           }
 
-          if (!existingGame.homeTeamPlaceholder && normalizedMatchup.team1Placeholder) {
+          if (normalizedMatchup.team1Placeholder && existingGame.homeTeamPlaceholder !== normalizedMatchup.team1Placeholder) {
             updates.homeTeamPlaceholder = normalizedMatchup.team1Placeholder;
           }
 
-          if (!existingGame.awayTeamPlaceholder && normalizedMatchup.team2Placeholder) {
+          if (normalizedMatchup.team2Placeholder && existingGame.awayTeamPlaceholder !== normalizedMatchup.team2Placeholder) {
             updates.awayTeamPlaceholder = normalizedMatchup.team2Placeholder;
+          }
+
+          const teamsResolved = !!normalizedMatchup.team1Id && !!normalizedMatchup.team2Id;
+          if (existingGame.teamsResolved !== teamsResolved) {
+            updates.teamsResolved = teamsResolved;
           }
 
           const nextDate = normalizedMatchup.date || '';
           const nextTime = normalizedMatchup.time || '';
           const nextVenue =
             normalizedMatchup.venue ||
-            (round.venueMode === 'fixed'
+            (round.venueMode === 'round' || round.venueMode === 'fixed'
               ? (round.venue || round.roundVenue || nextCompetition.defaultVenue || '')
               : '');
 
@@ -789,7 +790,7 @@ export default function AdminCompetitionDetail() {
           time: normalizedMatchup.time || '',
           venue:
             normalizedMatchup.venue ||
-            (round.venueMode === 'fixed'
+            (round.venueMode === 'round' || round.venueMode === 'fixed'
               ? (round.venue || round.roundVenue || nextCompetition.defaultVenue || '')
               : ''),
           roundName: normalizedMatchup.roundName,
@@ -906,7 +907,45 @@ export default function AdminCompetitionDetail() {
         id: competition.id,
       };
 
-      const createdIds = await ensureGamesForBracket(competitionForSync, renamedBracket);
+      const resolvedBracket = league
+        ? resolveBracket({
+          competition: {
+            ...competitionForSync,
+            bracket: renamedBracket,
+            brackets: renamedBracket,
+          },
+          league,
+          teams,
+          games,
+        })
+        : renamedBracket;
+
+      const teamIds = [
+        ...new Set(
+          resolvedBracket
+            .flatMap(round => round.matchups || [])
+            .flatMap(matchup => [matchup.team1Id, matchup.team2Id])
+            .filter(Boolean)
+        ),
+      ];
+
+      await base44.entities.Tournament.update(competition.id, {
+        bracket: resolvedBracket,
+        brackets: resolvedBracket,
+        teamIds,
+        participantStatus: teamIds.length > 0 ? 'filled' : competition.participantStatus || 'pending_regular_season',
+        updatedAtUtc: new Date().toISOString(),
+      });
+
+      const createdIds = await ensureGamesForBracket(
+        {
+          ...competitionForSync,
+          bracket: resolvedBracket,
+          brackets: resolvedBracket,
+          teamIds,
+        },
+        resolvedBracket
+      );
 
       if (createdIds.length > 0) {
         toast.success(`${createdIds.length} Spiel${createdIds.length === 1 ? '' : 'e'} automatisch erstellt`);
@@ -943,47 +982,34 @@ export default function AdminCompetitionDetail() {
         return team?.withdrawn !== true;
       });
 
-      const updatedGameIds = [];
-
-      for (const round of resolvedBracket) {
-        for (const matchup of round.matchups || []) {
-          const existingGame = competitionGames.find(game =>
-            Number(game.round) === Number(round.round) &&
-            Number(game.matchupIndex) === Number(matchup.matchupIndex)
-          );
-
-          if (!existingGame) continue;
-
-          const homeTeam = teams.find(team => team.id === matchup.team1Id);
-          const awayTeam = teams.find(team => team.id === matchup.team2Id);
-
-          const homeTeamId = homeTeam?.withdrawn === true ? '' : matchup.team1Id || existingGame.homeTeamId || '';
-          const awayTeamId = awayTeam?.withdrawn === true ? '' : matchup.team2Id || existingGame.awayTeamId || '';
-
-          await base44.entities.Game.update(existingGame.id, {
-            homeTeamId,
-            awayTeamId,
-            homeTeamPlaceholder: matchup.team1Placeholder || existingGame.homeTeamPlaceholder || 'Teilnehmer offen',
-            awayTeamPlaceholder: matchup.team2Placeholder || existingGame.awayTeamPlaceholder || 'Teilnehmer offen',
-            teamsResolved: !!homeTeamId && !!awayTeamId,
-          });
-
-          updatedGameIds.push(existingGame.id);
-        }
-      }
+      const createdIds = await ensureGamesForBracket(
+        {
+          ...competition,
+          bracket: resolvedBracket,
+          brackets: resolvedBracket,
+          teamIds,
+        },
+        resolvedBracket
+      );
 
       await base44.entities.Tournament.update(competition.id, {
         bracket: resolvedBracket,
         brackets: resolvedBracket,
         teamIds,
-        gameIds: [...new Set([...(competition.gameIds || []), ...updatedGameIds])],
+        gameIds: [...new Set([
+          ...(competition.gameIds || []),
+          ...competitionGames.map(game => game.id),
+          ...createdIds,
+        ])],
         participantStatus: 'filled',
         status: competition.status === 'upcoming' ? 'active' : competition.status,
         updatedAtUtc: new Date().toISOString(),
       });
 
       invalidate();
-      toast.success('Teams in vorhandene Spieltermine übernommen');
+      toast.success(createdIds.length > 0
+        ? `Teams uebernommen und ${createdIds.length} Spiel${createdIds.length === 1 ? '' : 'e'} erstellt`
+        : 'Teams in Spieltermine uebernommen');
     } catch (error) {
       console.error('AUTO FILL COMPETITION ERROR:', error);
       toast.error('Automatische Übernahme fehlgeschlagen');
@@ -1004,7 +1030,7 @@ export default function AdminCompetitionDetail() {
       awayTeamId: matchup.team2Id || '',
       date: matchup.date || '',
       time: matchup.time || '',
-      venue: matchup.venue || (round.venueMode === 'fixed' ? (round.venue || round.roundVenue || competition.defaultVenue || '') : ''),
+      venue: matchup.venue || (round.venueMode === 'round' || round.venueMode === 'fixed' ? (round.venue || round.roundVenue || competition.defaultVenue || '') : ''),
       roundName: round.name || '',
       round: round.round,
       matchupIndex: matchup.matchupIndex ?? null,

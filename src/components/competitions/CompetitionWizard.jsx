@@ -105,6 +105,76 @@ function createRound(roundNumber = 1, name = '') {
   };
 }
 
+function standingsSource(position) {
+  return {
+    type: 'standings',
+    scope: 'overall',
+    groupId: '',
+    position,
+  };
+}
+
+function winnerSource(round, matchupIndex) {
+  return {
+    type: 'winner',
+    round,
+    matchupIndex,
+  };
+}
+
+function createPresetMatchup(index, homeSource, awaySource) {
+  return {
+    ...createMatchup(index),
+    team1Source: homeSource,
+    team2Source: awaySource,
+  };
+}
+
+function createPlayoffPreset(size) {
+  if (size === 4) {
+    return [
+      {
+        ...createRound(1, 'Halbfinale'),
+        matchups: [
+          createPresetMatchup(0, standingsSource(1), standingsSource(4)),
+          createPresetMatchup(1, standingsSource(2), standingsSource(3)),
+        ],
+      },
+      {
+        ...createRound(2, 'Finale'),
+        matchups: [
+          createPresetMatchup(0, winnerSource(1, 0), winnerSource(1, 1)),
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      ...createRound(1, 'Viertelfinale'),
+      matchups: [
+        createPresetMatchup(0, standingsSource(1), standingsSource(8)),
+        createPresetMatchup(1, standingsSource(4), standingsSource(5)),
+        createPresetMatchup(2, standingsSource(2), standingsSource(7)),
+        createPresetMatchup(3, standingsSource(3), standingsSource(6)),
+      ],
+    },
+    {
+      ...createRound(2, 'Halbfinale'),
+      matchups: [
+        createPresetMatchup(0, winnerSource(1, 0), winnerSource(1, 1)),
+        createPresetMatchup(1, winnerSource(1, 2), winnerSource(1, 3)),
+      ],
+    },
+    {
+      ...createRound(3, 'Finale'),
+      matchups: [
+        createPresetMatchup(0, winnerSource(2, 0), winnerSource(2, 1)),
+      ],
+    },
+  ];
+}
+
 function getSourceLabel(source, fallback = 'Teilnehmer offen') {
   if (!source) return fallback;
 
@@ -492,6 +562,16 @@ export default function CompetitionWizard({ onClose, onSuccess, isSaving = false
     }));
   };
 
+  const applyPreset = size => {
+    setFormData(prev => ({
+      ...prev,
+      rounds: createPlayoffPreset(size),
+      finalRoundName: prev.finalRoundName || 'Finale',
+      championTitle: prev.championTitle || 'Champion',
+      highlightFinal: true,
+    }));
+  };
+
   const handleLeagueChange = leagueId => {
     const league = leagues.find(item => item.id === leagueId);
 
@@ -842,7 +922,7 @@ export default function CompetitionWizard({ onClose, onSuccess, isSaving = false
                   {bracketMode ? 'Turnierbaum-Struktur' : 'Spiel-Struktur'}
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Du entscheidest frei, wie viele Runden und Spiele es gibt.
+                  Waehle ein Preset oder baue die Runden frei. Teams werden spaeter automatisch aus der Gesamttabelle gezogen.
                 </p>
               </div>
 
@@ -850,6 +930,23 @@ export default function CompetitionWizard({ onClose, onSuccess, isSaving = false
                 <Plus className="mr-1 h-3.5 w-3.5" />
                 Runde
               </Button>
+            </div>
+
+            <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {[
+                { size: 4, title: '4 Teams', text: '1 vs 4, 2 vs 3, danach Finale' },
+                { size: 8, title: '8 Teams', text: 'Viertelfinale bis Finale aus Gesamttabelle' },
+              ].map(preset => (
+                <button
+                  key={preset.size}
+                  type="button"
+                  onClick={() => applyPreset(preset.size)}
+                  className="rounded-2xl border border-primary/25 bg-primary/8 p-3 text-left transition-colors hover:border-primary/60 hover:bg-primary/12"
+                >
+                  <p className="text-sm font-black">{preset.title} Playoffs</p>
+                  <p className="mt-1 text-[11px] font-semibold text-muted-foreground">{preset.text}</p>
+                </button>
+              ))}
             </div>
 
             <div className="space-y-4">

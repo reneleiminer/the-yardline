@@ -258,6 +258,129 @@ function buildKickoffAt(date, time) {
   return Number.isNaN(kickoffDate.getTime()) ? '' : kickoffDate.toISOString();
 }
 
+function sameSeason(game, season) {
+  if (!season) return true;
+  return !game.season || game.season === season;
+}
+
+function isWithdrawn(team) {
+  return team?.withdrawn === true;
+}
+
+function getRegularSeasonGames(games = [], leagueId, season) {
+  return games.filter(game => {
+    if (game.leagueId !== leagueId) return false;
+    if (!sameSeason(game, season)) return false;
+    if (game.isCompetitionGame || game.competitionId || game.tournamentId) return false;
+    return true;
+  });
+}
+
+function calculateStandings({ leagueId, teams = [], games = [], season }) {
+  if (!leagueId) return [];
+
+  const leagueTeams = teams.filter(team => team.leagueId === leagueId && !isWithdrawn(team));
+  const teamsById = Object.fromEntries(teams.map(team => [team.id, team]));
+  const stats = {};
+
+  leagueTeams.forEach(team => {
+    stats[team.id] = {
+      teamId: team.id,
+      groupId: team.groupId || '',
+      played: 0,
+      won: 0,
+      lost: 0,
+      tied: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      pointDiff: 0,
+    };
+  });
+
+  getRegularSeasonGames(games, leagueId, season)
+    .filter(game => game.status === 'final')
+    .forEach(game => {
+      const home = stats[game.homeTeamId];
+      const away = stats[game.awayTeamId];
+      if (!home || !away) return;
+
+      const homeScore = Number(game.scoreHome || 0);
+      const awayScore = Number(game.scoreAway || 0);
+      const homeTeam = teamsById[game.homeTeamId];
+      const awayTeam = teamsById[game.awayTeamId];
+      if (isWithdrawn(homeTeam) || isWithdrawn(awayTeam)) return;
+
+      home.played += 1;
+      away.played += 1;
+      home.pointsFor += homeScore;
+      home.pointsAgainst += awayScore;
+      away.pointsFor += awayScore;
+      away.pointsAgainst += homeScore;
+
+      if (homeScore > awayScore) {
+        home.won += 1;
+        away.lost += 1;
+      } else if (awayScore > homeScore) {
+        away.won += 1;
+        home.lost += 1;
+      } else {
+        home.tied += 1;
+        away.tied += 1;
+      }
+    });
+
+  return Object.values(stats)
+    .map(row => ({
+      ...row,
+      pointDiff: row.pointsFor - row.pointsAgainst,
+      winPct: row.played > 0 ? (row.won + row.tied * 0.5) / row.played : 0,
+    }))
+    .sort((a, b) => {
+      if (b.winPct !== a.winPct) return b.winPct - a.winPct;
+      if (b.won !== a.won) return b.won - a.won;
+      if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
+      return b.pointsFor - a.pointsFor;
+    });
+}
+
+function resolveTeamIdFromSource({ source, standings, teamsById }) {
+  if (!source || source.type !== 'standings') return null;
+
+  const rows = source.scope === 'group'
+    ? standings.filter(row => teamsById[row.teamId]?.groupId === source.groupId)
+    : standings;
+
+  return rows[Number(source.position || 1) - 1]?.teamId || null;
+}
+
+function hydrateBracketFromStandings({ competition, teams = [], games = [] }) {
+  const bracket = getCompetitionBracket(competition);
+  const standings = calculateStandings({
+    leagueId: competition.leagueId,
+    teams,
+    games,
+    season: competition.season,
+  });
+  const teamsById = Object.fromEntries(teams.map(team => [team.id, team]));
+
+  return bracket.map(round => ({
+    ...round,
+    matchups: (round.matchups || []).map((matchup, index) => {
+      const team1Id = matchup.team1Id || resolveTeamIdFromSource({ source: matchup.team1Source, standings, teamsById });
+      const team2Id = matchup.team2Id || resolveTeamIdFromSource({ source: matchup.team2Source, standings, teamsById });
+
+      return {
+        ...matchup,
+        matchupIndex: matchup.matchupIndex ?? index,
+        team1Id: team1Id || null,
+        team2Id: team2Id || null,
+        team1Placeholder: matchup.team1Placeholder || getSourceLabel(matchup.team1Source),
+        team2Placeholder: matchup.team2Placeholder || getSourceLabel(matchup.team2Source),
+      };
+    }),
+  }));
+}
+
 function cleanOptionalId(value) {
   return String(value || '').trim() || null;
 }
@@ -292,7 +415,7 @@ function buildCompetitionGamePayload({ competition, round, matchup, index }) {
     kickoffAt: buildKickoffAt(date, time),
     venue:
       matchup.venue ||
-      (round.venueMode === 'fixed'
+      (round.venueMode === 'round' || round.venueMode === 'fixed'
         ? (round.venue || round.roundVenue || competition.defaultVenue || '')
         : ''),
 
@@ -308,8 +431,8 @@ function buildCompetitionGamePayload({ competition, round, matchup, index }) {
   };
 }
 
-async function createGamesForCompetition(competition) {
-  const bracket = getCompetitionBracket(competition);
+async function createGamesForCompetition(competition, { teams = [], games = [] } = {}) {
+  const bracket = hydrateBracketFromStandings({ competition, teams, games });
   const createdIds = [];
   const failed = [];
 
@@ -339,8 +462,21 @@ async function createGamesForCompetition(competition) {
   }
 
   if (createdIds.length > 0) {
+    const teamIds = [
+      ...new Set(
+        bracket
+          .flatMap(round => round.matchups || [])
+          .flatMap(matchup => [matchup.team1Id, matchup.team2Id])
+          .filter(Boolean)
+      ),
+    ];
+
     await base44.entities.Tournament.update(competition.id, {
       gameIds: [...new Set([...(competition.gameIds || []), ...createdIds])],
+      bracket,
+      brackets: bracket,
+      teamIds,
+      participantStatus: teamIds.length > 0 ? 'filled' : competition.participantStatus || 'pending_regular_season',
       updatedAtUtc: new Date().toISOString(),
     });
   }
@@ -376,6 +512,11 @@ export default function AdminCompetitions() {
     queryFn: () => base44.entities.Game.list(),
   });
 
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => base44.entities.Team.list('name'),
+  });
+
   const leagueMap = Object.fromEntries(leagues.map(league => [league.id, league]));
   const playoffCompetitions = competitions.filter(isPlayoffCompetition);
 
@@ -409,7 +550,7 @@ export default function AdminCompetitions() {
         ...payload,
         ...created,
         id: created.id,
-      });
+      }, { teams, games });
 
       return {
         ...created,

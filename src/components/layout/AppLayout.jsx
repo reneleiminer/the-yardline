@@ -56,8 +56,12 @@ function AuthScreen() {
     authError,
   } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [mode, setMode] = useState("register");
+  const [mode, setMode] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get("login") === "internal" ? "internal" : "welcome";
+  });
   const [form, setForm] = useState({
     username: "",
     displayName: "",
@@ -136,6 +140,69 @@ function AuthScreen() {
 
   const errorMessage = localError || authError?.message || "";
 
+  if (mode === "welcome") {
+    return (
+      <div className="min-h-dvh bg-black text-white">
+        <div className="relative min-h-dvh overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,91,255,0.20),transparent_36%),linear-gradient(180deg,#030509,#000)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(125deg,rgba(194,15,26,0.18)_0_14%,transparent_14%_44%,rgba(47,125,255,0.18)_44%_62%,transparent_62%)] opacity-80" />
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_18px)] opacity-20" />
+
+          <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-sm flex-col items-center justify-center px-7 py-[calc(28px+env(safe-area-inset-top))] text-center">
+            <img
+              src="/yardline-logo.png"
+              alt="The Yardline"
+              className="h-24 w-24 object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.65)]"
+            />
+
+            <h1 className="mt-7 text-[32px] font-black uppercase italic leading-none tracking-normal">
+              Willkommen
+            </h1>
+            <p className="mt-3 max-w-[260px] text-sm font-semibold leading-relaxed text-white/68">
+              Deine Plattform fuer American Football.
+            </p>
+
+            <div className="mt-8 flex w-full flex-col gap-3">
+              <Button
+                type="button"
+                onClick={() => setMode("register")}
+                className="h-[52px] rounded-2xl bg-[#c20f1a] text-sm font-black uppercase tracking-wide text-white shadow-[0_14px_36px_rgba(194,15,26,0.36)] hover:bg-[#a90d16]"
+              >
+                <UserPlus className="mr-2 h-4 w-4" />
+                Registrieren
+              </Button>
+
+              <Button
+                type="button"
+                onClick={() => setMode("login")}
+                className="h-[52px] rounded-2xl border border-white/14 bg-white text-sm font-black uppercase tracking-wide text-black hover:bg-white/90"
+              >
+                <LogIn className="mr-2 h-4 w-4" />
+                Anmelden
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => setMode("internal")}
+                className="mt-1 inline-flex h-11 items-center justify-center rounded-2xl border border-white/14 bg-white/7 text-xs font-black uppercase tracking-wide text-white/68 transition-colors hover:bg-white/12 hover:text-white"
+              >
+                <ShieldCheck className="mr-2 h-3.5 w-3.5" />
+                Interner Zugang
+              </button>
+            </div>
+
+            <Link
+              to="/support"
+              className="mt-6 text-xs font-black uppercase tracking-wide text-white/48 underline decoration-[#005bff] decoration-2 underline-offset-4"
+            >
+              Support
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-dvh bg-[#08101f] text-white">
       <div className="relative min-h-dvh overflow-hidden">
@@ -174,29 +241,25 @@ function AuthScreen() {
             </div>
 
             <div className="rounded-[28px] border border-white/12 bg-[#071329]/92 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-              <div className="grid grid-cols-3 rounded-2xl bg-white/7 p-1">
-                {[
-                  { key: "register", label: "Registrieren" },
-                  { key: "login", label: "Login" },
-                  { key: "internal", label: "Intern" },
-                ].map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => {
-                      setMode(item.key);
-                      setLocalError("");
-                      setLocalMessage("");
-                    }}
-                    className={`rounded-xl py-2 text-[11px] font-black uppercase tracking-wide transition-colors ${
-                      mode === item.key
-                        ? "bg-[#c20f1a] text-white"
-                        : "text-white/48"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              <div className="rounded-2xl border border-white/10 bg-white/7 px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#ff2338]">
+                  {mode === "register"
+                    ? "Registrierung"
+                    : mode === "internal"
+                      ? "Interner Zugang"
+                      : mode === "forgot" || mode === "reset"
+                        ? "Passwort Reset"
+                        : "Anmeldung"}
+                </p>
+                <h2 className="mt-1 text-lg font-black italic leading-tight text-white">
+                  {mode === "register"
+                    ? "Neues Konto erstellen"
+                    : mode === "internal"
+                      ? "Dashboard Login"
+                      : mode === "forgot" || mode === "reset"
+                        ? "Passwort zuruecksetzen"
+                        : "In die App einloggen"}
+                </h2>
               </div>
 
               <form onSubmit={handleSubmit} className="mt-4 space-y-3">
@@ -360,6 +423,17 @@ function AuthScreen() {
             </div>
 
             <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("welcome");
+                  setLocalError("");
+                  setLocalMessage("");
+                }}
+                className="mb-3 block w-full text-center text-xs font-black uppercase tracking-wide text-white/45 transition-colors hover:text-white"
+              >
+                Zurueck zur Auswahl
+              </button>
               <Link
                 to="/support"
                 className="inline-flex items-center justify-center text-xs font-black uppercase tracking-wide text-white/70 underline decoration-[#005bff] decoration-2 underline-offset-4 transition-colors hover:text-white"

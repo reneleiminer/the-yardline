@@ -1300,15 +1300,6 @@ export default function AdminDashboard() {
       bg: 'bg-red-400/10',
     },
     {
-      icon: Activity,
-      title: 'Live Games',
-      description: 'Laufende Spiele öffnen und Ergebnis live/final eintragen',
-      route: '/live-games',
-      count: games.filter(game => game.status === 'live').length,
-      color: 'text-red-300',
-      bg: 'bg-red-400/10',
-    },
-    {
       icon: Star,
       title: 'Game of the Week',
       description: 'Startseiten-Spiel manuell auswählen und alte Auswahl automatisch ersetzen',
@@ -1422,7 +1413,6 @@ export default function AdminDashboard() {
         '/admin/leagues',
         '/admin/teams',
         '/admin/games',
-        '/live-games',
         '/admin/game-of-the-week',
         '/admin/standings',
         '/admin/competitions',
