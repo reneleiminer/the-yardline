@@ -436,13 +436,13 @@ function AdBannerCard({ banner }) {
   if (!banner?.imageUrl && !banner?.title) return null;
 
   const content = (
-    <div className="group relative w-full overflow-hidden rounded-[26px] border border-white/10 bg-black text-white shadow-[0_18px_42px_rgba(0,0,0,0.34)]">
-      <div className="relative aspect-[16/7] w-full overflow-hidden">
+    <div className="group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
+      <div className="relative aspect-[2.75/1] w-full overflow-hidden sm:aspect-[4/1]">
         {banner.imageUrl ? (
           <img
             src={getImageUrl(banner.imageUrl)}
             alt={banner.title || "Werbung"}
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.015] sm:p-3"
             loading="lazy"
           />
         ) : (
@@ -452,15 +452,9 @@ function AdBannerCard({ banner }) {
         <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/10" />
         <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_18px)] opacity-20" />
 
-        <span className="absolute left-4 top-4 z-10 rounded-full border border-white/10 bg-black/45 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.22em] text-[#ff2338] backdrop-blur-md">
+        <span className="absolute left-3 top-3 z-10 rounded-full border border-white/10 bg-black/48 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.22em] text-[#ff2338] backdrop-blur-md sm:left-4 sm:top-4">
           Werbung
         </span>
-
-        {banner.linkUrl && (
-          <span className="absolute right-4 top-4 z-10 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-white text-red-700 shadow-[0_12px_30px_rgba(0,0,0,0.28)] transition-transform group-hover:scale-105">
-            <ExternalLink className="h-4 w-4" />
-          </span>
-        )}
       </div>
     </div>
   );
