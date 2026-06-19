@@ -1439,6 +1439,7 @@ export default function AdminDashboard() {
       title: 'Content & Partner',
       subtitle: 'Highlights, Shots, Banner und Partnerflächen',
       items: sections.filter(section => [
+        '/admin/news',
         '/admin/content',
         '/admin/highlights',
         '/admin/gameday-shots',
