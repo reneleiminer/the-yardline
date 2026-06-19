@@ -179,6 +179,11 @@ function getDashboardRouteForUser(user) {
   if (hasFeatureAccess(user, "gameday_shots")) return "/photographer";
   if (hasFeatureAccess(user, "podcast")) return "/podcast";
   if (hasFeatureAccess(user, "news")) return "/news-dashboard";
+  if (hasFeatureAccess(user, "data_games")) return "/admin/games";
+  if (hasFeatureAccess(user, "data_teams")) return "/admin/teams";
+  if (hasFeatureAccess(user, "data_leagues")) return "/admin/leagues";
+  if (hasFeatureAccess(user, "data_standings")) return "/admin/standings";
+  if (hasFeatureAccess(user, "data_highlights")) return "/admin/highlights";
   return "";
 }
 

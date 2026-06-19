@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Camera, ChevronRight, Newspaper, Radio, Star } from "lucide-react";
+import { BarChart3, Camera, ChevronRight, Newspaper, Radio, ShieldPlus, Star, Table2, Trophy, UsersRound } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { hasFeatureAccess } from "@/lib/rolePermissions";
 
@@ -49,6 +49,51 @@ const ACCESS_CARDS = [
     icon: BarChart3,
     color: "text-blue-300",
     bg: "bg-blue-400/10",
+  },
+  {
+    key: "data_games",
+    title: "Spiele",
+    description: "Spielplan und Spiele verwalten",
+    route: "/admin/games",
+    icon: ShieldPlus,
+    color: "text-blue-300",
+    bg: "bg-blue-400/10",
+  },
+  {
+    key: "data_teams",
+    title: "Teams",
+    description: "Teams und Teamdaten verwalten",
+    route: "/admin/teams",
+    icon: UsersRound,
+    color: "text-purple-300",
+    bg: "bg-purple-400/10",
+  },
+  {
+    key: "data_leagues",
+    title: "Ligen",
+    description: "Ligen, Gruppen und Logos verwalten",
+    route: "/admin/leagues",
+    icon: Trophy,
+    color: "text-yellow-300",
+    bg: "bg-yellow-400/10",
+  },
+  {
+    key: "data_standings",
+    title: "Tabellen",
+    description: "Tabellen-Konfigurationen verwalten",
+    route: "/admin/standings",
+    icon: Table2,
+    color: "text-cyan-300",
+    bg: "bg-cyan-400/10",
+  },
+  {
+    key: "data_highlights",
+    title: "Game Highlights",
+    description: "Highlight-Videos posten und pflegen",
+    route: "/admin/highlights",
+    icon: Star,
+    color: "text-red-300",
+    bg: "bg-red-400/10",
   },
 ];
 

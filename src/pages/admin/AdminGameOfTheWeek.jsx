@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Calendar, CheckCircle2, Loader2, MapPin, Search, Star, Trophy, X } from 'lucide-react';
 import { toast } from 'sonner';
 import InternalAccessCards from '@/components/admin/InternalAccessCards';
+import { useAuth } from '@/lib/AuthContext';
+import { canAccessLeague } from '@/lib/rolePermissions';
 
 const STATUS_LABELS = {
   scheduled: 'Geplant',
@@ -219,6 +221,7 @@ export default function AdminGameOfTheWeek() {
   });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
 
   const [search, setSearch] = useState('');
   const [label, setLabel] = useState('by The Yardline');
@@ -239,23 +242,36 @@ export default function AdminGameOfTheWeek() {
     queryFn: () => base44.entities.League.list('name'),
   });
 
-  const teamsMap = useMemo(() => new Map(teams.map(team => [team.id, team])), [teams]);
-  const leaguesMap = useMemo(() => new Map(leagues.map(league => [league.id, league])), [leagues]);
+  const scopedLeagues = useMemo(
+    () => leagues.filter(league => canAccessLeague(appUserSnapshot, league.id)),
+    [appUserSnapshot, leagues]
+  );
+  const scopedTeams = useMemo(
+    () => teams.filter(team => canAccessLeague(appUserSnapshot, team.leagueId)),
+    [appUserSnapshot, teams]
+  );
+  const scopedGames = useMemo(
+    () => games.filter(game => canAccessLeague(appUserSnapshot, game.leagueId)),
+    [appUserSnapshot, games]
+  );
+
+  const teamsMap = useMemo(() => new Map(scopedTeams.map(team => [team.id, team])), [scopedTeams]);
+  const leaguesMap = useMemo(() => new Map(scopedLeagues.map(league => [league.id, league])), [scopedLeagues]);
 
   const currentSelection = useMemo(() => {
-    return [...games]
+    return [...scopedGames]
       .filter(game => game.isGameOfTheWeek === true)
       .sort((a, b) => {
         const selectedA = new Date(a.gameOfTheWeekSelectedAtUtc || 0).getTime();
         const selectedB = new Date(b.gameOfTheWeekSelectedAtUtc || 0).getTime();
         return selectedB - selectedA;
       })[0] || null;
-  }, [games]);
+  }, [scopedGames]);
 
   const filteredGames = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    return [...games]
+    return [...scopedGames]
       .filter(game => game.status !== 'cancelled')
       .filter(game => !showOnlyUpcoming || isUpcomingOrToday(game) || game.isGameOfTheWeek === true)
       .filter(game => {
@@ -288,7 +304,7 @@ export default function AdminGameOfTheWeek() {
         const dateB = getGameDate(b)?.getTime() || 0;
         return dateA - dateB;
       });
-  }, [games, leaguesMap, search, showOnlyUpcoming, teamsMap]);
+  }, [leaguesMap, scopedGames, search, showOnlyUpcoming, teamsMap]);
 
   const invalidate = () => {
     return Promise.all([
@@ -302,6 +318,9 @@ export default function AdminGameOfTheWeek() {
   const selectMutation = useMutation({
     mutationFn: async game => {
       if (!game?.id) return;
+      if (!canAccessLeague(appUserSnapshot, game.leagueId)) {
+        throw new Error('Du bist für diese Liga nicht freigegeben.');
+      }
 
       const now = new Date().toISOString();
       let selectedGames = [];
@@ -310,8 +329,10 @@ export default function AdminGameOfTheWeek() {
         selectedGames = await base44.entities.Game.filter({ isGameOfTheWeek: true });
       } catch (error) {
         console.warn('ADMIN GAME OF THE WEEK SELECTED FILTER FALLBACK:', error);
-        selectedGames = games.filter(item => item.isGameOfTheWeek === true);
+        selectedGames = scopedGames.filter(item => item.isGameOfTheWeek === true);
       }
+
+      selectedGames = selectedGames.filter(item => canAccessLeague(appUserSnapshot, item.leagueId));
 
       const selectedIds = new Set(selectedGames.map(item => item.id));
       const isAlreadySelected = selectedIds.has(game.id) || game.isGameOfTheWeek === true;

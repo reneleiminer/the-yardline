@@ -61,6 +61,11 @@ function getTargetRouteForUser(appUser) {
   if (hasFeatureAccess(appUser, "gameday_shots")) return "/photographer";
   if (hasFeatureAccess(appUser, "podcast")) return "/podcast";
   if (hasFeatureAccess(appUser, "news")) return "/news-dashboard";
+  if (hasFeatureAccess(appUser, "data_games")) return "/admin/games";
+  if (hasFeatureAccess(appUser, "data_teams")) return "/admin/teams";
+  if (hasFeatureAccess(appUser, "data_leagues")) return "/admin/leagues";
+  if (hasFeatureAccess(appUser, "data_standings")) return "/admin/standings";
+  if (hasFeatureAccess(appUser, "data_highlights")) return "/admin/highlights";
 
   return "/";
 }

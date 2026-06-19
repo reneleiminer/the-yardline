@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { Plus, Pencil, Trash2, Loader2, Check, X, ChevronDown, ChevronUp } from 
 import { sortLeagues, COUNTRIES, CONTINENTS, getRegionsForCountry } from '@/lib/leagueSort';
 import { toast } from 'sonner';
 import useSetHeader from '@/hooks/useSetHeader';
+import { useAuth } from '@/lib/AuthContext';
+import { canAccessLeague, getAllowedLeagueIds } from '@/lib/rolePermissions';
 
 const CLOUDINARY_CLOUD_NAME = 'dsd5ajgru';
 const CLOUDINARY_UPLOAD_PRESET = 'theyardline_upload';
@@ -639,6 +641,7 @@ export default function AdminLeagues() {
   useSetHeader({ mode: 'back', title: 'Ligen' });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -651,8 +654,21 @@ export default function AdminLeagues() {
     queryClient.invalidateQueries({ queryKey: ['leagues'] });
   };
 
+  const allowedLeagueIds = useMemo(() => getAllowedLeagueIds(appUserSnapshot), [appUserSnapshot]);
+  const scopedLeagues = useMemo(
+    () => leagues.filter(league => canAccessLeague(appUserSnapshot, league.id)),
+    [appUserSnapshot, leagues]
+  );
+  const canCreateLeague = allowedLeagueIds.length === 0;
+
   const createMutation = useMutation({
-    mutationFn: data => base44.entities.League.create(data),
+    mutationFn: data => {
+      if (!canCreateLeague) {
+        throw new Error('Neue Ligen darf nur ein Admin oder ein Dateneditor ohne Liga-Einschränkung erstellen.');
+      }
+
+      return base44.entities.League.create(data);
+    },
     onSuccess: () => {
       invalidate();
       setAdding(false);
@@ -665,7 +681,13 @@ export default function AdminLeagues() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.League.update(id, data),
+    mutationFn: ({ id, data }) => {
+      if (!canAccessLeague(appUserSnapshot, id)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
+
+      return base44.entities.League.update(id, data);
+    },
     onSuccess: () => {
       invalidate();
       setEditingId(null);
@@ -678,7 +700,13 @@ export default function AdminLeagues() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: id => base44.entities.League.delete(id),
+    mutationFn: id => {
+      if (!canAccessLeague(appUserSnapshot, id)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
+
+      return base44.entities.League.delete(id);
+    },
     onSuccess: () => {
       invalidate();
       toast.success('Liga gelöscht');
@@ -689,18 +717,19 @@ export default function AdminLeagues() {
     },
   });
 
-  const sorted = sortLeagues(leagues);
+  const sorted = sortLeagues(scopedLeagues);
 
   return (
     <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 py-6 pb-24">
       <div className="flex items-center justify-between mb-6">
         <p className="text-xs text-muted-foreground">
-          {leagues.length} Ligen
+          {scopedLeagues.length} Ligen
         </p>
 
         <Button
           size="sm"
           className="gap-1.5"
+          disabled={!canCreateLeague}
           onClick={() => {
             setAdding(true);
             setEditingId(null);

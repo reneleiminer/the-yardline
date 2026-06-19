@@ -30,6 +30,7 @@ const EMPTY_USER = {
   displayName: "",
   roleSlug: "gotw",
   connectedTeamId: "",
+  managedLeagueIds: [],
   internalPassword: "",
   status: "active",
 };
@@ -41,6 +42,7 @@ const ROLE_LABELS = {
   photographer: "Fotograf",
   podcast: "Podcast",
   news: "News",
+  data_editor: "Dateneditor",
 };
 
 const ROLE_DISPLAY_LABELS = {
@@ -50,6 +52,7 @@ const ROLE_DISPLAY_LABELS = {
   photographer: "Fotograf",
   podcast: "Podcast",
   news: "News",
+  data_editor: "Dateneditor",
 };
 
 const INTERNAL_ROLE_OPTIONS = [
@@ -59,6 +62,7 @@ const INTERNAL_ROLE_OPTIONS = [
   { value: "photographer", label: "Fotograf" },
   { value: "podcast", label: "Podcast" },
   { value: "news", label: "News" },
+  { value: "data_editor", label: "Dateneditor" },
 ];
 
 const STATUS_LABELS = {
@@ -93,6 +97,31 @@ const FEATURE_OPTIONS = [
     label: "Live-Ergebnisse",
     description: "Scores live/final eintragen",
   },
+  {
+    key: "data_games",
+    label: "Spiele",
+    description: "Spielplan und Spiele verwalten",
+  },
+  {
+    key: "data_teams",
+    label: "Teams",
+    description: "Teams und Teamdaten verwalten",
+  },
+  {
+    key: "data_leagues",
+    label: "Ligen",
+    description: "Ligen, Logos, Gruppen und Farben verwalten",
+  },
+  {
+    key: "data_standings",
+    label: "Tabellen",
+    description: "Tabellen-Konfigurationen verwalten",
+  },
+  {
+    key: "data_highlights",
+    label: "Game Highlights",
+    description: "Game Highlights erstellen und verwalten",
+  },
 ];
 
 function normalizeUsername(value) {
@@ -117,7 +146,10 @@ function normalizeRole(value) {
     newsroom: "news",
     redaktion: "news",
     journalist: "news",
-    data_editor: "fan",
+    dataeditor: "data_editor",
+    data_editor: "data_editor",
+    daten_editor: "data_editor",
+    dateneditor: "data_editor",
     club: "fan",
     verein: "fan",
     league: "fan",
@@ -139,6 +171,7 @@ function getInternalEmail(username, roleSlug = "gotw") {
     photographer: "fotograf",
     podcast: "podcast",
     news: "news",
+    data_editor: "dateneditor",
   };
 
   const prefix = prefixByRole[roleSlug] || "internal";
@@ -179,6 +212,25 @@ function parseFeatureAccess(value) {
   return [];
 }
 
+function parseLeagueAccess(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+      return value.split(",").map(item => item.trim()).filter(Boolean);
+    }
+  }
+  if (typeof value === "object") {
+    return Object.entries(value)
+      .filter(([, enabled]) => enabled)
+      .map(([key]) => key);
+  }
+  return [];
+}
+
 function getBaseFeaturesForRole(roleSlug) {
   if (roleSlug === "admin") return FEATURE_OPTIONS.map(option => option.key);
   if (roleSlug === "gotw") return ["gotw"];
@@ -205,7 +257,8 @@ function isInternalLogin(user) {
     roleSlug === "gotw" ||
     roleSlug === "photographer" ||
     roleSlug === "podcast" ||
-    roleSlug === "news"
+    roleSlug === "news" ||
+    roleSlug === "data_editor"
   );
 }
 
@@ -229,6 +282,10 @@ function isNews(user) {
   return getRoleSlug(user) === "news";
 }
 
+function isDataEditor(user) {
+  return getRoleSlug(user) === "data_editor";
+}
+
 function isInactive(user) {
   return user?.status === "inactive" || user?.status === "blocked";
 }
@@ -250,6 +307,7 @@ function RoleBadge({ user }) {
   const photographer = roleSlug === "photographer";
   const podcast = roleSlug === "podcast";
   const news = roleSlug === "news";
+  const dataEditor = roleSlug === "data_editor";
 
   return (
     <span
@@ -264,6 +322,8 @@ function RoleBadge({ user }) {
           ? "bg-violet-500/15 text-violet-300"
           : news
           ? "bg-red-500/15 text-red-300"
+          : dataEditor
+          ? "bg-cyan-500/15 text-cyan-300"
           : "bg-primary/15 text-primary"
       }`}
     >
@@ -288,7 +348,7 @@ function StatusBadge({ user }) {
   );
 }
 
-function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
+function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel, leagues = [] }) {
   const isExistingProtected = initial?.id && isProtectedAccount(initial);
 
   const [form, setForm] = useState({
@@ -298,6 +358,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
     roleSlug: getRoleSlug(initial || EMPTY_USER),
     connectedTeamId: initial?.connectedTeamId || "",
     featureAccess: parseFeatureAccess(initial?.featureAccess || initial?.permissions || initial?.extraAccess),
+    managedLeagueIds: parseLeagueAccess(initial?.managedLeagueIds || initial?.allowedLeagueIds || initial?.leagueAccess || initial?.leagueIds),
     internalPassword: "",
   });
 
@@ -317,7 +378,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
     const username = normalizeUsername(form.username);
     const roleSlug = normalizeRole(form.roleSlug || "gotw");
 
-    if (!["fan", "admin", "gotw", "photographer", "podcast", "news"].includes(roleSlug)) {
+    if (!["fan", "admin", "gotw", "photographer", "podcast", "news", "data_editor"].includes(roleSlug)) {
       toast.error("Bitte eine gültige Account-Art auswählen.");
       return;
     }
@@ -333,6 +394,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
     }
 
     const featureAccess = Array.from(new Set(form.featureAccess || []));
+    const managedLeagueIds = Array.from(new Set(form.managedLeagueIds || []));
     const isInternalAccount = roleSlug !== "fan" || featureAccess.length > 0;
 
     if (!initial?.id && isInternalAccount && !form.internalPassword.trim()) {
@@ -348,6 +410,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
       roleSlug,
       role: ROLE_LABELS[roleSlug],
       featureAccess,
+      managedLeagueIds,
       connectedTeamId: "",
       connectedClubId: "",
       linkedClubId: "",
@@ -512,6 +575,69 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
         </div>
       </div>
 
+      <div className="rounded-2xl border border-border/50 bg-secondary/20 p-3">
+        <div className="mb-2">
+          <p className="text-xs font-bold">
+            Zuständige Ligen
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Leer bedeutet Zugriff auf alle Ligen der freigeschalteten Funktionen. Wähle Ligen aus, wenn der Zugang begrenzt sein soll.
+          </p>
+        </div>
+
+        {leagues.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground">
+            Noch keine Ligen geladen.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {leagues.map(league => {
+              const checked = (form.managedLeagueIds || []).includes(league.id);
+
+              return (
+                <label
+                  key={league.id}
+                  className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                    checked
+                      ? "border-primary/45 bg-primary/10"
+                      : "border-border/50 bg-background/40"
+                  } ${isExistingProtected ? "opacity-60" : "cursor-pointer"}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={isExistingProtected}
+                      onChange={event => {
+                        const nextChecked = event.target.checked;
+                        setForm(current => {
+                          const next = new Set(current.managedLeagueIds || []);
+                          if (nextChecked) next.add(league.id);
+                          else next.delete(league.id);
+                          return {
+                            ...current,
+                            managedLeagueIds: Array.from(next),
+                          };
+                        });
+                      }}
+                      className="mt-0.5 h-4 w-4 accent-primary"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-xs font-bold">
+                        {league.shortName || league.name}
+                      </span>
+                      <span className="block text-[10px] text-muted-foreground">
+                        {league.name}
+                      </span>
+                    </span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <Input
         type="password"
         value={form.internalPassword}
@@ -563,6 +689,14 @@ export default function AdminUsers() {
     queryKey: ["adminUsers"],
     queryFn: () => base44.entities.AppUser.list("-created_date"),
   });
+
+  const { data: leagues = [] } = useQuery({
+    queryKey: ["adminUsersLeagues"],
+    queryFn: () => base44.entities.League.list("name"),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const leagueMap = useMemo(() => new Map(leagues.map(league => [league.id, league])), [leagues]);
 
   const internalUsers = useMemo(() => {
     return users.filter(isInternalLogin);
@@ -616,6 +750,8 @@ export default function AdminUsers() {
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
         featureAccess: data.featureAccess || [],
+        managedLeagueIds: data.managedLeagueIds || [],
+        allowedLeagueIds: data.managedLeagueIds || [],
         connectedTeamId: "",
         connectedClubId: "",
         linkedClubId: "",
@@ -654,6 +790,8 @@ export default function AdminUsers() {
         roleSlug: data.roleSlug,
         role: ROLE_LABELS[data.roleSlug] || "Fan",
         featureAccess: data.featureAccess || [],
+        managedLeagueIds: data.managedLeagueIds || [],
+        allowedLeagueIds: data.managedLeagueIds || [],
         connectedTeamId: "",
         connectedClubId: "",
         linkedClubId: "",
@@ -898,6 +1036,7 @@ export default function AdminUsers() {
             onCancel={() => setShowCreate(false)}
             isSaving={createMutation.isPending}
             submitLabel="Login erstellen"
+            leagues={leagues}
           />
         </div>
       )}
@@ -911,6 +1050,7 @@ export default function AdminUsers() {
             onCancel={() => setEditingUser(null)}
             isSaving={updateMutation.isPending}
             submitLabel="Änderungen speichern"
+            leagues={leagues}
           />
         </div>
       )}
@@ -936,6 +1076,7 @@ export default function AdminUsers() {
             { key: "photographer", label: "Fotografen" },
             { key: "podcast", label: "Podcast" },
             { key: "news", label: "News" },
+            { key: "data_editor", label: "Dateneditor" },
           ].map(item => (
             <button
               key={item.key}
@@ -988,6 +1129,7 @@ export default function AdminUsers() {
             const photographer = isPhotographer(user);
             const podcast = isPodcast(user);
             const news = isNews(user);
+            const dataEditor = isDataEditor(user);
 
             return (
               <div
@@ -1006,6 +1148,8 @@ export default function AdminUsers() {
                       <Radio className="w-5 h-5 text-violet-300" />
                     ) : news ? (
                       <Newspaper className="w-5 h-5 text-red-300" />
+                    ) : dataEditor ? (
+                      <KeyRound className="w-5 h-5 text-cyan-300" />
                     ) : (
                       <UserCog className="w-5 h-5 text-primary" />
                     )}
@@ -1062,6 +1206,23 @@ export default function AdminUsers() {
                         );
                       })}
                     </div>
+
+                    {parseLeagueAccess(user.managedLeagueIds || user.allowedLeagueIds || user.leagueAccess || user.leagueIds).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {parseLeagueAccess(user.managedLeagueIds || user.allowedLeagueIds || user.leagueAccess || user.leagueIds).map(leagueId => {
+                          const league = leagueMap.get(leagueId);
+
+                          return (
+                            <span
+                              key={leagueId}
+                              className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] font-bold text-cyan-200"
+                            >
+                              {league?.shortName || league?.name || leagueId}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 

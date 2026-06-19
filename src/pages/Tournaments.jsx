@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/lib/AuthContext";
+import { canAccessLeague } from "@/lib/rolePermissions";
 
 const CLOUDINARY_CLOUD_NAME = "dsd5ajgru";
 const CLOUDINARY_UPLOAD_PRESET = "theyardline_upload";
@@ -633,6 +635,7 @@ export default function AdminHighlights() {
   });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -664,17 +667,30 @@ export default function AdminHighlights() {
     queryFn: () => base44.entities.Game.list(),
   });
 
-  const teamsById = useMemo(() => new Map(teams.map(team => [team.id, team])), [teams]);
-  const leaguesById = useMemo(() => new Map(leagues.map(league => [league.id, league])), [leagues]);
+  const scopedLeagues = useMemo(
+    () => leagues.filter(league => canAccessLeague(appUserSnapshot, league.id)),
+    [appUserSnapshot, leagues]
+  );
+  const scopedTeams = useMemo(
+    () => teams.filter(team => canAccessLeague(appUserSnapshot, team.leagueId)),
+    [appUserSnapshot, teams]
+  );
+  const scopedGames = useMemo(
+    () => games.filter(game => canAccessLeague(appUserSnapshot, game.leagueId)),
+    [appUserSnapshot, games]
+  );
+
+  const teamsById = useMemo(() => new Map(scopedTeams.map(team => [team.id, team])), [scopedTeams]);
+  const leaguesById = useMemo(() => new Map(scopedLeagues.map(league => [league.id, league])), [scopedLeagues]);
 
   const sortedHighlights = useMemo(() => {
-    return [...highlights].sort((a, b) => {
+    return [...highlights].filter(highlight => canAccessLeague(appUserSnapshot, highlight.league_id)).sort((a, b) => {
       const dateA = new Date(a.date || a.createdAtUtc || a.created_date || 0).getTime();
       const dateB = new Date(b.date || b.createdAtUtc || b.created_date || 0).getTime();
 
       return dateB - dateA;
     });
-  }, [highlights]);
+  }, [appUserSnapshot, highlights]);
 
   const resetForm = () => {
     setFormData(EMPTY_FORM);
@@ -737,6 +753,11 @@ export default function AdminHighlights() {
 
     if (!title) {
       toast.error("Bitte Titel eingeben");
+      return;
+    }
+
+    if (!canAccessLeague(appUserSnapshot, formData.league_id)) {
+      toast.error("Du bist für diese Liga nicht freigegeben.");
       return;
     }
 
@@ -848,9 +869,9 @@ export default function AdminHighlights() {
             onSubmit={handleSubmit}
             onCancel={resetForm}
             isSaving={createMutation.isPending || updateMutation.isPending}
-            leagues={leagues}
-            teams={teams}
-            games={games}
+            leagues={scopedLeagues}
+            teams={scopedTeams}
+            games={scopedGames}
           />
         </div>
       )}
@@ -872,7 +893,7 @@ export default function AdminHighlights() {
           {sortedHighlights.map(highlight => {
             const league = leaguesById.get(highlight.league_id);
             const team = teamsById.get(highlight.team_id);
-            const game = games.find(item => item.id === highlight.game_id);
+            const game = scopedGames.find(item => item.id === highlight.game_id);
 
             return (
               <div

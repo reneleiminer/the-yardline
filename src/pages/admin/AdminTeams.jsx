@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,8 @@ import {
 import { toast } from 'sonner';
 import useSetHeader from '@/hooks/useSetHeader';
 import { applyWithdrawnTeamForfeit } from '@/lib/gameForfeitUtils';
+import { useAuth } from '@/lib/AuthContext';
+import { canAccessLeague } from '@/lib/rolePermissions';
 
 const EMPTY = {
   name: '',
@@ -668,6 +670,7 @@ export default function AdminTeams() {
   useSetHeader({ mode: 'back', title: 'Teams' });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [filterLeague, setFilterLeague] = useState('all');
@@ -687,8 +690,30 @@ export default function AdminTeams() {
     queryFn: () => base44.entities.Game.list('-date', 1000),
   });
 
-  const leagueMap = Object.fromEntries(leagues.map(league => [league.id, league]));
-  const teamMap = Object.fromEntries(teams.map(team => [team.id, team]));
+  const scopedLeagues = useMemo(
+    () => leagues.filter(league => canAccessLeague(appUserSnapshot, league.id)),
+    [appUserSnapshot, leagues]
+  );
+
+  const scopedTeams = useMemo(
+    () => teams.filter(team => canAccessLeague(appUserSnapshot, team.leagueId)),
+    [appUserSnapshot, teams]
+  );
+
+  const scopedGames = useMemo(
+    () => games.filter(game => canAccessLeague(appUserSnapshot, game.leagueId)),
+    [appUserSnapshot, games]
+  );
+
+  const leagueMap = useMemo(
+    () => Object.fromEntries(scopedLeagues.map(league => [league.id, league])),
+    [scopedLeagues]
+  );
+
+  const teamMap = useMemo(
+    () => Object.fromEntries(scopedTeams.map(team => [team.id, team])),
+    [scopedTeams]
+  );
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -706,7 +731,7 @@ export default function AdminTeams() {
       [updatedTeam.id]: updatedTeam,
     };
 
-    const affectedGames = games.filter(game =>
+    const affectedGames = scopedGames.filter(game =>
       game.homeTeamId === updatedTeam.id ||
       game.awayTeamId === updatedTeam.id
     );
@@ -739,7 +764,13 @@ export default function AdminTeams() {
   };
 
   const createMutation = useMutation({
-    mutationFn: data => base44.entities.Team.create(data),
+    mutationFn: data => {
+      if (!canAccessLeague(appUserSnapshot, data.leagueId)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
+
+      return base44.entities.Team.create(data);
+    },
     onSuccess: () => {
       invalidate();
       setAdding(false);
@@ -753,6 +784,10 @@ export default function AdminTeams() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }) => {
+      if (!canAccessLeague(appUserSnapshot, data.leagueId)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
+
       const updatedTeam = await base44.entities.Team.update(id, data);
       const changedGames = await applyWithdrawalForfeitsForTeam({ ...data, id });
       return { updatedTeam, changedGames };
@@ -773,7 +808,14 @@ export default function AdminTeams() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: id => base44.entities.Team.delete(id),
+    mutationFn: id => {
+      const team = teamMap[id];
+      if (!canAccessLeague(appUserSnapshot, team?.leagueId)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
+
+      return base44.entities.Team.delete(id);
+    },
     onSuccess: () => {
       invalidate();
       toast.success('Team gelöscht');
@@ -785,13 +827,13 @@ export default function AdminTeams() {
   });
 
   const filtered = filterLeague === 'all'
-    ? teams
-    : teams.filter(team => team.leagueId === filterLeague);
+    ? scopedTeams
+    : scopedTeams.filter(team => team.leagueId === filterLeague);
 
   return (
     <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 py-6 pb-24">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-xs text-muted-foreground">{teams.length} Teams</p>
+        <p className="text-xs text-muted-foreground">{scopedTeams.length} Teams</p>
 
         <Button size="sm" className="gap-1.5" onClick={() => setAdding(true)}>
           <Plus className="w-4 h-4" />
@@ -806,7 +848,7 @@ export default function AdminTeams() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle Ligen</SelectItem>
-            {leagues.map(league => (
+            {scopedLeagues.map(league => (
               <SelectItem key={league.id} value={league.id}>
                 {league.name}
               </SelectItem>
@@ -819,7 +861,7 @@ export default function AdminTeams() {
         <Card className="p-4 mb-4">
           <h2 className="text-sm font-semibold mb-3">Neues Team</h2>
           <TeamForm
-            leagues={leagues}
+            leagues={scopedLeagues}
             onSave={data => createMutation.mutate(data)}
             onCancel={() => setAdding(false)}
             isSaving={createMutation.isPending}
@@ -880,7 +922,7 @@ export default function AdminTeams() {
                         secondaryColor: team.secondaryColor || '',
                         description: team.description || '',
                       }}
-                      leagues={leagues}
+                      leagues={scopedLeagues}
                       onSave={data => updateMutation.mutate({ id: team.id, data })}
                       onCancel={() => setEditingId(null)}
                       isSaving={updateMutation.isPending}

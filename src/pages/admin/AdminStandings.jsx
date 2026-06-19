@@ -20,6 +20,8 @@ import { Link } from 'react-router-dom';
 import useSetHeader from '@/hooks/useSetHeader';
 import StandingsTable from '@/components/standings/StandingsTable';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/AuthContext';
+import { canAccessLeague } from '@/lib/rolePermissions';
 
 const ZONE_TYPE_OPTIONS = [
   { value: 'playoffs', label: 'Playoffs' },
@@ -280,6 +282,7 @@ export default function AdminStandings() {
   useSetHeader({ mode: 'back', title: 'Tabellen' });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
 
   const [selectedLeagueId, setSelectedLeagueId] = useState('');
   const [selectedGroupId, setSelectedGroupId] = useState('all');
@@ -307,7 +310,30 @@ export default function AdminStandings() {
     enabled: !!selectedLeagueId,
   });
 
-  const selectedLeague = leagues.find(league => league.id === selectedLeagueId);
+  const scopedLeagues = useMemo(
+    () => leagues.filter(league => canAccessLeague(appUserSnapshot, league.id)),
+    [appUserSnapshot, leagues]
+  );
+
+  const scopedTeams = useMemo(
+    () => teams.filter(team => canAccessLeague(appUserSnapshot, team.leagueId)),
+    [appUserSnapshot, teams]
+  );
+
+  const scopedGames = useMemo(
+    () => games.filter(game => canAccessLeague(appUserSnapshot, game.leagueId)),
+    [appUserSnapshot, games]
+  );
+
+  useEffect(() => {
+    if (selectedLeagueId && scopedLeagues.some(league => league.id === selectedLeagueId)) return;
+
+    setSelectedLeagueId(scopedLeagues[0]?.id || '');
+    setSelectedGroupId('all');
+    setEditingZonesByKey({});
+  }, [scopedLeagues, selectedLeagueId]);
+
+  const selectedLeague = scopedLeagues.find(league => league.id === selectedLeagueId);
   const groups = getGroupOptions(selectedLeague);
   const hasGroups = groups.length > 0;
   const selectedGroupKey = hasGroups ? selectedGroupId : 'all';
@@ -326,7 +352,7 @@ export default function AdminStandings() {
   }, [hasGroups, overallConfig?.publicTableMode, selectedLeague?.publicTableMode, selectedLeagueId]);
 
   const groupedLeagues = useMemo(() => {
-    const sorted = sortLeagues([...leagues]);
+    const sorted = sortLeagues([...scopedLeagues]);
     const grouped = {};
 
     sorted.forEach(league => {
@@ -346,20 +372,20 @@ export default function AdminStandings() {
     });
 
     return Object.values(grouped);
-  }, [leagues]);
+  }, [scopedLeagues]);
 
   const teamsById = useMemo(() => {
-    return Object.fromEntries(teams.map(team => [team.id, team]));
-  }, [teams]);
+    return Object.fromEntries(scopedTeams.map(team => [team.id, team]));
+  }, [scopedTeams]);
 
   const standingsRows = useMemo(() => {
     return computeStandings({
       league: selectedLeague,
-      games,
-      teams,
+      games: scopedGames,
+      teams: scopedTeams,
       groupId: selectedGroupKey,
     });
-  }, [games, selectedGroupKey, selectedLeague, teams]);
+  }, [scopedGames, scopedTeams, selectedGroupKey, selectedLeague]);
 
   const activeConfigKey = getConfigKey(selectedLeagueId, selectedGroupKey);
 
@@ -377,6 +403,10 @@ export default function AdminStandings() {
 
   const saveZonesMutation = useMutation({
     mutationFn: async zones => {
+      if (!canAccessLeague(appUserSnapshot, selectedLeagueId)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
+
       const payload = {
         leagueId: selectedLeagueId,
         groupId: selectedGroupKey,
@@ -411,6 +441,9 @@ export default function AdminStandings() {
   const savePublicModeMutation = useMutation({
     mutationFn: async nextMode => {
       if (!selectedLeagueId) return null;
+      if (!canAccessLeague(appUserSnapshot, selectedLeagueId)) {
+        throw new Error('Keine Freigabe für diese Liga');
+      }
 
       await base44.entities.League.update(selectedLeagueId, {
         publicTableMode: nextMode,
@@ -452,7 +485,7 @@ export default function AdminStandings() {
   });
 
   const handleLeagueChange = leagueId => {
-    const nextLeague = leagues.find(league => league.id === leagueId);
+    const nextLeague = scopedLeagues.find(league => league.id === leagueId);
     const nextHasGroups = Array.isArray(nextLeague?.groups) && nextLeague.groups.length > 0;
 
     setSelectedLeagueId(leagueId);

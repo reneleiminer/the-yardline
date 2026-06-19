@@ -39,6 +39,36 @@ function parseFeatureAccess(value) {
   return [];
 }
 
+export function getAllowedLeagueIds(userOrRole) {
+  if (!userOrRole || typeof userOrRole === "string") return [];
+
+  const raw =
+    userOrRole.managedLeagueIds ||
+    userOrRole.allowedLeagueIds ||
+    userOrRole.leagueAccess ||
+    userOrRole.leagueIds ||
+    [];
+
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+      return raw.split(",").map(item => item.trim()).filter(Boolean);
+    }
+  }
+
+  if (raw && typeof raw === "object") {
+    return Object.entries(raw)
+      .filter(([, enabled]) => enabled)
+      .map(([key]) => key);
+  }
+
+  return [];
+}
+
 function getUserRole(userOrRole) {
   if (!userOrRole) return "fan";
   if (typeof userOrRole === "string") return userOrRole;
@@ -64,6 +94,16 @@ export function hasFeatureAccess(userOrRole, featureKey) {
   if (feature === "news") return isNewsRole(role);
 
   return false;
+}
+
+export function canAccessLeague(userOrRole, leagueId) {
+  if (!leagueId) return true;
+  if (isAdminRole(getUserRole(userOrRole))) return true;
+
+  const allowedLeagueIds = getAllowedLeagueIds(userOrRole);
+  if (allowedLeagueIds.length === 0) return true;
+
+  return allowedLeagueIds.includes(leagueId);
 }
 
 function isAdminRole(role) {
@@ -146,6 +186,13 @@ export const checkRouteAccess = (userRole, route) => {
   }
 
   if (normalizedRoute.startsWith("/admin/game-result")) return isAdminRole(role) || hasFeatureAccess(userRole, "live_results");
+  if (normalizedRoute.startsWith("/admin/games")) return isAdminRole(role) || hasFeatureAccess(userRole, "data_games");
+  if (normalizedRoute.startsWith("/admin/teams")) return isAdminRole(role) || hasFeatureAccess(userRole, "data_teams");
+  if (normalizedRoute.startsWith("/admin/leagues")) return isAdminRole(role) || hasFeatureAccess(userRole, "data_leagues");
+  if (normalizedRoute.startsWith("/admin/standings")) return isAdminRole(role) || hasFeatureAccess(userRole, "data_standings");
+  if (normalizedRoute.startsWith("/admin/highlights")) return isAdminRole(role) || hasFeatureAccess(userRole, "data_highlights");
+  if (normalizedRoute.startsWith("/admin/game-of-the-week")) return isAdminRole(role) || hasFeatureAccess(userRole, "gotw");
+  if (normalizedRoute.startsWith("/admin/gameday-shots")) return isAdminRole(role) || hasFeatureAccess(userRole, "gameday_shots");
   if (normalizedRoute.startsWith("/admin")) return isAdminRole(role);
   if (normalizedRoute.startsWith("/live-games")) return isAdminRole(role) || hasFeatureAccess(userRole, "live_results");
   if (normalizedRoute.startsWith("/gotw")) return hasFeatureAccess(userRole, "gotw");

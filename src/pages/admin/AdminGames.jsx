@@ -26,6 +26,8 @@ import { toast } from "sonner";
 import useSetHeader from "@/hooks/useSetHeader";
 import LeagueSelector from "@/components/admin/LeagueSelector";
 import { getImageUrl } from "@/lib/imageUtils";
+import { useAuth } from "@/lib/AuthContext";
+import { canAccessLeague } from "@/lib/rolePermissions";
 import { applyWithdrawnTeamForfeit, getWithdrawnTeamForfeit } from "@/lib/gameForfeitUtils";
 import {
   AlertDialog,
@@ -785,7 +787,7 @@ function GameForm({
       )}
 
       <LeagueSelector
-        leagues={leagues}
+        leagues={scopedLeagues}
         selectedContinent={continent}
         selectedCountry={country}
         selectedRegion={region}
@@ -1103,6 +1105,7 @@ export default function AdminGames() {
   useSetHeader({ mode: "back", title: "Spiele" });
 
   const queryClient = useQueryClient();
+  const { appUserSnapshot } = useAuth();
 
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -1137,9 +1140,21 @@ export default function AdminGames() {
   });
 
   const streamingProviders = useMemo(() => getActiveProviders(providerRequests), [providerRequests]);
+  const scopedLeagues = useMemo(
+    () => leagues.filter(league => canAccessLeague(appUserSnapshot, league.id)),
+    [appUserSnapshot, leagues]
+  );
+  const scopedTeams = useMemo(
+    () => teams.filter(team => canAccessLeague(appUserSnapshot, team.leagueId)),
+    [appUserSnapshot, teams]
+  );
+  const scopedGames = useMemo(
+    () => games.filter(game => canAccessLeague(appUserSnapshot, game.leagueId)),
+    [appUserSnapshot, games]
+  );
 
-  const teamMap = useMemo(() => Object.fromEntries(teams.map((team) => [team.id, team])), [teams]);
-  const leagueMap = useMemo(() => Object.fromEntries(leagues.map((league) => [league.id, league])), [leagues]);
+  const teamMap = useMemo(() => Object.fromEntries(scopedTeams.map((team) => [team.id, team])), [scopedTeams]);
+  const leagueMap = useMemo(() => Object.fromEntries(scopedLeagues.map((league) => [league.id, league])), [scopedLeagues]);
   const competitionMap = useMemo(() => Object.fromEntries(competitions.map((comp) => [comp.id, comp])), [competitions]);
 
   const invalidate = () => {
@@ -1152,6 +1167,10 @@ export default function AdminGames() {
   };
 
   const buildPayload = (data) => {
+    if (!canAccessLeague(appUserSnapshot, data.leagueId)) {
+      throw new Error("Du bist für diese Liga nicht freigegeben.");
+    }
+
     const cleanDate = String(data.date || "").trim() || null;
     const cleanTime = String(data.time || "").trim() || null;
     let kickoffAt = null;
@@ -1367,7 +1386,7 @@ export default function AdminGames() {
   const filtered = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    return games.filter((game) => {
+    return scopedGames.filter((game) => {
       if (filterStatus !== "all" && game.status !== filterStatus) return false;
       if (filterLeague !== "all" && game.leagueId !== filterLeague) return false;
 
@@ -1400,7 +1419,7 @@ export default function AdminGames() {
 
       return haystack.includes(normalizedSearch);
     });
-  }, [competitionMap, filterLeague, filterStatus, games, leagueMap, search, teamMap]);
+  }, [competitionMap, filterLeague, filterStatus, leagueMap, scopedGames, search, teamMap]);
 
   const getTeamLabel = (teamId, placeholder) => {
     const team = teamMap[teamId];
@@ -1462,7 +1481,7 @@ export default function AdminGames() {
     <div className="w-full max-w-full overflow-x-hidden px-3 sm:px-4 py-6 pb-24">
       <div className="flex items-center justify-between mb-4">
         <p className="text-xs text-muted-foreground">
-          {filtered.length} von {games.length} Spielen
+          {filtered.length} von {scopedGames.length} Spielen
         </p>
 
         <Button size="sm" className="gap-1.5" onClick={() => setAdding(true)}>
@@ -1509,7 +1528,7 @@ export default function AdminGames() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Alle Ligen</SelectItem>
-              {leagues.map((league) => (
+              {scopedLeagues.map((league) => (
                 <SelectItem key={league.id} value={league.id}>
                   {league.shortName || league.name}
                 </SelectItem>
@@ -1524,8 +1543,8 @@ export default function AdminGames() {
           <h2 className="text-sm font-semibold mb-3">Neues Spiel</h2>
 
           <GameForm
-            teams={teams}
-            leagues={leagues}
+            teams={scopedTeams}
+            leagues={scopedLeagues}
             competitions={competitions}
             providers={streamingProviders}
             onSave={(data) => createMutation.mutate(data)}
@@ -1567,8 +1586,8 @@ export default function AdminGames() {
                     <GameForm
                       initial={getInitialForm(game)}
                       gameId={game.id}
-                      teams={teams}
-                      leagues={leagues}
+                      teams={scopedTeams}
+                      leagues={scopedLeagues}
                       competitions={competitions}
                       providers={streamingProviders}
                       onSave={(data) => updateMutation.mutate({ id: game.id, data })}

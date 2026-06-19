@@ -13,6 +13,8 @@ import { I18nProvider } from "@/lib/i18n";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ScrollToTop from "@/components/ScrollToTop";
 import MaintenanceGate from "@/components/MaintenanceGate";
+import { useAuth } from "@/lib/AuthContext";
+import { hasFeatureAccess } from "@/lib/rolePermissions";
 
 import AppLayout from "@/components/layout/AppLayout.jsx";
 import Home from "@/pages/Home";
@@ -67,10 +69,31 @@ function RouteLoader() {
   return null;
 }
 
-function AdminRoute({ children }) {
+function DataEditorRedirect() {
+  const { appUserSnapshot } = useAuth();
+
+  const target =
+    hasFeatureAccess(appUserSnapshot, "data_games")
+      ? "/admin/games"
+      : hasFeatureAccess(appUserSnapshot, "data_teams")
+        ? "/admin/teams"
+        : hasFeatureAccess(appUserSnapshot, "data_leagues")
+          ? "/admin/leagues"
+          : hasFeatureAccess(appUserSnapshot, "data_standings")
+            ? "/admin/standings"
+            : hasFeatureAccess(appUserSnapshot, "data_highlights")
+              ? "/admin/highlights"
+              : hasFeatureAccess(appUserSnapshot, "gotw")
+                ? "/gotw"
+                : "/";
+
+  return <Navigate to={target} replace />;
+}
+
+function AdminRoute({ children, requiredRoute = "/admin" }) {
   return (
     <ProtectedRoute
-      requiredRoute="/admin"
+      requiredRoute={requiredRoute}
       allowedRoles={["admin"]}
       fallbackRoute="/settings?login=internal"
     >
@@ -198,7 +221,7 @@ function AppRoutes() {
 
             <Route
               path="/data-editor"
-              element={<Navigate to="/gotw" replace />}
+              element={<DataEditorRedirect />}
             />
 
             <Route
@@ -285,7 +308,7 @@ function AppRoutes() {
             <Route
               path="/admin/highlights"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/highlights">
                   <AdminHighlights />
                 </AdminRoute>
               }
@@ -312,7 +335,7 @@ function AppRoutes() {
             <Route
               path="/admin/leagues"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/leagues">
                   <AdminLeagues />
                 </AdminRoute>
               }
@@ -321,7 +344,7 @@ function AppRoutes() {
             <Route
               path="/admin/teams"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/teams">
                   <AdminTeams />
                 </AdminRoute>
               }
@@ -330,7 +353,7 @@ function AppRoutes() {
             <Route
               path="/admin/games"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/games">
                   <AdminGames />
                 </AdminRoute>
               }
@@ -339,7 +362,7 @@ function AppRoutes() {
             <Route
               path="/admin/game-of-the-week"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/game-of-the-week">
                   <AdminGameOfTheWeek />
                 </AdminRoute>
               }
@@ -348,7 +371,7 @@ function AppRoutes() {
             <Route
               path="/admin/gameday-shots"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/gameday-shots">
                   <AdminGameDayShots />
                 </AdminRoute>
               }
@@ -366,7 +389,7 @@ function AppRoutes() {
             <Route
               path="/admin/standings"
               element={
-                <AdminRoute>
+                <AdminRoute requiredRoute="/admin/standings">
                   <AdminStandings />
                 </AdminRoute>
               }

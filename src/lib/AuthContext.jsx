@@ -37,8 +37,10 @@ function normalizeRole(value) {
     redaktion: "news",
     journalist: "news",
     creator: "news",
-    data_editor: "fan",
-    daten_editor: "fan",
+    dataeditor: "data_editor",
+    data_editor: "data_editor",
+    daten_editor: "data_editor",
+    dateneditor: "data_editor",
     club: "fan",
     verein: "fan",
     league: "fan",
@@ -76,7 +78,7 @@ function isInternalRole(appUser) {
         ? Object.values(featureAccess).some(Boolean)
         : false;
 
-  return ["admin", "gotw", "photographer", "podcast", "news"].includes(normalizeRole(appUser?.roleSlug || appUser?.role)) || hasInternalFeature;
+  return ["admin", "gotw", "photographer", "podcast", "news", "data_editor"].includes(normalizeRole(appUser?.roleSlug || appUser?.role)) || hasInternalFeature;
 }
 
 function getStoredSessionId() {
@@ -145,6 +147,7 @@ function getInternalRoleLabel(roleSlug) {
   if (roleSlug === "photographer") return "Fotograf";
   if (roleSlug === "podcast") return "Podcast";
   if (roleSlug === "news") return "News";
+  if (roleSlug === "data_editor") return "Dateneditor";
   return "Intern";
 }
 
