@@ -257,6 +257,11 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById, favo
   const rankLabel = favoriteRank ? `#${favoriteRank}` : "-";
   const nextLabel = status === "live" ? "Live" : status === "final" ? "Letztes Spiel" : "Nächstes Spiel";
   const opponentPrefix = isFavoriteHome ? "vs" : "@";
+  const kickoffLabel = showScore
+    ? `${game.scoreHome ?? 0}:${game.scoreAway ?? 0}`
+    : kickoff
+      ? `${format(kickoff, "dd.MM.", { locale: de })} · ${format(kickoff, "HH:mm", { locale: de })}`
+      : "Kickoff offen";
 
   return (
     <Link
@@ -264,25 +269,25 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById, favo
       className="block overflow-hidden rounded-[20px] border border-white/10 bg-black text-white shadow-[0_14px_30px_rgba(0,0,0,0.26)] active:scale-[0.99]"
     >
       <div
-        className="relative min-h-[96px] overflow-hidden px-3 py-3 sm:min-h-[112px] sm:px-4"
+        className="relative overflow-hidden px-3 py-3 sm:px-4"
         style={{
           background: `linear-gradient(135deg, ${toRgba(favoriteColor, 0.72)}, rgba(0,0,0,0.88) 54%, ${toRgba(opponentColor, 0.46)})`,
         }}
       >
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.14)_0_1px,transparent_1px_22px)] opacity-30" />
-        <div className="relative z-10 grid grid-cols-[minmax(0,1.2fr)_auto_minmax(0,1fr)] items-center gap-3">
+        <div className="relative z-10 space-y-2.5">
           <div className="flex min-w-0 items-center gap-3">
             {favoriteTeam.logo && (
               <img
                 src={getImageUrl(favoriteTeam.logo)}
                 alt=""
-                className="h-12 w-12 shrink-0 object-contain drop-shadow-[0_7px_16px_rgba(0,0,0,0.38)] sm:h-14 sm:w-14"
+                className="h-10 w-10 shrink-0 object-contain drop-shadow-[0_7px_16px_rgba(0,0,0,0.38)] sm:h-14 sm:w-14"
                 loading="lazy"
               />
             )}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/55">Dein Team</p>
-              <p className="truncate text-[15px] font-black italic leading-tight sm:text-[17px]">
+              <p className="line-clamp-2 break-words text-[15px] font-black italic leading-[1.05] sm:text-[17px]">
                 {favoriteTeam.name}
               </p>
               <p className="mt-0.5 truncate text-[10px] font-bold text-white/48">
@@ -291,26 +296,26 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById, favo
             </div>
           </div>
 
-          <div className="grid min-w-[86px] grid-cols-2 overflow-hidden rounded-2xl border border-white/10 bg-black/46 text-center backdrop-blur">
-            <div className="px-2 py-2">
-              <p className="text-[9px] font-black uppercase text-white/45">Platz</p>
-              <p className="text-lg font-black leading-none text-white">{rankLabel}</p>
+          <div className="grid shrink-0 grid-cols-2 overflow-hidden rounded-xl border border-white/10 bg-black/46 text-center backdrop-blur">
+            <div className="px-2 py-1.5">
+              <p className="text-[8px] font-black uppercase text-white/45">Platz</p>
+              <p className="text-sm font-black leading-none text-white">{rankLabel}</p>
             </div>
-            <div className="border-l border-white/10 px-2 py-2">
-              <p className="text-[9px] font-black uppercase text-white/45">Bilanz</p>
-              <p className="text-lg font-black leading-none text-white">{recordLabel}</p>
+            <div className="border-l border-white/10 px-2 py-1.5">
+              <p className="text-[8px] font-black uppercase text-white/45">Bilanz</p>
+              <p className="text-sm font-black leading-none text-white">{recordLabel}</p>
             </div>
           </div>
 
-          <div className="min-w-0 text-right">
-            <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff2338]">{nextLabel}</p>
-            <div className="mt-1 flex items-center justify-end gap-2">
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-black italic leading-tight sm:text-[15px]">
+          <div className="rounded-2xl border border-white/10 bg-black/36 px-3 py-2 backdrop-blur">
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#ff2338]">{nextLabel}</p>
+                <p className="line-clamp-2 break-words text-[13px] font-black italic leading-[1.08] sm:text-[15px]">
                   {opponentPrefix} {opponentName}
                 </p>
                 <p className="mt-0.5 text-[10px] font-black uppercase tracking-wide text-white/58">
-                  {showScore ? `${game.scoreHome ?? 0}:${game.scoreAway ?? 0}` : kickoff ? `${format(kickoff, "dd.MM.", { locale: de })} · ${format(kickoff, "HH:mm", { locale: de })}` : "Kickoff offen"}
+                  {kickoffLabel}
                 </p>
               </div>
               {opponent?.logo && (
@@ -436,13 +441,13 @@ function AdBannerCard({ banner }) {
   if (!banner?.imageUrl && !banner?.title) return null;
 
   const content = (
-    <div className="group relative w-full overflow-hidden rounded-[22px] border border-white/10 bg-black text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
-      <div className="relative aspect-[2.75/1] w-full overflow-hidden sm:aspect-[4/1]">
+    <div className="group relative w-full overflow-hidden rounded-[22px] bg-black text-white shadow-[0_14px_34px_rgba(0,0,0,0.28)]">
+      <div className="relative aspect-[2.6/1] w-full overflow-hidden sm:aspect-[4/1]">
         {banner.imageUrl ? (
           <img
             src={getImageUrl(banner.imageUrl)}
             alt={banner.title || "Werbung"}
-            className="absolute inset-0 h-full w-full object-contain p-2 transition-transform duration-500 group-hover:scale-[1.015] sm:p-3"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.015]"
             loading="lazy"
           />
         ) : (
@@ -452,9 +457,6 @@ function AdBannerCard({ banner }) {
         <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-transparent to-black/10" />
         <div className="absolute inset-0 bg-[repeating-linear-gradient(105deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_18px)] opacity-20" />
 
-        <span className="absolute left-3 top-3 z-10 rounded-full border border-white/10 bg-black/48 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.22em] text-[#ff2338] backdrop-blur-md sm:left-4 sm:top-4">
-          Werbung
-        </span>
       </div>
     </div>
   );
