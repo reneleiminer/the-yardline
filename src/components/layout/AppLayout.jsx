@@ -159,7 +159,7 @@ function AuthScreen() {
               Willkommen
             </h1>
             <p className="mt-3 max-w-[260px] text-sm font-semibold leading-relaxed text-white/68">
-              Deine Plattform fuer American Football.
+              Deine Plattform für American Football.
             </p>
 
             <div className="mt-8 flex w-full flex-col gap-3">
@@ -257,7 +257,7 @@ function AuthScreen() {
                     : mode === "internal"
                       ? "Dashboard Login"
                       : mode === "forgot" || mode === "reset"
-                        ? "Passwort zuruecksetzen"
+                        ? "Passwort zurücksetzen"
                         : "In die App einloggen"}
                 </h2>
               </div>
@@ -432,7 +432,7 @@ function AuthScreen() {
                 }}
                 className="mb-3 block w-full text-center text-xs font-black uppercase tracking-wide text-white/45 transition-colors hover:text-white"
               >
-                Zurueck zur Auswahl
+                Zurück zur Auswahl
               </button>
               <Link
                 to="/support"

@@ -339,7 +339,7 @@ function AnalyticsDashboard({ stats }) {
           </h2>
 
           <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-            Doppelte Refreshes werden herausgerechnet. Besucher sind eindeutige Geraete, Sessions laufen nach 30 Minuten Inaktivitaet aus.
+            Doppelte Refreshes werden herausgerechnet. Besucher sind eindeutige Geräte, Sessions laufen nach 30 Minuten Inaktivität aus.
           </p>
         </div>
       </div>
@@ -389,7 +389,7 @@ function AnalyticsDashboard({ stats }) {
       <div className="grid grid-cols-2 gap-2">
         <AnalyticsList title="Top Seiten 7 Tage" items={stats.topPages} />
         <AnalyticsList title="Bereiche 7 Tage" items={stats.routeGroups} />
-        <AnalyticsList title="Geraete" items={stats.devices} />
+        <AnalyticsList title="Geräte" items={stats.devices} />
         <AnalyticsList title="Traffic Quellen" items={stats.referrers} />
       </div>
 
@@ -397,7 +397,7 @@ function AnalyticsDashboard({ stats }) {
         <div className="flex items-start gap-2">
           <MousePointer className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            Fuer Sponsoren spaeter wichtig: Unique Visitors, Sessions, Pageviews, Top-Seiten und Geraete. Die Zahlen sind besser fuer Werbepreise als rohe Klicks, weil Reloads und schnelle Doppelaufrufe reduziert werden.
+            Für Sponsoren später wichtig: Unique Visitors, Sessions, Pageviews, Top-Seiten und Geräte. Die Zahlen sind besser für Werbepreise als rohe Klicks, weil Reloads und schnelle Doppelaufrufe reduziert werden.
           </p>
         </div>
       </div>
@@ -531,7 +531,7 @@ function AdBannerPlanner({
           </h2>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Plane grosse Werbebanner fuer Home und News.
+            Plane große Werbebanner für Home und News.
           </p>
         </div>
 
@@ -831,7 +831,7 @@ function AppBrandingPlanner({
           onClick={onClose}
           className="text-xs font-bold text-muted-foreground hover:text-foreground"
         >
-          Schliessen
+          Schließen
         </button>
       </div>
 
@@ -886,7 +886,7 @@ function AppBrandingPlanner({
 
         {branding?.id && (
           <p className="text-[10px] text-muted-foreground">
-            Aktuelles Branding wird beim Speichern ueberschrieben.
+            Aktuelles Branding wird beim Speichern überschrieben.
           </p>
         )}
 
@@ -1274,7 +1274,7 @@ export default function AdminDashboard() {
     {
       icon: Image,
       title: 'Einleitung',
-      description: '4 Liga-Slots und Intro-Bilder fuer neue Nutzer pflegen',
+      description: '4 Liga-Slots und Intro-Bilder für neue Nutzer pflegen',
       route: '/admin/leagues?intro=1',
       count: onboardingLeagueCount,
       badge: `${Math.min(onboardingLeagueCount, 4)}/4`,
@@ -1467,7 +1467,7 @@ export default function AdminDashboard() {
               Command Center
             </h1>
             <p className="mt-2 max-w-2xl text-xs font-semibold leading-relaxed text-white/58">
-              Alles fuer Konten, Football-Daten, Content, Updates und Support an einem Ort.
+              Alles für Konten, Football-Daten, Content, Updates und Support an einem Ort.
             </p>
           </div>
         </div>

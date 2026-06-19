@@ -89,7 +89,7 @@ export default function ClubDetail() {
   );
 }
 
-// ── Overview tab (quick summary) ──────────────────────────────────────────────
+// â”€â”€ Overview tab (quick summary) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ClubOverviewTab({ club, theme, onTabChange }) {
   const { leagues, leaguesById, teams, games, standingsConfigs } = useGlobalData();
   const league = leaguesById?.get(club.leagueId);
@@ -150,7 +150,7 @@ function ClubOverviewTab({ club, theme, onTabChange }) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Letzte Spiele</p>
-            <button onClick={() => onTabChange('games')} className="text-[10px] text-primary hover:underline">Alle →</button>
+            <button onClick={() => onTabChange('games')} className="text-[10px] text-primary hover:underline">Alle â†’</button>
           </div>
           <div className="space-y-2">
             {recentGames.map(g => <MiniGameRow key={g.id} game={g} clubId={club.id} />)}

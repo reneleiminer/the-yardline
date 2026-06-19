@@ -213,7 +213,7 @@ function BackButton({ onBack, backTo }) {
       onClick={handleBack}
       className="flex-shrink-0 flex items-center justify-center rounded-xl transition-colors hover:bg-black/5 active:bg-black/10"
       style={{ width: 40, height: 40 }}
-      aria-label="Zurueck"
+      aria-label="Zurück"
     >
       <ArrowLeft className="w-5 h-5 text-white" />
     </button>
@@ -395,7 +395,7 @@ function HeaderMenu({ open, onClose }) {
           type="button"
           onClick={onClose}
           className="ml-auto w-11 h-11 rounded-full border border-red-500/30 bg-black/55 flex items-center justify-center active:scale-95 transition-transform"
-          aria-label="Menue schliessen"
+          aria-label="Menü schließen"
         >
           <X className="w-6 h-6 text-red-500" />
         </button>

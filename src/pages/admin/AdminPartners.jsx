@@ -319,7 +319,7 @@ export default function AdminPartners() {
             </p>
 
             <p className="text-xs text-muted-foreground/60 max-w-sm">
-              Füge Partner hinzu, die im Footer unter „Unsere Partner“ angezeigt werden.
+              Füge Partner hinzu, die im Footer unter â€žUnsere Partnerâ€œ angezeigt werden.
             </p>
           </div>
         ) : (

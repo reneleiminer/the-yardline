@@ -33,7 +33,7 @@ self.addEventListener("push", (event) => {
     vibrate: Array.isArray(data.vibrate) ? data.vibrate : [120, 60, 120],
     actions: Array.isArray(data.actions) && data.actions.length > 0
       ? data.actions
-      : [{ action: "open", title: "Oeffnen" }],
+      : [{ action: "open", title: "Öffnen" }],
     data: {
       url: data.url || "/",
       actionUrl: data.actionUrl || data.url || "/",

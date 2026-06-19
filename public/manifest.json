@@ -1,7 +1,7 @@
 {
   "name": "The Yardline",
   "short_name": "Yardline",
-  "description": "News, Scores und Rankings fuer American Football.",
+  "description": "News, Scores und Rankings für American Football.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

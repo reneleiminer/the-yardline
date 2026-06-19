@@ -638,7 +638,7 @@ export default function AdminGameDayShots() {
                       }))}
                       className="h-10 w-full rounded-md border border-border bg-secondary px-3 text-sm text-foreground"
                     >
-                      <option value="">Verein/Team fÃ¼r dieses Bild...</option>
+                      <option value="">Verein/Team für dieses Bild...</option>
                       {[
                         teamsMap.get(selectedGame.homeTeamId),
                         teamsMap.get(selectedGame.awayTeamId),

@@ -160,7 +160,7 @@ export default function CommentActionsMenu({ comment, postId, appUser }) {
             className="h-7 px-3 text-xs"
           >
             <Check className="w-3 h-3 mr-1" />
-            {saving ? 'Speichern…' : 'Speichern'}
+            {saving ? 'Speichernâ€¦' : 'Speichern'}
           </Button>
 
           <Button
@@ -214,7 +214,7 @@ export default function CommentActionsMenu({ comment, postId, appUser }) {
               className="gap-2 cursor-pointer text-destructive focus:text-destructive"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              {deleting ? 'Löschen…' : 'Kommentar löschen'}
+              {deleting ? 'Löschenâ€¦' : 'Kommentar löschen'}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
@@ -264,7 +264,7 @@ export default function CommentActionsMenu({ comment, postId, appUser }) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={reporting}>Abbrechen</AlertDialogCancel>
             <AlertDialogAction onClick={handleReport} disabled={reporting}>
-              {reporting ? 'Senden…' : 'Melden'}
+              {reporting ? 'Sendenâ€¦' : 'Melden'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

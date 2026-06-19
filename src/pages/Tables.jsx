@@ -125,7 +125,7 @@ function LeagueRow({ league }) {
 
         <div className="flex items-center gap-1 text-primary text-xs font-bold flex-shrink-0">
           Tabelle
-          <span>›</span>
+          <span>â€º</span>
         </div>
       </div>
     </Link>

@@ -187,7 +187,7 @@ export default function AdminLegal() {
                     content: event.target.value,
                   }))
                 }
-                placeholder="Seiteninhalt einfügen…"
+                placeholder="Seiteninhalt einfügenâ€¦"
                 className="min-h-[260px] text-xs font-mono bg-secondary/50 border-border/50 resize-y leading-relaxed"
               />
 
@@ -204,7 +204,7 @@ export default function AdminLegal() {
               {saveMutation.isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Speichern…
+                  Speichernâ€¦
                 </>
               ) : (
                 'Änderungen speichern'

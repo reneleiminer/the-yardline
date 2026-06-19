@@ -365,7 +365,7 @@ function UserForm({ title, initial, onSave, onCancel, isSaving, submitLabel }) {
           </h2>
 
           <p className="text-xs text-muted-foreground mt-0.5">
-            Login fuer Admin, GOTW, Fotografen, Podcast oder normale Nutzer
+            Login für Admin, GOTW, Fotografen, Podcast oder normale Nutzer
           </p>
         </div>
 
@@ -975,7 +975,7 @@ export default function AdminUsers() {
           </h3>
 
           <p className="text-xs text-muted-foreground mt-1">
-            Erstelle den ersten Zugang fuer Admin, GOTW, Fotograf, Podcast, News oder Nutzer.
+            Erstelle den ersten Zugang für Admin, GOTW, Fotograf, Podcast, News oder Nutzer.
           </p>
         </div>
       ) : (

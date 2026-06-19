@@ -261,7 +261,7 @@ export default function NewsDashboard() {
       return base44.entities.Post.create(payload);
     },
     onSuccess: () => {
-      toast.success(editingId ? "Beitrag aktualisiert" : "Beitrag veroeffentlicht");
+      toast.success(editingId ? "Beitrag aktualisiert" : "Beitrag veröffentlicht");
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["news-dashboard-posts"] });
       queryClient.invalidateQueries({ queryKey: ["home-overview-news"] });
@@ -278,7 +278,7 @@ export default function NewsDashboard() {
       updatedAtUtc: new Date().toISOString(),
     }),
     onSuccess: () => {
-      toast.success("Beitrag geloescht");
+      toast.success("Beitrag gelöscht");
       queryClient.invalidateQueries({ queryKey: ["news-dashboard-posts"] });
       queryClient.invalidateQueries({ queryKey: ["home-overview-news"] });
       queryClient.invalidateQueries({ queryKey: ["news-page-posts"] });
@@ -416,7 +416,7 @@ export default function NewsDashboard() {
 
           <Button type="button" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate()} className="mt-5 h-12 w-full rounded-2xl bg-[#c20f1a] font-black uppercase text-white hover:bg-[#a90d16]">
             <Save className="mr-2 h-4 w-4" />
-            {editingId ? "Speichern" : "Veroeffentlichen"}
+            {editingId ? "Speichern" : "Veröffentlichen"}
           </Button>
         </section>
 

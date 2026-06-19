@@ -21,7 +21,7 @@ export function useLeagueTheme(primaryColor) {
     };
   }
 
-  // Helper: hex → "r, g, b" string for rgba()
+  // Helper: hex â†’ "r, g, b" string for rgba()
   const toRgb = (hex) => {
     const h = hex.replace('#', '');
     const r = parseInt(h.substring(0, 2), 16);

@@ -41,7 +41,7 @@ export const getPostTimeLabel = (publishedAtUtc) => {
  */
 const normalizeTimestamp = (ts) => {
   if (!ts) return null;
-  // Replace 6-digit microseconds with 3-digit milliseconds: .547000 → .547
+  // Replace 6-digit microseconds with 3-digit milliseconds: .547000 â†’ .547
   return ts.replace(/(\.\d{3})\d+(Z|[+-]|$)/, '$1$2');
 };
 

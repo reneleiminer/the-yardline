@@ -82,7 +82,7 @@ export default function PushPermissionPrompt() {
         type="button"
         onClick={close}
         className="absolute right-3 top-3 rounded-lg p-1 text-muted-foreground hover:bg-secondary"
-        aria-label="Schliessen"
+        aria-label="Schließen"
       >
         <X className="h-4 w-4" />
       </button>
@@ -109,7 +109,7 @@ export default function PushPermissionPrompt() {
         </Button>
 
         <Button type="button" variant="outline" onClick={close}>
-          Spaeter
+          Später
         </Button>
       </div>
     </div>

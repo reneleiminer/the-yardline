@@ -922,7 +922,7 @@ export default function CompetitionWizard({ onClose, onSuccess, isSaving = false
                   {bracketMode ? 'Turnierbaum-Struktur' : 'Spiel-Struktur'}
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Waehle ein Preset oder baue die Runden frei. Teams werden spaeter automatisch aus der Gesamttabelle gezogen.
+                  Wähle ein Preset oder baue die Runden frei. Teams werden später automatisch aus der Gesamttabelle gezogen.
                 </p>
               </div>
 

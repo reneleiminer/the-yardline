@@ -75,7 +75,7 @@ export default function Profile() {
         </div>
 
         <p className="mt-4 text-xs font-semibold leading-relaxed text-white/58">
-          Dieses Profil ist nur dein Konto. Nutzer koennen nichts posten, niemandem folgen und keine Community-Funktionen nutzen.
+          Dieses Profil ist nur dein Konto. Nutzer können nichts posten, niemandem folgen und keine Community-Funktionen nutzen.
         </p>
       </div>
 

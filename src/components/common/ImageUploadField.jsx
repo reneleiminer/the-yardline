@@ -120,7 +120,7 @@ export default function ImageUploadField({
             <>
               <Loader2 className="w-4 h-4 text-primary animate-spin" />
               <span className="text-sm text-muted-foreground">
-                Hochladen…
+                Hochladenâ€¦
               </span>
             </>
           ) : (

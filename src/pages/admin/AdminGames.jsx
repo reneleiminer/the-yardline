@@ -779,7 +779,7 @@ function GameForm({
             Automatische Spielwertung 0:36
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
-            Ein Team ist als zurueckgezogen markiert. Deutsche Spiele werden beim Speichern automatisch final mit {withdrawalForfeit.scoreHome}:{withdrawalForfeit.scoreAway} fuer das andere Team gewertet.
+            Ein Team ist als zurückgezogen markiert. Deutsche Spiele werden beim Speichern automatisch final mit {withdrawalForfeit.scoreHome}:{withdrawalForfeit.scoreAway} für das andere Team gewertet.
           </p>
         </div>
       )}
@@ -976,7 +976,7 @@ function GameForm({
       </div>
 
       <button type="button" onClick={() => setShowAdvanced(!showAdvanced)} className="text-xs text-primary hover:underline">
-        {showAdvanced ? "▼ Erweiterte Optionen" : "▶ Erweiterte Optionen"}
+        {showAdvanced ? "â–¼ Erweiterte Optionen" : "â–¶ Erweiterte Optionen"}
       </button>
 
       {showAdvanced && (

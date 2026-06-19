@@ -1,6 +1,6 @@
 /**
  * Canonical league sort order.
- * continent → country → regionState → level (0 = highest) → name
+ * continent â†’ country â†’ regionState â†’ level (0 = highest) â†’ name
  *
  * Supports both old field names (stateRegion, tierLevel) for backwards compat.
  */
@@ -26,7 +26,7 @@ export function sortLeagues(leagues) {
 
 /**
  * Groups a sorted league list into nested structure:
- * { country → { regionState → league[] } }
+ * { country â†’ { regionState â†’ league[] } }
  */
 /**
  * Groups leagues by country only (flat list per country).
@@ -50,7 +50,7 @@ export function groupLeagues(sortedLeagues) {
 }
 
 /**
- * Groups leagues by country → region (used when a region filter is active).
+ * Groups leagues by country â†’ region (used when a region filter is active).
  * Returns: [{ country, regions: [{ region, leagues }] }]
  */
 export function groupLeaguesByRegion(sortedLeagues) {
@@ -81,7 +81,7 @@ export function groupLeaguesByRegion(sortedLeagues) {
   return grouped;
 }
 
-// ── Location constants ────────────────────────────────────────────────────────
+// â”€â”€ Location constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const COUNTRIES = [
   'Deutschland',

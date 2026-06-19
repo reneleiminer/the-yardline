@@ -1008,8 +1008,8 @@ export default function AdminCompetitionDetail() {
 
       invalidate();
       toast.success(createdIds.length > 0
-        ? `Teams uebernommen und ${createdIds.length} Spiel${createdIds.length === 1 ? '' : 'e'} erstellt`
-        : 'Teams in Spieltermine uebernommen');
+        ? `Teams übernommen und ${createdIds.length} Spiel${createdIds.length === 1 ? '' : 'e'} erstellt`
+        : 'Teams in Spieltermine übernommen');
     } catch (error) {
       console.error('AUTO FILL COMPETITION ERROR:', error);
       toast.error('Automatische Übernahme fehlgeschlagen');

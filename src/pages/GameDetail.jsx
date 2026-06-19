@@ -111,7 +111,7 @@ function InstagramCreditButton({ instagram }) {
       target="_blank"
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1 rounded-full border border-pink-400/25 bg-pink-500/15 px-2 py-1 text-[10px] font-bold text-pink-100 hover:bg-pink-500/25 transition-colors"
-      aria-label={`Instagram ${label} oeffnen`}
+      aria-label={`Instagram ${label} öffnen`}
     >
       <Instagram className="w-3 h-3" />
       <span className="truncate max-w-[96px]">{label}</span>
@@ -438,7 +438,7 @@ function getVisibleStreamLinks(game) {
 }
 
 function getStreamName(stream) {
-  return stream.providerName || stream.platform || stream.label || 'Stream oeffnen';
+  return stream.providerName || stream.platform || stream.label || 'Stream öffnen';
 }
 
 function StreamProviderLogo({ stream, size = 'w-10 h-10' }) {
@@ -477,7 +477,7 @@ function CancelledGameNotice({ game }) {
             </h2>
 
             <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-              Das Spiel wird nicht live geschaltet, nicht gewertet und zaehlt nicht fuer Tabellen oder Statistiken.
+              Das Spiel wird nicht live geschaltet, nicht gewertet und zählt nicht für Tabellen oder Statistiken.
             </p>
 
             {game.notes && (
@@ -662,7 +662,7 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
   const canPredict = predictionWindowOpen && !userAlreadyPredicted;
 
   const homeName = home?.shortName || home?.name || 'Heimteam';
-  const awayName = away?.shortName || away?.name || 'Auswaertsteam';
+  const awayName = away?.shortName || away?.name || 'Auswärtsteam';
 
   const homeTeamId = game?.homeTeamId || 'home';
   const awayTeamId = game?.awayTeamId || 'away';
@@ -679,7 +679,7 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
 
   const handleSubmit = selectedTeamId => {
     if (!canPredict) {
-      toast.error('Du hast fuer dieses Spiel bereits getippt oder die Tippabgabe ist geschlossen.');
+      toast.error('Du hast für dieses Spiel bereits getippt oder die Tippabgabe ist geschlossen.');
       return;
     }
 
@@ -700,11 +700,11 @@ function PredictionBlock({ game, home, away, predictions, currentPrediction, onS
 
             <p className="text-xs text-muted-foreground mt-1">
   {predictionDisabled
-    ? 'Das Tippspiel ist fuer dieses Spiel deaktiviert.'
+    ? 'Das Tippspiel ist für dieses Spiel deaktiviert.'
     : canPredict
-    ? 'Waehle vor Kickoff, wer das Spiel gewinnt.'
+    ? 'Wähle vor Kickoff, wer das Spiel gewinnt.'
     : userAlreadyPredicted
-    ? 'Dein Tipp ist gespeichert und kann nicht mehr geaendert werden.'
+    ? 'Dein Tipp ist gespeichert und kann nicht mehr geändert werden.'
     : 'Tippabgabe geschlossen.'}
 </p>
           </div>
@@ -1121,7 +1121,7 @@ function GameDayShotsBlock({ photos }) {
             </p>
 
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              Sobald Bilder zum Spiel verfuegbar sind, erscheinen sie hier.
+              Sobald Bilder zum Spiel verfügbar sind, erscheinen sie hier.
             </p>
           </div>
         ) : (
@@ -1370,7 +1370,7 @@ export default function GameDetail() {
   const savePredictionMutation = useMutation({
     mutationFn: async ({ selected_team_id }) => {
       if (currentPrediction?.id) {
-        throw new Error('Du hast fuer dieses Spiel bereits getippt.');
+        throw new Error('Du hast für dieses Spiel bereits getippt.');
       }
 
       if (!isPredictionOpen(game)) {
@@ -1416,7 +1416,7 @@ export default function GameDetail() {
       <div className="flex flex-col items-center justify-center min-h-[50vh] px-4 text-center">
         <p className="text-muted-foreground">Spiel nicht gefunden.</p>
         <Button variant="ghost" className="mt-4" onClick={() => navigate('/match-center')}>
-          Zurueck
+          Zurück
         </Button>
       </div>
     );
@@ -1445,7 +1445,7 @@ export default function GameDetail() {
                 : 'text-white/52 hover:text-white'
             }`}
           >
-            Uebersicht
+            Übersicht
           </button>
 
           {showStatisticsTab && (

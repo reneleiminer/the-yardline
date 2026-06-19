@@ -185,7 +185,7 @@ export default function PostActionsMenu({ post, onDeleted }) {
               disabled={deleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {deleting ? 'Löschen…' : 'Löschen'}
+              {deleting ? 'Löschenâ€¦' : 'Löschen'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -235,7 +235,7 @@ export default function PostActionsMenu({ post, onDeleted }) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={reporting}>Abbrechen</AlertDialogCancel>
             <AlertDialogAction onClick={handleReport} disabled={reporting}>
-              {reporting ? 'Senden…' : 'Melden'}
+              {reporting ? 'Sendenâ€¦' : 'Melden'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
