@@ -171,8 +171,12 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
         dark
         size="md"
       />
-      <span className={`mt-1 text-[8px] font-black uppercase tracking-[0.2em] sm:mt-2 sm:text-[10px] sm:tracking-[0.22em] ${status === "live" ? "text-[#ff2338]" : "text-white/78"}`}>
-        {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#ff2338] align-middle shadow-[0_0_10px_rgba(255,35,56,0.9)]" />}
+      <span className={`mt-1 inline-flex items-center justify-center rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.2em] sm:mt-2 sm:text-[10px] sm:tracking-[0.22em] ${
+        status === "live"
+          ? "bg-white text-[#d20a18] shadow-[0_0_18px_rgba(255,255,255,0.42)]"
+          : "text-white/78"
+      }`}>
+        {status === "live" && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-[#d20a18] align-middle shadow-[0_0_10px_rgba(210,10,24,0.9)]" />}
         {statusLabel}
       </span>
     </>
@@ -1060,6 +1064,17 @@ export default function Home() {
             teamsById={teamsById}
             leaguesById={leaguesById}
           />
+        )}
+
+        {liveGames.length > 0 && (
+          <section>
+            <SectionTitle title="Live Games" to="/match-center" />
+            <HorizontalRail>
+              {liveGames.map((game) => (
+                <SmallGameCard key={game.id} game={game} teamsById={teamsById} leaguesById={leaguesById} />
+              ))}
+            </HorizontalRail>
+          </section>
         )}
 
         <section>
