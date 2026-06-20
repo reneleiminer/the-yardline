@@ -9,6 +9,7 @@ import React, {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import { shouldAutoSwitchToLive } from "@/lib/gameStatusUtils";
 
 const GlobalDataContext = createContext();
 
@@ -25,7 +26,6 @@ const CORE_ENTITY_CONFIG = [
 ];
 
 const AUTO_LIVE_CHECK_INTERVAL_MS = 60 * 1000;
-const AUTO_LIVE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 const LIVE_SCORE_POLL_INTERVAL_MS = 10 * 1000;
 
 function mergeItemIntoList(list, item) {
@@ -93,49 +93,6 @@ function invalidateGameDrivenQueries(queryClient, gameId) {
     const [first] = query.queryKey || [];
     return typeof first === "string" && first.toLowerCase().includes("game");
   }, refetchType: "active" });
-}
-
-function getGameDate(game) {
-  if (game?.date) {
-    const rawTime = game.time || game.kickoffTime || "00:00";
-    const [year, month, day] = String(game.date).split("-").map(Number);
-    const [hour, minute] = String(rawTime).split(":").map(Number);
-
-    if (year && month && day) {
-      return new Date(
-        year,
-        month - 1,
-        day,
-        Number.isFinite(hour) ? hour : 0,
-        Number.isFinite(minute) ? minute : 0,
-        0,
-        0
-      );
-    }
-  }
-
-  if (game?.kickoffAt) {
-    const kickoff = new Date(game.kickoffAt);
-    if (!Number.isNaN(kickoff.getTime())) return kickoff;
-  }
-
-  return null;
-}
-
-function shouldAutoSwitchToLive(game, now = new Date()) {
-  if (!game) return false;
-
-  const status = String(game.status || "scheduled").toLowerCase();
-
-  if (status === "cancelled" || status === "final" || status === "live") return false;
-  if (!["scheduled", "upcoming", "planned", "open", ""].includes(status)) return false;
-
-  const kickoff = getGameDate(game);
-  if (!kickoff) return false;
-
-  const diff = now.getTime() - kickoff.getTime();
-
-  return diff >= 0 && diff <= AUTO_LIVE_MAX_AGE_MS;
 }
 
 function useRealtimeSubscriptions(queryClient, enabledKeys) {

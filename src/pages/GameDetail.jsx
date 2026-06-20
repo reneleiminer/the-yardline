@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
-import { getEffectiveGameStatus, getGameDate } from '@/lib/gameStatusUtils';
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore } from '@/lib/gameStatusUtils';
 import { toast } from 'sonner';
 
 const GAMEDAY_PHOTO_VERSION = 'gameday_photo';
@@ -154,14 +154,7 @@ function isPredictionOpen(game) {
 }
 
 function hasFinalScore(game) {
-  return (
-    game?.scoreHome !== null &&
-    game?.scoreHome !== undefined &&
-    game?.scoreAway !== null &&
-    game?.scoreAway !== undefined &&
-    Number.isFinite(Number(game.scoreHome)) &&
-    Number.isFinite(Number(game.scoreAway))
-  );
+  return hasPlayableScore(game);
 }
 
 
@@ -506,41 +499,6 @@ function getTeamColor(team, fallback = '#0b3c78') {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
-function TeamIdentity({ team, name, align = 'left', highlight = false }) {
-  return (
-    <div className={`min-w-0 rounded-[22px] border px-3 py-3 ${highlight ? 'border-white/24 bg-white/12' : 'border-white/10 bg-white/[0.055]'}`}>
-      <div className={`flex items-center gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
-        {team?.logo ? (
-          <img
-            src={getImageUrl(team.logo)}
-            alt=""
-            className="h-14 w-14 shrink-0 object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-black/42 border border-white/10">
-            <Shield className="h-7 w-7 text-white/50" />
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/45">
-            {align === 'right' ? 'Away' : 'Home'}
-          </p>
-          <p className="mt-1 line-clamp-3 break-words text-[18px] font-black italic leading-[1.02] text-white sm:text-2xl">
-            {name}
-          </p>
-          {team?.city && (
-            <p className="mt-1 truncate text-[10px] font-bold text-white/45">
-              {team.city}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function GameDayHero({ game, home, away, league }) {
   const status = getEffectiveGameStatus(game);
   const config = getStatusConfig(status);
@@ -555,45 +513,78 @@ function GameDayHero({ game, home, away, league }) {
   const countdown = status === 'scheduled' ? getCountdownLabel(kickoff) : '';
   const homeColor = getTeamColor(home, '#003a70');
   const awayColor = getTeamColor(away, '#b5121b');
+  const metaLabel = [league?.shortName || league?.name, game.week ? `Spieltag ${game.week}` : game.roundName]
+    .filter(Boolean)
+    .join(' - ');
+  const renderTeam = (team, name, winner, align = 'left') => (
+    <div className={`flex min-w-0 items-center gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
+      <div className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[24px] border bg-black/24 p-2 shadow-[0_16px_34px_rgba(0,0,0,0.34)] ${winner ? 'border-white/38 ring-2 ring-white/20' : 'border-white/12'}`}>
+        {team?.logo ? (
+          <img src={getImageUrl(team.logo)} alt="" className="h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.46)]" loading="lazy" />
+        ) : (
+          <Shield className="h-8 w-8 text-white/50" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/46">
+          {align === 'right' ? 'Away' : 'Home'}
+        </p>
+        <p className="mt-1 line-clamp-2 break-words text-[20px] font-black italic leading-[1.02] text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.45)] sm:text-3xl">
+          {name}
+        </p>
+        {team?.city && (
+          <p className="mt-1 truncate text-[10px] font-bold text-white/48">
+            {team.city}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <section className="px-3 pt-4 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black p-3 text-white shadow-[0_22px_54px_rgba(0,0,0,0.46)]"
+        className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black text-white shadow-[0_24px_62px_rgba(0,0,0,0.48)]"
         style={{
           background: `linear-gradient(135deg, ${homeColor} 0%, rgba(0,0,0,0.92) 46%, ${awayColor} 100%)`,
         }}
       >
+        <div className="absolute inset-0 grid grid-cols-2">
+          <div style={{ background: homeColor, opacity: 0.38 }} />
+          <div style={{ background: awayColor, opacity: 0.38 }} />
+        </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(255,255,255,0.18),transparent_32%),radial-gradient(circle_at_88%_6%,rgba(255,255,255,0.14),transparent_34%),repeating-linear-gradient(115deg,rgba(255,255,255,0.055)_0_1px,transparent_1px_18px)] opacity-80" />
+        <div className="absolute inset-y-5 left-1/2 w-px -translate-x-1/2 bg-white/12" />
 
-        <div className="relative z-10">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="relative z-10 p-3 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${config.badge}`}>
               {config.label}
             </span>
 
             <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/58">
-              {[league?.shortName || league?.name, game.week ? `Spieltag ${game.week}` : game.roundName].filter(Boolean).join(' · ')}
+              {metaLabel}
             </span>
           </div>
 
-          <div className="space-y-3">
-            <TeamIdentity team={home} name={homeName} highlight={homeWinner} />
+          <div className="grid min-h-[190px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:min-h-[250px] sm:gap-6">
+            {renderTeam(home, homeName, homeWinner)}
 
-            <div className="mx-auto w-full max-w-[210px] rounded-[24px] border border-white/14 bg-black/64 px-4 py-3 text-center shadow-[0_14px_36px_rgba(0,0,0,0.36)] backdrop-blur">
+            <div className="z-10 flex min-w-[112px] flex-col items-center justify-center rounded-[26px] border border-white/14 bg-black/82 px-3 py-3 text-center shadow-[0_18px_42px_rgba(0,0,0,0.48)] backdrop-blur sm:min-w-[170px] sm:px-5 sm:py-4">
               {hasScore ? (
                 <>
-                  <ScoreDisplay homeScore={homeScore} awayScore={awayScore} size="lg" />
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/52">
+                  <ScoreDisplay homeScore={homeScore} awayScore={awayScore} dark size="lg" />
+                  <p className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${status === 'live' ? 'bg-white text-[#d20a18]' : 'text-white/62'}`}>
+                    {status === 'live' && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-[#d20a18] shadow-[0_0_10px_rgba(210,10,24,0.9)]" />}
                     {config.label}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-3xl font-black italic tracking-tight text-white">
+                  <p className="text-3xl font-black italic tracking-tight text-white sm:text-5xl">
                     VS
                   </p>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-white/62">
+                  <p className="mt-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
                     {formatGameTime(kickoff, game)}
                   </p>
                 </>
@@ -606,14 +597,13 @@ function GameDayHero({ game, home, away, league }) {
               )}
             </div>
 
-            <TeamIdentity team={away} name={awayName} align="right" highlight={awayWinner} />
+            {renderTeam(away, awayName, awayWinner, 'right')}
           </div>
         </div>
       </div>
     </section>
   );
 }
-
 function InfoCard({ icon: Icon, label, value, href }) {
   if (!value) return null;
 

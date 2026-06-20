@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
-import { getEffectiveGameStatus, getGameDate } from "@/lib/gameStatusUtils";
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore } from "@/lib/gameStatusUtils";
 import { getImageUrl } from "@/lib/imageUtils";
 import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
@@ -103,7 +103,7 @@ function GameCard({ game, teamsById, leaguesById }) {
 
   const effectiveStatus = getEffectiveGameStatus(game);
   const isCancelled = effectiveStatus === "cancelled";
-  const showScore = effectiveStatus === "final" || effectiveStatus === "live";
+  const showScore = (effectiveStatus === "final" || effectiveStatus === "live") && hasPlayableScore(game);
 
   return (
     <Link
@@ -143,7 +143,7 @@ function GameCard({ game, teamsById, leaguesById }) {
               <TeamLogo team={home} fallback={homeName} />
             </div>
 
-            <div className="flex min-w-[86px] justify-center sm:min-w-[92px]">
+            <div className="flex min-w-[86px] justify-center rounded-[18px] border border-white/10 bg-black/72 px-3 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.36)] sm:min-w-[92px]">
               {isCancelled ? (
                 <span className="inline-flex rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-orange-300">
                   Abgesagt

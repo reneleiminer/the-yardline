@@ -4,6 +4,7 @@ import { useGlobalData } from '@/lib/GlobalDataContext';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getImageUrl } from '@/lib/imageUtils';
+import { getEffectiveGameStatus, hasPlayableScore } from '@/lib/gameStatusUtils';
 import { formatDistanceToNow } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -34,7 +35,8 @@ export default function ClubGamesTab({ club }) {
       {clubGames.map(game => {
         const homeTeam = getTeam(game.homeTeamId);
         const awayTeam = getTeam(game.awayTeamId);
-        const hasScore = game.status === 'final' || game.status === 'live';
+        const status = getEffectiveGameStatus(game);
+        const hasScore = (status === 'final' || status === 'live') && hasPlayableScore(game);
 
         return (
           <Card
@@ -88,7 +90,7 @@ export default function ClubGamesTab({ club }) {
                       {game.scoreHome ?? 0} - {game.scoreAway ?? 0}
                     </div>
                     <Badge variant="outline" className="text-xs mt-1">
-                      {game.status === 'final' ? 'Fertig' : 'Live'}
+                      {status === 'final' ? 'Fertig' : 'Live'}
                     </Badge>
                   </>
                 ) : (

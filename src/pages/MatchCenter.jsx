@@ -159,7 +159,7 @@ function MatchScoreCard({ game, teamsById, leaguesById }) {
               <TeamLogo team={home} className="h-[58px] w-[60px] shrink-0 object-contain opacity-95 drop-shadow-[0_8px_18px_rgba(0,0,0,0.38)] sm:h-[124px] sm:w-[122px]" />
             </div>
 
-            <div className="flex min-w-[92px] flex-col items-center justify-center px-1 text-center sm:min-w-[148px]">
+            <div className="flex min-w-[92px] flex-col items-center justify-center rounded-[18px] border border-white/10 bg-black/78 px-3 py-2 text-center shadow-[0_12px_28px_rgba(0,0,0,0.42)] backdrop-blur sm:min-w-[148px] sm:rounded-[24px] sm:px-4 sm:py-3">
               {centerBlock}
             </div>
 
