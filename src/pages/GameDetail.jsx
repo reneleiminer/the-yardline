@@ -1,22 +1,24 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRealtimeQuery } from '@/hooks/useRealtimeQuery';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import ScoreDisplay from '@/components/ui/ScoreDisplay';
-import ScoreHero from '@/components/match-center/ScoreHero';
-import TeamForm from '@/components/match-center/TeamForm';
-import MatchInfo from '@/components/match-center/MatchInfo';
-import HeadToHead from '@/components/match-center/HeadToHead';
 import {
   AlertTriangle,
   BarChart3,
   Camera,
+  CalendarDays,
+  Clock,
+  ExternalLink,
   Image as ImageIcon,
   Instagram,
   Loader2,
+  MapPin,
   Play,
+  Radio,
+  Share2,
   Shield,
   Trophy,
   Users,
@@ -168,13 +170,10 @@ function getEffectiveGameStatus(game) {
   const rawStatus = String(game.status || 'scheduled').toLowerCase();
 
   if (rawStatus === 'cancelled') return 'cancelled';
+  if (rawStatus === 'postponed') return 'postponed';
+  if (rawStatus === 'halftime' || rawStatus === 'half_time') return 'halftime';
   if (rawStatus === 'final') return 'final';
   if (rawStatus === 'live') return 'live';
-
-  const kickoff = getGameDate(game);
-  if (kickoff && kickoff.getTime() <= Date.now()) {
-    return 'live';
-  }
 
   return 'scheduled';
 }
@@ -456,6 +455,375 @@ function StreamProviderLogo({ stream, size = 'w-10 h-10' }) {
     <div className={`${size} rounded-lg bg-primary/15 border border-primary/20 flex items-center justify-center flex-shrink-0`}>
       <Play className="w-4 h-4 text-primary fill-primary" />
     </div>
+  );
+}
+
+function formatGameDate(date) {
+  if (!date) return 'Datum offen';
+
+  return new Intl.DateTimeFormat('de-DE', {
+    weekday: 'short',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
+function formatGameTime(date, game) {
+  if (game?.time || game?.kickoffTime) return game.time || game.kickoffTime;
+  if (!date) return 'Uhrzeit offen';
+
+  return new Intl.DateTimeFormat('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function getCountdownLabel(date) {
+  if (!date) return '';
+
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return '';
+
+  const totalMinutes = Math.floor(diff / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  if (days > 0) return `${days}T ${hours}Std`;
+  if (hours > 0) return `${hours}Std ${minutes}Min`;
+  return `${Math.max(minutes, 1)}Min`;
+}
+
+function getStatusConfig(status) {
+  const config = {
+    scheduled: {
+      label: 'Upcoming',
+      badge: 'bg-blue-500/15 text-blue-100 border-blue-400/30',
+      title: 'Kickoff wartet',
+      text: 'Bis zum Kickoff bleibt die Tippabgabe geöffnet.',
+    },
+    live: {
+      label: 'Live',
+      badge: 'bg-red-500/18 text-red-100 border-red-400/35',
+      title: 'Live im Match Center',
+      text: 'Der aktuelle Score wird in der App laufend aktualisiert.',
+    },
+    halftime: {
+      label: 'Halftime',
+      badge: 'bg-white/12 text-white border-white/20',
+      title: 'Halbzeit',
+      text: 'Das Spiel ist in der Pause. Der aktuelle Stand bleibt sichtbar.',
+    },
+    final: {
+      label: 'Final',
+      badge: 'bg-emerald-500/16 text-emerald-100 border-emerald-400/30',
+      title: 'Endstand',
+      text: 'Das Spiel ist final. Tipps und Ergebnisse sind geschlossen.',
+    },
+    cancelled: {
+      label: 'Cancelled',
+      badge: 'bg-orange-500/16 text-orange-100 border-orange-400/30',
+      title: 'Spiel abgesagt',
+      text: 'Dieses Spiel wurde abgesagt und wird nicht live gewertet.',
+    },
+    postponed: {
+      label: 'Postponed',
+      badge: 'bg-yellow-500/16 text-yellow-100 border-yellow-400/30',
+      title: 'Spiel verschoben',
+      text: 'Für dieses Spiel ist ein neuer Termin erforderlich.',
+    },
+  };
+
+  return config[status] || config.scheduled;
+}
+
+function getTeamName(team, fallback) {
+  return team?.name || team?.shortName || fallback || 'Teilnehmer offen';
+}
+
+function getTeamColor(team, fallback = '#0b3c78') {
+  return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
+}
+
+function TeamIdentity({ team, name, align = 'left', highlight = false }) {
+  return (
+    <div className={`min-w-0 rounded-[22px] border px-3 py-3 ${highlight ? 'border-white/24 bg-white/12' : 'border-white/10 bg-white/[0.055]'}`}>
+      <div className={`flex items-center gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
+        {team?.logo ? (
+          <img
+            src={getImageUrl(team.logo)}
+            alt=""
+            className="h-14 w-14 shrink-0 object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-black/42 border border-white/10">
+            <Shield className="h-7 w-7 text-white/50" />
+          </div>
+        )}
+
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/45">
+            {align === 'right' ? 'Away' : 'Home'}
+          </p>
+          <p className="mt-1 line-clamp-3 break-words text-[18px] font-black italic leading-[1.02] text-white sm:text-2xl">
+            {name}
+          </p>
+          {team?.city && (
+            <p className="mt-1 truncate text-[10px] font-bold text-white/45">
+              {team.city}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GameDayHero({ game, home, away, league }) {
+  const status = getEffectiveGameStatus(game);
+  const config = getStatusConfig(status);
+  const kickoff = getGameDate(game);
+  const hasScore = (status === 'live' || status === 'halftime' || status === 'final') && hasFinalScore(game);
+  const homeName = getTeamName(home, game.homeTeamPlaceholder);
+  const awayName = getTeamName(away, game.awayTeamPlaceholder);
+  const homeScore = Number(game.scoreHome || 0);
+  const awayScore = Number(game.scoreAway || 0);
+  const homeWinner = status === 'final' && hasScore && homeScore > awayScore;
+  const awayWinner = status === 'final' && hasScore && awayScore > homeScore;
+  const countdown = status === 'scheduled' ? getCountdownLabel(kickoff) : '';
+  const homeColor = getTeamColor(home, '#003a70');
+  const awayColor = getTeamColor(away, '#b5121b');
+
+  return (
+    <section className="px-3 pt-4 sm:px-4">
+      <div
+        className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black p-3 text-white shadow-[0_22px_54px_rgba(0,0,0,0.46)]"
+        style={{
+          background: `linear-gradient(135deg, ${homeColor} 0%, rgba(0,0,0,0.92) 46%, ${awayColor} 100%)`,
+        }}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(255,255,255,0.18),transparent_32%),radial-gradient(circle_at_88%_6%,rgba(255,255,255,0.14),transparent_34%),repeating-linear-gradient(115deg,rgba(255,255,255,0.055)_0_1px,transparent_1px_18px)] opacity-80" />
+
+        <div className="relative z-10">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${config.badge}`}>
+              {config.label}
+            </span>
+
+            <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/58">
+              {[league?.shortName || league?.name, game.week ? `Spieltag ${game.week}` : game.roundName].filter(Boolean).join(' · ')}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <TeamIdentity team={home} name={homeName} highlight={homeWinner} />
+
+            <div className="mx-auto w-full max-w-[210px] rounded-[24px] border border-white/14 bg-black/64 px-4 py-3 text-center shadow-[0_14px_36px_rgba(0,0,0,0.36)] backdrop-blur">
+              {hasScore ? (
+                <>
+                  <ScoreDisplay homeScore={homeScore} awayScore={awayScore} size="lg" />
+                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/52">
+                    {config.label}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-black italic tracking-tight text-white">
+                    VS
+                  </p>
+                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-white/62">
+                    {formatGameTime(kickoff, game)}
+                  </p>
+                </>
+              )}
+
+              {countdown && (
+                <p className="mt-2 rounded-full bg-white/10 px-2 py-1 text-[10px] font-black uppercase text-white/72">
+                  Kickoff in {countdown}
+                </p>
+              )}
+            </div>
+
+            <TeamIdentity team={away} name={awayName} align="right" highlight={awayWinner} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function InfoCard({ icon: Icon, label, value, href }) {
+  if (!value) return null;
+
+  const body = (
+    <div className="flex h-full min-h-[86px] flex-col justify-between rounded-[22px] border border-white/10 bg-black/62 p-3 text-white shadow-[0_12px_28px_rgba(0,0,0,0.28)]">
+      <div className="flex items-center gap-2 text-white/48">
+        <Icon className="h-4 w-4" />
+        <span className="text-[9px] font-black uppercase tracking-[0.18em]">{label}</span>
+      </div>
+      <p className="mt-3 line-clamp-2 break-words text-sm font-black leading-tight">
+        {value}
+      </p>
+    </div>
+  );
+
+  if (!href) return body;
+
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="block active:scale-[0.99]">
+      {body}
+    </a>
+  );
+}
+
+function GameInfoCards({ game, league }) {
+  const kickoff = getGameDate(game);
+  const venue = [game.venue, game.city].filter(Boolean).join(' · ');
+  const mapsQuery = [game.venue, game.stadiumAddress, game.city].filter(Boolean).join(', ');
+  const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : '';
+  const stream = getVisibleStreamLinks(game)[0];
+
+  return (
+    <section className="px-3 pt-3 sm:px-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <InfoCard icon={CalendarDays} label="Datum" value={formatGameDate(kickoff)} />
+        <InfoCard icon={Clock} label="Kickoff" value={formatGameTime(kickoff, game)} />
+        <InfoCard icon={Trophy} label="Liga" value={league?.name || league?.shortName || 'Liga offen'} />
+        <InfoCard icon={Users} label="Spieltag" value={game.week ? `Spieltag ${game.week}` : game.roundName || game.groupId || ''} />
+        <InfoCard icon={MapPin} label="Stadion" value={venue || game.stadiumAddress || ''} href={mapsUrl} />
+        <InfoCard icon={Radio} label="Stream" value={stream ? getStreamName(stream) : ''} />
+      </div>
+    </section>
+  );
+}
+
+function GameDayActions({ game, predictionOpen }) {
+  const stream = getVisibleStreamLinks(game)[0];
+  const shareGame = async () => {
+    const url = window.location.href;
+    const title = 'The Yardline GameDay';
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('Link kopiert');
+      }
+    } catch {
+      // User cancelled native share.
+    }
+  };
+
+  return (
+    <section className="px-3 pt-3 sm:px-4">
+      <div className="grid grid-cols-2 gap-2">
+        {stream ? (
+          <a
+            href={normalizeExternalUrl(stream.url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-3 text-xs font-black uppercase tracking-wide text-white shadow-[0_12px_24px_rgba(194,15,26,0.28)] active:scale-[0.99]"
+          >
+            <Play className="h-4 w-4 fill-white" />
+            Stream ansehen
+          </a>
+        ) : (
+          <div className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-black/46 px-3 text-center text-[10px] font-black uppercase tracking-wide text-white/45">
+            Kein Stream
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={shareGame}
+          className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-black/62 px-3 text-xs font-black uppercase tracking-wide text-white active:scale-[0.99]"
+        >
+          <Share2 className="h-4 w-4" />
+          Spiel teilen
+        </button>
+
+        <div className={`col-span-2 rounded-2xl border px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide ${
+          predictionOpen
+            ? 'border-blue-400/25 bg-blue-500/12 text-blue-100'
+            : 'border-white/10 bg-black/46 text-white/48'
+        }`}>
+          {predictionOpen ? 'Tipp abgeben · bis Kickoff geöffnet' : 'Tipps geschlossen'}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StatusPanel({ game }) {
+  const status = getEffectiveGameStatus(game);
+  const config = getStatusConfig(status);
+  const kickoff = getGameDate(game);
+  const countdown = getCountdownLabel(kickoff);
+  const hasScore = (status === 'live' || status === 'halftime' || status === 'final') && hasFinalScore(game);
+
+  return (
+    <section className="px-3 pt-3 sm:px-4">
+      <div className="rounded-[24px] border border-white/10 bg-black/68 p-4 text-white shadow-[0_14px_34px_rgba(0,0,0,0.3)]">
+        <div className="flex items-start gap-3">
+          <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${config.badge}`}>
+            {status === 'live' ? <Radio className="h-5 w-5" /> : status === 'final' ? <Trophy className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-black italic leading-tight">
+              {config.title}
+            </p>
+            <p className="mt-1 text-xs font-semibold leading-relaxed text-white/56">
+              {status === 'scheduled' && countdown ? `Kickoff in ${countdown}. ${config.text}` : config.text}
+            </p>
+
+            {hasScore && (
+              <div className="mt-3 inline-flex rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2">
+                <ScoreDisplay homeScore={game.scoreHome ?? 0} awayScore={game.scoreAway ?? 0} size="sm" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StreamCard({ game }) {
+  const visibleStreams = getVisibleStreamLinks(game);
+  if (visibleStreams.length === 0) return null;
+
+  return (
+    <section className="px-3 pt-3 sm:px-4">
+      <div className="rounded-[24px] border border-white/10 bg-black/72 p-4 text-white shadow-[0_14px_34px_rgba(0,0,0,0.32)]">
+        <div className="mb-3 flex items-center gap-2">
+          <Play className="h-4 w-4 fill-red-500 text-red-500" />
+          <h2 className="text-sm font-black uppercase tracking-wide">Stream</h2>
+        </div>
+
+        <div className="space-y-2">
+          {visibleStreams.map(stream => (
+            <a
+              key={stream.id}
+              href={normalizeExternalUrl(stream.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3 active:scale-[0.99]"
+            >
+              <StreamProviderLogo stream={stream} size="w-11 h-11" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black">{getStreamName(stream)}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/45">Zum Stream</p>
+              </div>
+              <ExternalLink className="h-4 w-4 text-white/48" />
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1234,7 +1602,6 @@ export default function GameDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeDetailTab, setActiveDetailTab] = useState('overview');
 
   const visitorId = useMemo(() => getOrCreateVisitorId(), []);
 
@@ -1260,13 +1627,7 @@ export default function GameDetail() {
     entity: 'League',
   });
 
-  const { data: allGames = [] } = useRealtimeQuery({
-    queryKey: ['games'],
-    queryFn: () => base44.entities.Game.list('-date'),
-    entity: 'Game',
-  });
-
-    const { data: gameContentItems = [] } = useQuery({
+  const { data: gameContentItems = [] } = useQuery({
     queryKey: ['game-content', id],
     queryFn: async () => {
       const all = await base44.entities.AppUpdate.list('-created_date', 2000);
@@ -1322,9 +1683,6 @@ export default function GameDetail() {
   const league = game ? leagueMap[game.leagueId] : null;
   const displayGame = buildDisplayGame(game);
 
-  const hasBothRealTeams = !!(game?.homeTeamId && game?.awayTeamId && homeReal && awayReal);
-  const isCancelled = game?.status === 'cancelled';
-
   const gamedayShots = useMemo(() => {
     return gameContentItems
       .filter(item => item.version === GAMEDAY_PHOTO_VERSION && item.isActive !== false)
@@ -1341,10 +1699,8 @@ export default function GameDetail() {
       .filter(item => item.version === GAME_PREDICTION_VERSION && item.isActive !== false);
   }, [gameContentItems]);
 
-  const showStatisticsTab = isFinalGame(game) && hasGameStats(gameStatistic);
-  const selectedDetailTab = activeDetailTab === 'statistics' && !showStatisticsTab
-    ? 'overview'
-    : activeDetailTab;
+  const showStatistics = isFinalGame(game) && hasGameStats(gameStatistic);
+  const predictionOpen = isPredictionOpen(game);
     
   const currentPrediction = useMemo(() => {
     const item = predictions.find(prediction => {
@@ -1422,88 +1778,27 @@ export default function GameDetail() {
     );
   }
 
-  return (
+    return (
     <div className="w-full max-w-full overflow-x-hidden pb-32">
-      {hasBothRealTeams ? (
-        <ScoreHero game={displayGame} home={homeReal} away={awayReal} league={league} />
-      ) : (
-        <PlaceholderScoreHero game={displayGame} home={home} away={away} league={league} />
-      )}
+      <GameDayHero game={displayGame} home={home} away={away} league={league} />
+      <GameInfoCards game={displayGame} league={league} />
+      <GameDayActions game={displayGame} predictionOpen={predictionOpen} />
+      <StatusPanel game={displayGame} />
+      <StreamCard game={displayGame} />
 
-      <CancelledGameNotice game={displayGame} />
+      <PredictionBlock
+        game={game}
+        home={home}
+        away={away}
+        predictions={predictions}
+        currentPrediction={currentPrediction}
+        onSubmit={data => savePredictionMutation.mutate(data)}
+        isSaving={savePredictionMutation.isPending}
+      />
 
-      {!isCancelled && <StreamLinksBlock game={displayGame} />}
+      <GameDayShotsBlock photos={gamedayShots} />
 
-      <div className="px-4 pt-4">
-        <div className={`grid gap-2 rounded-[22px] border border-white/10 bg-black/72 p-1 shadow-[0_14px_30px_rgba(0,0,0,0.26)] ${showStatisticsTab ? 'grid-cols-3' : 'grid-cols-2'}`}>
-          <button
-            type="button"
-            onClick={() => setActiveDetailTab('overview')}
-            className={`h-10 rounded-xl text-xs font-black transition-colors ${
-              selectedDetailTab === 'overview'
-                ? 'bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.28)]'
-                : 'text-white/52 hover:text-white'
-            }`}
-          >
-            Übersicht
-          </button>
-
-          {showStatisticsTab && (
-            <button
-              type="button"
-              onClick={() => setActiveDetailTab('statistics')}
-              className={`h-10 rounded-xl text-xs font-black transition-colors ${
-                selectedDetailTab === 'statistics'
-                  ? 'bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.28)]'
-                  : 'text-white/52 hover:text-white'
-              }`}
-            >
-              Statistiken
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setActiveDetailTab('info')}
-            className={`h-10 rounded-xl text-xs font-black transition-colors ${
-              selectedDetailTab === 'info'
-                ? 'bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.28)]'
-                : 'text-white/52 hover:text-white'
-            } ${showStatisticsTab ? '' : 'col-span-1'}`}
-          >
-            Info
-          </button>
-        </div>
-      </div>
-
-      {selectedDetailTab === 'overview' && (
-        <>
-          {!isCancelled && (
-            <PredictionBlock
-              game={game}
-              home={home}
-              away={away}
-              predictions={predictions}
-              currentPrediction={currentPrediction}
-              onSubmit={data => savePredictionMutation.mutate(data)}
-              isSaving={savePredictionMutation.isPending}
-            />
-          )}
-
-          {!isCancelled && gamedayShots.length > 0 && (
-            <GameDayShotsBlock photos={gamedayShots} />
-          )}
-
-          {hasBothRealTeams && !isCancelled && (
-            <>
-              <TeamForm game={game} teams={teamMap} allGames={allGames} />
-              <HeadToHead game={game} teams={teamMap} allGames={allGames} />
-            </>
-          )}
-        </>
-      )}
-
-      {selectedDetailTab === 'statistics' && showStatisticsTab && (
+      {showStatistics && (
         <AfterGameStatisticsBlock
           game={game}
           stat={gameStatistic}
@@ -1512,12 +1807,7 @@ export default function GameDetail() {
         />
       )}
 
-      {selectedDetailTab === 'info' && (
-        <>
-          <MatchInfo game={game} league={league} />
-          <NotesBlock game={game} />
-        </>
-      )}
+      <NotesBlock game={game} />
     </div>
   );
 }
