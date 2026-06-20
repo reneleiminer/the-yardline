@@ -16,21 +16,10 @@ import {
 } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
-import { getEffectiveGameStatus, getGameDate, hasPlayableScore } from "@/lib/gameStatusUtils";
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore, hasVisibleGameStream } from "@/lib/gameStatusUtils";
 import { getImageUrl } from "@/lib/imageUtils";
 import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
-
-function hasStream(game) {
-  const status = getEffectiveGameStatus(game);
-  if (status === "cancelled" || status === "final") return false;
-  if (game.streamEnabled === false) return false;
-  if (game.streamUrl) return true;
-
-  return Array.isArray(game.streamLinks)
-    ? game.streamLinks.some((link) => link?.url && link?.enabled !== false && link?.status !== "rejected")
-    : false;
-}
 
 function getTeamName(team, fallback) {
   return team?.shortName || team?.name || fallback || "Offen";
@@ -130,7 +119,7 @@ function GameCard({ game, teamsById, leaguesById }) {
           </div>
 
           <div className="absolute right-0 top-0 flex items-center gap-2">
-            {hasStream(game) && <Radio className="h-[18px] w-[18px] text-primary" />}
+            {hasVisibleGameStream(game) && <Radio className="h-[18px] w-[18px] text-primary" />}
             {(game.isCompetitionGame || game.competitionId || game.tournamentId) && (
               <Trophy className="h-4 w-4 text-yellow-400" />
             )}

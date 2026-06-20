@@ -34,11 +34,11 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: |
-          if { [ -n "$SUPABASE_URL" ] || [ -n "$VITE_SUPABASE_URL" ]; } && { [ -n "$SUPABASE_SECRET_KEY" ] || [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -n "$VITE_SUPABASE_ANON_KEY" ]; }; then
+          if { [ -n "$SUPABASE_URL" ] || [ -n "$VITE_SUPABASE_URL" ]; } && { [ -n "$SUPABASE_SECRET_KEY" ] || [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; }; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Skipping app update creation because Supabase secrets are not configured."
+            echo "::notice::Skipping app update creation because Supabase service-role secrets are not configured."
           fi
 
       - name: Create app update
@@ -49,4 +49,3 @@ jobs:
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

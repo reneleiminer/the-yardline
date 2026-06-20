@@ -9,7 +9,6 @@ import React, {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { shouldAutoSwitchToLive } from "@/lib/gameStatusUtils";
 
 const GlobalDataContext = createContext();
 
@@ -25,7 +24,6 @@ const CORE_ENTITY_CONFIG = [
   { key: "appUpdates", entity: "AppUpdate" },
 ];
 
-const AUTO_LIVE_CHECK_INTERVAL_MS = 60 * 1000;
 const LIVE_SCORE_POLL_INTERVAL_MS = 10 * 1000;
 
 function mergeItemIntoList(list, item) {
@@ -155,54 +153,6 @@ function useLiveScorePolling(enabled, queryClient) {
   }, [enabled, queryClient]);
 }
 
-function useAutomaticGameStatus(games, queryClient) {
-  const runningRef = useRef(false);
-  const touchedRef = useRef(new Set());
-
-  const runCheck = useCallback(async () => {
-    if (runningRef.current) return;
-    if (!Array.isArray(games) || games.length === 0) return;
-
-    const now = new Date();
-    const candidates = games.filter(game =>
-      shouldAutoSwitchToLive(game, now) &&
-      !touchedRef.current.has(game.id)
-    );
-
-    if (candidates.length === 0) return;
-
-    runningRef.current = true;
-
-    try {
-      await Promise.all(
-        candidates.map(game => {
-          touchedRef.current.add(game.id);
-
-          return base44.entities.Game.update(game.id, {
-            status: "live",
-            updatedAtUtc: now.toISOString(),
-          });
-        })
-      );
-
-      queryClient.invalidateQueries({ queryKey: ["games"] });
-    } catch (error) {
-      candidates.forEach(game => touchedRef.current.delete(game.id));
-      console.error("AUTO GAME STATUS UPDATE ERROR:", error);
-    } finally {
-      runningRef.current = false;
-    }
-  }, [games, queryClient]);
-
-  useEffect(() => {
-    runCheck();
-
-    const interval = window.setInterval(runCheck, AUTO_LIVE_CHECK_INTERVAL_MS);
-
-    return () => window.clearInterval(interval);
-  }, [runCheck]);
-}
-
 function makeListQuery({ key, entity, staleTime, sort, limit, enabled = true }) {
   return {
     queryKey: [key],
@@ -312,8 +262,6 @@ export const GlobalDataProvider = ({ children }) => {
       enabled: needsCoreData,
     })
   );
-
-  useAutomaticGameStatus(games, queryClient);
 
   const { data: partners = [], isLoading: partnersLoading } = useQuery(
     makeListQuery({

@@ -16,7 +16,7 @@ import {
 
 import useSetHeader from '@/hooks/useSetHeader';
 import { useGlobalData } from '@/lib/GlobalDataContext';
-import { getEffectiveGameStatus, getGameDate, hasPlayableScore } from '@/lib/gameStatusUtils';
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore, hasVisibleGameStream } from '@/lib/gameStatusUtils';
 import { getImageUrl } from '@/lib/imageUtils';
 import ScoreDisplay from '@/components/ui/ScoreDisplay';
 
@@ -36,17 +36,6 @@ function getTeamName(team, fallback) {
 
 function getTeamColor(team, fallback = '#2563eb') {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
-}
-
-function hasStream(game) {
-  const status = getEffectiveGameStatus(game);
-  if (status === 'final' || status === 'cancelled') return false;
-  if (game.streamEnabled === false) return false;
-  if (game.streamUrl) return true;
-
-  return Array.isArray(game.streamLinks)
-    ? game.streamLinks.some(link => link?.url && link?.enabled !== false && link?.status !== 'rejected')
-    : false;
 }
 
 function LogoBox({ logo, name, fallback = 'L', size = 'lg' }) {
@@ -149,7 +138,7 @@ function LeagueGameCard({ game, teamsById, league }) {
           </p>
 
           <div className="absolute right-0 top-0 flex items-center gap-2">
-            {hasStream(game) && <Radio className="w-[18px] h-[18px] text-primary" />}
+            {hasVisibleGameStream(game) && <Radio className="w-[18px] h-[18px] text-primary" />}
             {(game.isCompetitionGame || game.competitionId || game.tournamentId) && (
               <Trophy className="w-4 h-4 text-yellow-400" />
             )}

@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
-import { getEffectiveGameStatus, getGameDate, hasPlayableScore } from '@/lib/gameStatusUtils';
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore, normalizeGameStreams } from '@/lib/gameStatusUtils';
 import { toast } from 'sonner';
 
 const GAMEDAY_PHOTO_VERSION = 'gameday_photo';
@@ -291,102 +291,8 @@ function getLeaderLine(leader) {
   return leader.line || parts.join(' · ');
 }
 
-function normalizeStreamLinks(game) {
-  if (game?.status === 'final' || game?.status === 'cancelled') return [];
-
-  if (Array.isArray(game?.streamLinks) && game.streamLinks.length > 0) {
-    return game.streamLinks
-      .map((link, index) => {
-        const rawLabel = String(link.label || '').trim();
-        const rawProviderName = String(link.providerName || '').trim();
-        const rawPlatform = String(link.platform || '').trim();
-
-        const providerName =
-          rawProviderName ||
-          rawPlatform ||
-          (
-            rawLabel &&
-            rawLabel !== 'Stream' &&
-            rawLabel !== 'Hauptstream'
-              ? rawLabel
-              : ''
-          );
-
-        return {
-          id: link.id || `${link.url || 'stream'}-${index}`,
-          label: rawLabel,
-          url: String(link.url || '').trim(),
-          providerId: link.providerId || '',
-          providerName,
-          providerLogo: link.providerLogo || '',
-          platform: rawPlatform || providerName,
-          status: link.status || 'pending',
-          enabled: link.enabled !== false,
-        };
-      })
-      .filter(link => link.url);
-  }
-
-  if (game?.streamUrl) {
-    const rawLabel = String(game.streamLabel || '').trim();
-    const rawProviderName = String(game.streamProviderName || '').trim();
-    const rawPlatform = String(game.streamPlatform || '').trim();
-
-    const providerName =
-      rawProviderName ||
-      rawPlatform ||
-      (
-        rawLabel &&
-        rawLabel !== 'Stream' &&
-        rawLabel !== 'Hauptstream'
-          ? rawLabel
-          : ''
-      );
-
-    return [
-      {
-        id: 'legacy-stream',
-        label: rawLabel,
-        url: String(game.streamUrl || '').trim(),
-        providerId: game.streamProviderId || '',
-        providerName,
-        providerLogo: game.streamProviderLogo || '',
-        platform: rawPlatform || providerName,
-        status: game.streamStatus || 'pending',
-        enabled: game.streamEnabled !== false,
-      },
-    ].filter(link => link.url);
-  }
-
-  return [];
-}
-
 function getVisibleStreamLinks(game) {
-  const visibleLinks = normalizeStreamLinks(game).filter(link =>
-    link.url &&
-    link.enabled !== false &&
-    link.status === 'approved'
-  );
-
-  const hasRealProvider = visibleLinks.some(link =>
-    link.providerId ||
-    (
-      link.providerName &&
-      link.providerName !== 'Stream' &&
-      link.providerName !== 'Hauptstream'
-    )
-  );
-
-  if (!hasRealProvider) return visibleLinks;
-
-  return visibleLinks.filter(link =>
-    link.providerId ||
-    (
-      link.providerName &&
-      link.providerName !== 'Stream' &&
-      link.providerName !== 'Hauptstream'
-    )
-  );
+  return normalizeGameStreams(game);
 }
 
 function getStreamName(stream) {

@@ -217,8 +217,8 @@ function selectRelevantGames(games, mode = "today") {
       return isGameToday(item.date, today);
     })
     .sort((a, b) => {
-      const liveA = a.game.status === "live" ? 0 : 1;
-      const liveB = b.game.status === "live" ? 0 : 1;
+      const liveA = a.status === "live" ? 0 : 1;
+      const liveB = b.status === "live" ? 0 : 1;
       if (liveA !== liveB) return liveA - liveB;
 
       const finalA = a.status === "final" ? 1 : 0;

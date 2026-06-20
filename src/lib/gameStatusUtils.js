@@ -1,5 +1,6 @@
 export const AUTO_LIVE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
 export const AUTO_LIVE_EARLY_GRACE_MS = 15 * 60 * 1000;
+export const STREAM_AVAILABLE_BEFORE_KICKOFF_MS = 60 * 60 * 1000;
 
 export function getGameDate(game) {
   const rawDate = String(game?.date || "").trim();
@@ -91,4 +92,121 @@ export function getEffectiveGameStatus(game, now = new Date()) {
   if (shouldAutoSwitchToLive(game, now)) return "live";
 
   return rawStatus || "scheduled";
+}
+
+export function isStreamWindowOpen(game, now = new Date()) {
+  if (!game) return false;
+
+  const status = getEffectiveGameStatus(game, now);
+
+  if (["cancelled", "postponed", "final"].includes(status)) return false;
+  if (["live", "halftime"].includes(status)) return true;
+
+  const kickoff = getGameDate(game);
+  if (!kickoff) return false;
+
+  const diff = kickoff.getTime() - now.getTime();
+
+  return diff <= STREAM_AVAILABLE_BEFORE_KICKOFF_MS && diff >= -AUTO_LIVE_MAX_AGE_MS;
+}
+
+export function normalizeGameStreams(game, now = new Date()) {
+  if (!isStreamWindowOpen(game, now)) return [];
+
+  const links = [];
+
+  if (Array.isArray(game?.streamLinks)) {
+    game.streamLinks.forEach((link, index) => {
+      const url = String(link?.url || "").trim();
+      if (!url) return;
+
+      const rawLabel = String(link?.label || "").trim();
+      const rawProviderName = String(link?.providerName || "").trim();
+      const rawPlatform = String(link?.platform || "").trim();
+      const providerName =
+        rawProviderName ||
+        rawPlatform ||
+        (
+          rawLabel &&
+          rawLabel !== "Stream" &&
+          rawLabel !== "Hauptstream"
+            ? rawLabel
+            : ""
+        );
+
+      links.push({
+        id: link.id || `${url}-${index}`,
+        label: rawLabel,
+        url,
+        providerId: link.providerId || "",
+        providerName,
+        providerLogo: link.providerLogo || "",
+        platform: rawPlatform || providerName,
+        status: link.status || "",
+        enabled: link.enabled !== false,
+      });
+    });
+  }
+
+  const legacyUrl = String(game?.streamUrl || "").trim();
+  if (legacyUrl) {
+    const rawLabel = String(game.streamLabel || "").trim();
+    const rawProviderName = String(game.streamProviderName || "").trim();
+    const rawPlatform = String(game.streamPlatform || "").trim();
+    const providerName =
+      rawProviderName ||
+      rawPlatform ||
+      (
+        rawLabel &&
+        rawLabel !== "Stream" &&
+        rawLabel !== "Hauptstream"
+          ? rawLabel
+          : ""
+      );
+
+    links.push({
+      id: "legacy-stream",
+      label: rawLabel,
+      url: legacyUrl,
+      providerId: game.streamProviderId || "",
+      providerName,
+      providerLogo: game.streamProviderLogo || "",
+      platform: rawPlatform || providerName,
+      status: game.streamStatus || "approved",
+      enabled: game.streamEnabled !== false,
+    });
+  }
+
+  const visibleLinks = links.filter((link) => {
+    const status = String(link.status || "").toLowerCase();
+    return (
+      link.url &&
+      link.enabled !== false &&
+      (!status || status === "approved" || status === "active")
+    );
+  });
+
+  const hasRealProvider = visibleLinks.some((link) =>
+    link.providerId ||
+    (
+      link.providerName &&
+      link.providerName !== "Stream" &&
+      link.providerName !== "Hauptstream"
+    )
+  );
+
+  if (!hasRealProvider) return visibleLinks;
+
+  return visibleLinks.filter((link) =>
+    link.providerId ||
+    (
+      link.providerName &&
+      link.providerName !== "Stream" &&
+      link.providerName !== "Hauptstream"
+    )
+  );
+}
+
+export function hasVisibleGameStream(game, now = new Date()) {
+  return normalizeGameStreams(game, now).length > 0;
 }
