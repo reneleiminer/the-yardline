@@ -50,15 +50,64 @@ function hasFinalScore(game) {
   return getEffectiveGameStatus(game) === "final" && hasPlayableScore(game);
 }
 
+function normalizeScoreValue(value) {
+  if (value === undefined || value === null || value === "") return null;
+
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+
+  return number;
+}
+
+function formatScoreValue(value) {
+  if (value === null || value === undefined) return "0";
+  if (Number.isInteger(value)) return String(value);
+  return String(value);
+}
+
+function getGameScore(game) {
+  const scorePairs = [
+    [game?.scoreHome, game?.scoreAway],
+    [game?.homeScore, game?.awayScore],
+    [game?.score_home, game?.score_away],
+    [game?.home_score, game?.away_score],
+  ];
+
+  for (const [rawHomeScore, rawAwayScore] of scorePairs) {
+    const homeScore = normalizeScoreValue(rawHomeScore);
+    const awayScore = normalizeScoreValue(rawAwayScore);
+
+    if (homeScore !== null && awayScore !== null) {
+      return {
+        homeScore,
+        awayScore,
+        hasScore: true,
+        label: `${formatScoreValue(homeScore)}:${formatScoreValue(awayScore)}`,
+      };
+    }
+  }
+
+  return {
+    homeScore: 0,
+    awayScore: 0,
+    hasScore: false,
+    label: "",
+  };
+}
+
+function getFavoritePerspectiveScoreLabel(game, favoriteTeamId) {
+  const score = getGameScore(game);
+  if (!score.hasScore) return "";
+
+  if (game?.awayTeamId === favoriteTeamId) {
+    return `${formatScoreValue(score.awayScore)}:${formatScoreValue(score.homeScore)}`;
+  }
+
+  return score.label;
+}
+
 function hasPlayableScore(game) {
-  return (
-    game.scoreHome != null &&
-    game.scoreAway != null &&
-    game.scoreHome !== "" &&
-    game.scoreAway !== "" &&
-    Number.isFinite(Number(game.scoreHome)) &&
-    Number.isFinite(Number(game.scoreAway))
-  );
+  return getGameScore(game).hasScore;
 }
 
 
@@ -150,7 +199,8 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
   const awayName = getTeamName(away, game.awayTeamNameSnapshot || game.awayTeamPlaceholder);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
-  const showScore = (status === "final" || status === "live") && hasPlayableScore(game);
+  const score = getGameScore(game);
+  const showScore = (status === "final" || status === "live") && score.hasScore;
   const homeColor = getTeamColor(home, league?.primaryColor || "#013369");
   const awayColor = getTeamColor(away, "#c20f1a");
 
@@ -166,8 +216,8 @@ function ColorGameCard({ game, teamsById, leaguesById, compact = false }) {
   const centerBlock = showScore ? (
     <>
       <ScoreDisplay
-        homeScore={game.scoreHome ?? 0}
-        awayScore={game.scoreAway ?? 0}
+        homeScore={score.homeScore}
+        awayScore={score.awayScore}
         dark
         size="md"
       />
@@ -245,7 +295,8 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById, favo
   const league = leaguesById.get(game.leagueId);
   const kickoff = getGameDate(game);
   const status = getEffectiveGameStatus(game);
-  const showScore = (status === "live" || status === "final") && hasPlayableScore(game);
+  const score = getGameScore(game);
+  const showScore = (status === "live" || status === "final") && score.hasScore;
   const isFavoriteHome = game.homeTeamId === favoriteTeam.id;
   const opponent = isFavoriteHome ? away : home;
   const opponentName = getTeamName(
@@ -262,7 +313,7 @@ function FavoriteNextGameCard({ game, favoriteTeam, teamsById, leaguesById, favo
   const nextLabel = status === "live" ? "Live" : status === "final" ? "Letztes Spiel" : "Nächstes Spiel";
   const opponentPrefix = isFavoriteHome ? "vs" : "@";
   const kickoffLabel = showScore
-    ? `${game.scoreHome ?? 0}:${game.scoreAway ?? 0}`
+    ? getFavoritePerspectiveScoreLabel(game, favoriteTeam.id)
     : kickoff
       ? `${format(kickoff, "dd.MM.", { locale: de })} · ${format(kickoff, "HH:mm", { locale: de })}`
       : "Kickoff offen";
@@ -739,10 +790,14 @@ function buildTeamRecords(games) {
     home.played += 1;
     away.played += 1;
 
-    if (Number(game.scoreHome) > Number(game.scoreAway)) {
+    const score = getGameScore(game);
+
+    if (!score.hasScore) return;
+
+    if (score.homeScore > score.awayScore) {
       home.wins += 1;
       away.losses += 1;
-    } else if (Number(game.scoreAway) > Number(game.scoreHome)) {
+    } else if (score.awayScore > score.homeScore) {
       away.wins += 1;
       home.losses += 1;
     } else {
