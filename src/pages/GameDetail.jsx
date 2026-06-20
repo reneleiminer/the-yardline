@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
+import { getEffectiveGameStatus, getGameDate } from '@/lib/gameStatusUtils';
 import { toast } from 'sonner';
 
 const GAMEDAY_PHOTO_VERSION = 'gameday_photo';
@@ -135,47 +136,6 @@ function getOrCreateVisitorId() {
   } catch {
     return `visitor_${Date.now()}`;
   }
-}
-
-function getGameDate(game) {
-  if (game?.date) {
-    const rawTime = game.time || game.kickoffTime || '00:00';
-    const [year, month, day] = String(game.date).split('-').map(Number);
-    const [hour, minute] = String(rawTime).split(':').map(Number);
-
-    if (year && month && day) {
-      return new Date(
-        year,
-        month - 1,
-        day,
-        Number.isFinite(hour) ? hour : 0,
-        Number.isFinite(minute) ? minute : 0,
-        0,
-        0
-      );
-    }
-  }
-
-  if (game?.kickoffAt) {
-    const date = new Date(game.kickoffAt);
-    if (!Number.isNaN(date.getTime())) return date;
-  }
-
-  return null;
-}
-
-function getEffectiveGameStatus(game) {
-  if (!game) return 'scheduled';
-
-  const rawStatus = String(game.status || 'scheduled').toLowerCase();
-
-  if (rawStatus === 'cancelled') return 'cancelled';
-  if (rawStatus === 'postponed') return 'postponed';
-  if (rawStatus === 'halftime' || rawStatus === 'half_time') return 'halftime';
-  if (rawStatus === 'final') return 'final';
-  if (rawStatus === 'live') return 'live';
-
-  return 'scheduled';
 }
 
 function isPredictionOpen(game) {
@@ -851,12 +811,8 @@ function HubInfoItem({ icon: Icon, label, value, href }) {
   );
 }
 
-function GameDayHub({ game, league, predictionOpen }) {
-  const status = getEffectiveGameStatus(game);
-  const config = getStatusConfig(status);
+function GameDayHub({ game, league }) {
   const kickoff = getGameDate(game);
-  const countdown = getCountdownLabel(kickoff);
-  const hasScore = (status === 'live' || status === 'halftime' || status === 'final') && hasFinalScore(game);
   const visibleStreams = getVisibleStreamLinks(game);
   const primaryStream = visibleStreams[0];
   const venue = [game.venue, game.city].filter(Boolean).join(' · ');
@@ -885,16 +841,15 @@ function GameDayHub({ game, league, predictionOpen }) {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(194,15,26,0.18),transparent_34%),radial-gradient(circle_at_92%_10%,rgba(47,125,255,0.16),transparent_34%),repeating-linear-gradient(115deg,rgba(255,255,255,0.045)_0_1px,transparent_1px_18px)]" />
 
         <div className="relative z-10 space-y-3">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
             <HubInfoItem icon={CalendarDays} label="Datum" value={formatGameDate(kickoff)} />
             <HubInfoItem icon={Clock} label="Kickoff" value={formatGameTime(kickoff, game)} />
             <HubInfoItem icon={Trophy} label="Liga" value={league?.name || league?.shortName || 'Liga offen'} />
             <HubInfoItem icon={Users} label="Spieltag" value={game.week ? `Spieltag ${game.week}` : game.roundName || game.groupId || ''} />
             <HubInfoItem icon={MapPin} label="Stadion" value={venue || game.stadiumAddress || ''} href={mapsUrl} />
-            <HubInfoItem icon={Radio} label="Stream" value={primaryStream ? getStreamName(primaryStream) : ''} />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {primaryStream ? (
               <a
                 href={normalizeExternalUrl(primaryStream.url)}
@@ -903,7 +858,7 @@ function GameDayHub({ game, league, predictionOpen }) {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-3 text-xs font-black uppercase tracking-wide text-white shadow-[0_12px_24px_rgba(194,15,26,0.28)] active:scale-[0.99]"
               >
                 <Play className="h-4 w-4 fill-white" />
-                Stream ansehen
+                {visibleStreams.length > 1 ? `Streams ansehen (${visibleStreams.length})` : 'Stream ansehen'}
               </a>
             ) : (
               <div className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-center text-[10px] font-black uppercase tracking-wide text-white/45">
@@ -921,57 +876,6 @@ function GameDayHub({ game, league, predictionOpen }) {
             </button>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-            <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${config.badge}`}>
-                {status === 'live' ? <Radio className="h-5 w-5" /> : status === 'final' ? <Trophy className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-lg font-black italic leading-tight">{config.title}</p>
-                <p className="mt-1 text-xs font-semibold leading-relaxed text-white/58">
-                  {status === 'scheduled' && countdown ? `Kickoff in ${countdown}. ${config.text}` : config.text}
-                </p>
-                {hasScore && (
-                  <div className="mt-3 inline-flex rounded-2xl border border-white/10 bg-black/36 px-3 py-2">
-                    <ScoreDisplay homeScore={game.scoreHome ?? 0} awayScore={game.scoreAway ?? 0} size="sm" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={`flex items-center justify-center rounded-2xl border px-3 py-3 text-center text-[11px] font-black uppercase tracking-wide ${
-              predictionOpen
-                ? 'border-blue-400/25 bg-blue-500/12 text-blue-100'
-                : 'border-white/10 bg-white/[0.045] text-white/48'
-            }`}>
-              {predictionOpen ? 'Tipp abgeben · bis Kickoff geöffnet' : 'Tipps geschlossen'}
-            </div>
-          </div>
-
-          {visibleStreams.length > 0 && (
-            <div className="space-y-2">
-              <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/64">
-                <Play className="h-3.5 w-3.5 fill-red-500 text-red-500" />
-                Stream
-              </p>
-              {visibleStreams.map(stream => (
-                <a
-                  key={stream.id}
-                  href={normalizeExternalUrl(stream.url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3 active:scale-[0.99]"
-                >
-                  <StreamProviderLogo stream={stream} size="w-11 h-11" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black">{getStreamName(stream)}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-white/45">Zum Stream</p>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-white/48" />
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </section>
@@ -1932,7 +1836,7 @@ export default function GameDetail() {
   return (
     <div className="mx-auto w-full max-w-6xl overflow-x-hidden pb-32">
       <GameDayHero game={displayGame} home={home} away={away} league={league} />
-      <GameDayHub game={displayGame} league={league} predictionOpen={predictionOpen} />
+      <GameDayHub game={displayGame} league={league} />
 
       <PredictionBlock
         game={game}

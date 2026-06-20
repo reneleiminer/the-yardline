@@ -43,12 +43,14 @@ export function getEffectiveGameStatus(game, now = new Date()) {
   const rawStatus = String(game.status || "scheduled").toLowerCase();
 
   if (rawStatus === "cancelled") return "cancelled";
+  if (rawStatus === "postponed") return "postponed";
+  if (rawStatus === "halftime" || rawStatus === "half_time") return "halftime";
   if (rawStatus === "final") return "final";
+  if (rawStatus === "live") return "live";
 
   const kickoff = getGameDate(game);
   if (kickoff && kickoff.getTime() > now.getTime()) return "scheduled";
 
-  if (rawStatus === "live") return "live";
   if (kickoff && kickoff.getTime() <= now.getTime()) return "live";
 
   return rawStatus || "scheduled";
