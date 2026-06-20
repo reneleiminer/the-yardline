@@ -887,6 +887,7 @@ export default function AppLayout() {
       <Header />
 
       <main
+        data-scroll-root="true"
         className={`yardline-main-scroll relative z-10 h-full w-full max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain pt-[calc(68px+env(safe-area-inset-top))] ${
           showBottomNav
             ? "pb-[calc(92px+env(safe-area-inset-bottom))]"

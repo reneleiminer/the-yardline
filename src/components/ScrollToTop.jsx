@@ -5,12 +5,28 @@ export default function ScrollToTop() {
   const { pathname, search } = useLocation();
 
   useLayoutEffect(() => {
-    const scrollTop = () => {
-      const main = document.querySelector('.yardline-main-scroll');
+    const scrollSelectors = [
+      '.yardline-main-scroll',
+      'main',
+      '[data-scroll-root="true"]',
+      '[data-admin-scroll="true"]',
+    ];
 
-      if (main) {
-        main.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-      }
+    const scrollTop = () => {
+      const targets = new Set();
+
+      scrollSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => targets.add(element));
+      });
+
+      targets.forEach(element => {
+        if (typeof element.scrollTo === 'function') {
+          element.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        } else {
+          element.scrollTop = 0;
+          element.scrollLeft = 0;
+        }
+      });
 
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       document.documentElement.scrollTop = 0;
@@ -18,9 +34,19 @@ export default function ScrollToTop() {
     };
 
     scrollTop();
-    const frame = window.requestAnimationFrame(scrollTop);
+    const frames = [
+      window.requestAnimationFrame(scrollTop),
+      window.requestAnimationFrame(() => window.requestAnimationFrame(scrollTop)),
+    ];
+    const timers = [
+      window.setTimeout(scrollTop, 80),
+      window.setTimeout(scrollTop, 220),
+    ];
 
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      frames.forEach(frame => window.cancelAnimationFrame(frame));
+      timers.forEach(timer => window.clearTimeout(timer));
+    };
   }, [pathname, search]);
 
   return null;
