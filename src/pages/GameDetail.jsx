@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import useSetHeader from '@/hooks/useSetHeader';
 import { getImageUrl } from '@/lib/imageUtils';
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore, normalizeGameStreams } from '@/lib/gameStatusUtils';
 import { toast } from 'sonner';
 
 const GAMEDAY_PHOTO_VERSION = 'gameday_photo';
@@ -137,47 +138,6 @@ function getOrCreateVisitorId() {
   }
 }
 
-function getGameDate(game) {
-  if (game?.date) {
-    const rawTime = game.time || game.kickoffTime || '00:00';
-    const [year, month, day] = String(game.date).split('-').map(Number);
-    const [hour, minute] = String(rawTime).split(':').map(Number);
-
-    if (year && month && day) {
-      return new Date(
-        year,
-        month - 1,
-        day,
-        Number.isFinite(hour) ? hour : 0,
-        Number.isFinite(minute) ? minute : 0,
-        0,
-        0
-      );
-    }
-  }
-
-  if (game?.kickoffAt) {
-    const date = new Date(game.kickoffAt);
-    if (!Number.isNaN(date.getTime())) return date;
-  }
-
-  return null;
-}
-
-function getEffectiveGameStatus(game) {
-  if (!game) return 'scheduled';
-
-  const rawStatus = String(game.status || 'scheduled').toLowerCase();
-
-  if (rawStatus === 'cancelled') return 'cancelled';
-  if (rawStatus === 'postponed') return 'postponed';
-  if (rawStatus === 'halftime' || rawStatus === 'half_time') return 'halftime';
-  if (rawStatus === 'final') return 'final';
-  if (rawStatus === 'live') return 'live';
-
-  return 'scheduled';
-}
-
 function isPredictionOpen(game) {
   if (!game) return false;
 
@@ -194,14 +154,7 @@ function isPredictionOpen(game) {
 }
 
 function hasFinalScore(game) {
-  return (
-    game?.scoreHome !== null &&
-    game?.scoreHome !== undefined &&
-    game?.scoreAway !== null &&
-    game?.scoreAway !== undefined &&
-    Number.isFinite(Number(game.scoreHome)) &&
-    Number.isFinite(Number(game.scoreAway))
-  );
+  return hasPlayableScore(game);
 }
 
 
@@ -338,102 +291,8 @@ function getLeaderLine(leader) {
   return leader.line || parts.join(' · ');
 }
 
-function normalizeStreamLinks(game) {
-  if (game?.status === 'final' || game?.status === 'cancelled') return [];
-
-  if (Array.isArray(game?.streamLinks) && game.streamLinks.length > 0) {
-    return game.streamLinks
-      .map((link, index) => {
-        const rawLabel = String(link.label || '').trim();
-        const rawProviderName = String(link.providerName || '').trim();
-        const rawPlatform = String(link.platform || '').trim();
-
-        const providerName =
-          rawProviderName ||
-          rawPlatform ||
-          (
-            rawLabel &&
-            rawLabel !== 'Stream' &&
-            rawLabel !== 'Hauptstream'
-              ? rawLabel
-              : ''
-          );
-
-        return {
-          id: link.id || `${link.url || 'stream'}-${index}`,
-          label: rawLabel,
-          url: String(link.url || '').trim(),
-          providerId: link.providerId || '',
-          providerName,
-          providerLogo: link.providerLogo || '',
-          platform: rawPlatform || providerName,
-          status: link.status || 'pending',
-          enabled: link.enabled !== false,
-        };
-      })
-      .filter(link => link.url);
-  }
-
-  if (game?.streamUrl) {
-    const rawLabel = String(game.streamLabel || '').trim();
-    const rawProviderName = String(game.streamProviderName || '').trim();
-    const rawPlatform = String(game.streamPlatform || '').trim();
-
-    const providerName =
-      rawProviderName ||
-      rawPlatform ||
-      (
-        rawLabel &&
-        rawLabel !== 'Stream' &&
-        rawLabel !== 'Hauptstream'
-          ? rawLabel
-          : ''
-      );
-
-    return [
-      {
-        id: 'legacy-stream',
-        label: rawLabel,
-        url: String(game.streamUrl || '').trim(),
-        providerId: game.streamProviderId || '',
-        providerName,
-        providerLogo: game.streamProviderLogo || '',
-        platform: rawPlatform || providerName,
-        status: game.streamStatus || 'pending',
-        enabled: game.streamEnabled !== false,
-      },
-    ].filter(link => link.url);
-  }
-
-  return [];
-}
-
 function getVisibleStreamLinks(game) {
-  const visibleLinks = normalizeStreamLinks(game).filter(link =>
-    link.url &&
-    link.enabled !== false &&
-    link.status === 'approved'
-  );
-
-  const hasRealProvider = visibleLinks.some(link =>
-    link.providerId ||
-    (
-      link.providerName &&
-      link.providerName !== 'Stream' &&
-      link.providerName !== 'Hauptstream'
-    )
-  );
-
-  if (!hasRealProvider) return visibleLinks;
-
-  return visibleLinks.filter(link =>
-    link.providerId ||
-    (
-      link.providerName &&
-      link.providerName !== 'Stream' &&
-      link.providerName !== 'Hauptstream'
-    )
-  );
+  return normalizeGameStreams(game);
 }
 
 function getStreamName(stream) {
@@ -546,41 +405,6 @@ function getTeamColor(team, fallback = '#0b3c78') {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
 }
 
-function TeamIdentity({ team, name, align = 'left', highlight = false }) {
-  return (
-    <div className={`min-w-0 rounded-[22px] border px-3 py-3 ${highlight ? 'border-white/24 bg-white/12' : 'border-white/10 bg-white/[0.055]'}`}>
-      <div className={`flex items-center gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
-        {team?.logo ? (
-          <img
-            src={getImageUrl(team.logo)}
-            alt=""
-            className="h-14 w-14 shrink-0 object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-black/42 border border-white/10">
-            <Shield className="h-7 w-7 text-white/50" />
-          </div>
-        )}
-
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/45">
-            {align === 'right' ? 'Away' : 'Home'}
-          </p>
-          <p className="mt-1 line-clamp-3 break-words text-[18px] font-black italic leading-[1.02] text-white sm:text-2xl">
-            {name}
-          </p>
-          {team?.city && (
-            <p className="mt-1 truncate text-[10px] font-bold text-white/45">
-              {team.city}
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function GameDayHero({ game, home, away, league }) {
   const status = getEffectiveGameStatus(game);
   const config = getStatusConfig(status);
@@ -595,45 +419,78 @@ function GameDayHero({ game, home, away, league }) {
   const countdown = status === 'scheduled' ? getCountdownLabel(kickoff) : '';
   const homeColor = getTeamColor(home, '#003a70');
   const awayColor = getTeamColor(away, '#b5121b');
+  const metaLabel = [league?.shortName || league?.name, game.week ? `Spieltag ${game.week}` : game.roundName]
+    .filter(Boolean)
+    .join(' - ');
+  const renderTeam = (team, name, winner, align = 'left') => (
+    <div className={`flex min-w-0 items-center gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
+      <div className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[24px] border bg-black/24 p-2 shadow-[0_16px_34px_rgba(0,0,0,0.34)] ${winner ? 'border-white/38 ring-2 ring-white/20' : 'border-white/12'}`}>
+        {team?.logo ? (
+          <img src={getImageUrl(team.logo)} alt="" className="h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.46)]" loading="lazy" />
+        ) : (
+          <Shield className="h-8 w-8 text-white/50" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/46">
+          {align === 'right' ? 'Away' : 'Home'}
+        </p>
+        <p className="mt-1 line-clamp-2 break-words text-[20px] font-black italic leading-[1.02] text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.45)] sm:text-3xl">
+          {name}
+        </p>
+        {team?.city && (
+          <p className="mt-1 truncate text-[10px] font-bold text-white/48">
+            {team.city}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <section className="px-3 pt-4 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-[30px] border border-white/10 bg-black p-3 text-white shadow-[0_22px_54px_rgba(0,0,0,0.46)]"
+        className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black text-white shadow-[0_24px_62px_rgba(0,0,0,0.48)]"
         style={{
           background: `linear-gradient(135deg, ${homeColor} 0%, rgba(0,0,0,0.92) 46%, ${awayColor} 100%)`,
         }}
       >
+        <div className="absolute inset-0 grid grid-cols-2">
+          <div style={{ background: homeColor, opacity: 0.38 }} />
+          <div style={{ background: awayColor, opacity: 0.38 }} />
+        </div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(255,255,255,0.18),transparent_32%),radial-gradient(circle_at_88%_6%,rgba(255,255,255,0.14),transparent_34%),repeating-linear-gradient(115deg,rgba(255,255,255,0.055)_0_1px,transparent_1px_18px)] opacity-80" />
+        <div className="absolute inset-y-5 left-1/2 w-px -translate-x-1/2 bg-white/12" />
 
-        <div className="relative z-10">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="relative z-10 p-3 sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <span className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${config.badge}`}>
               {config.label}
             </span>
 
             <span className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.18em] text-white/58">
-              {[league?.shortName || league?.name, game.week ? `Spieltag ${game.week}` : game.roundName].filter(Boolean).join(' · ')}
+              {metaLabel}
             </span>
           </div>
 
-          <div className="space-y-3">
-            <TeamIdentity team={home} name={homeName} highlight={homeWinner} />
+          <div className="grid min-h-[190px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:min-h-[250px] sm:gap-6">
+            {renderTeam(home, homeName, homeWinner)}
 
-            <div className="mx-auto w-full max-w-[210px] rounded-[24px] border border-white/14 bg-black/64 px-4 py-3 text-center shadow-[0_14px_36px_rgba(0,0,0,0.36)] backdrop-blur">
+            <div className="z-10 flex min-w-[112px] flex-col items-center justify-center rounded-[26px] border border-white/14 bg-black/82 px-3 py-3 text-center shadow-[0_18px_42px_rgba(0,0,0,0.48)] backdrop-blur sm:min-w-[170px] sm:px-5 sm:py-4">
               {hasScore ? (
                 <>
-                  <ScoreDisplay homeScore={homeScore} awayScore={awayScore} size="lg" />
-                  <p className="mt-1 text-[10px] font-black uppercase tracking-[0.3em] text-white/52">
+                  <ScoreDisplay homeScore={homeScore} awayScore={awayScore} dark size="lg" />
+                  <p className={`mt-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] ${status === 'live' ? 'bg-white text-[#d20a18]' : 'text-white/62'}`}>
+                    {status === 'live' && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-[#d20a18] shadow-[0_0_10px_rgba(210,10,24,0.9)]" />}
                     {config.label}
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-3xl font-black italic tracking-tight text-white">
+                  <p className="text-3xl font-black italic tracking-tight text-white sm:text-5xl">
                     VS
                   </p>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-white/62">
+                  <p className="mt-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-white">
                     {formatGameTime(kickoff, game)}
                   </p>
                 </>
@@ -646,14 +503,13 @@ function GameDayHero({ game, home, away, league }) {
               )}
             </div>
 
-            <TeamIdentity team={away} name={awayName} align="right" highlight={awayWinner} />
+            {renderTeam(away, awayName, awayWinner, 'right')}
           </div>
         </div>
       </div>
     </section>
   );
 }
-
 function InfoCard({ icon: Icon, label, value, href }) {
   if (!value) return null;
 
@@ -851,12 +707,8 @@ function HubInfoItem({ icon: Icon, label, value, href }) {
   );
 }
 
-function GameDayHub({ game, league, predictionOpen }) {
-  const status = getEffectiveGameStatus(game);
-  const config = getStatusConfig(status);
+function GameDayHub({ game, league }) {
   const kickoff = getGameDate(game);
-  const countdown = getCountdownLabel(kickoff);
-  const hasScore = (status === 'live' || status === 'halftime' || status === 'final') && hasFinalScore(game);
   const visibleStreams = getVisibleStreamLinks(game);
   const primaryStream = visibleStreams[0];
   const venue = [game.venue, game.city].filter(Boolean).join(' · ');
@@ -885,16 +737,15 @@ function GameDayHub({ game, league, predictionOpen }) {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_8%_0%,rgba(194,15,26,0.18),transparent_34%),radial-gradient(circle_at_92%_10%,rgba(47,125,255,0.16),transparent_34%),repeating-linear-gradient(115deg,rgba(255,255,255,0.045)_0_1px,transparent_1px_18px)]" />
 
         <div className="relative z-10 space-y-3">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
             <HubInfoItem icon={CalendarDays} label="Datum" value={formatGameDate(kickoff)} />
             <HubInfoItem icon={Clock} label="Kickoff" value={formatGameTime(kickoff, game)} />
             <HubInfoItem icon={Trophy} label="Liga" value={league?.name || league?.shortName || 'Liga offen'} />
             <HubInfoItem icon={Users} label="Spieltag" value={game.week ? `Spieltag ${game.week}` : game.roundName || game.groupId || ''} />
             <HubInfoItem icon={MapPin} label="Stadion" value={venue || game.stadiumAddress || ''} href={mapsUrl} />
-            <HubInfoItem icon={Radio} label="Stream" value={primaryStream ? getStreamName(primaryStream) : ''} />
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {primaryStream ? (
               <a
                 href={normalizeExternalUrl(primaryStream.url)}
@@ -903,7 +754,7 @@ function GameDayHub({ game, league, predictionOpen }) {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-3 text-xs font-black uppercase tracking-wide text-white shadow-[0_12px_24px_rgba(194,15,26,0.28)] active:scale-[0.99]"
               >
                 <Play className="h-4 w-4 fill-white" />
-                Stream ansehen
+                {visibleStreams.length > 1 ? `Streams ansehen (${visibleStreams.length})` : 'Stream ansehen'}
               </a>
             ) : (
               <div className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-center text-[10px] font-black uppercase tracking-wide text-white/45">
@@ -921,57 +772,6 @@ function GameDayHub({ game, league, predictionOpen }) {
             </button>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)]">
-            <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3">
-              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${config.badge}`}>
-                {status === 'live' ? <Radio className="h-5 w-5" /> : status === 'final' ? <Trophy className="h-5 w-5" /> : <Clock className="h-5 w-5" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-lg font-black italic leading-tight">{config.title}</p>
-                <p className="mt-1 text-xs font-semibold leading-relaxed text-white/58">
-                  {status === 'scheduled' && countdown ? `Kickoff in ${countdown}. ${config.text}` : config.text}
-                </p>
-                {hasScore && (
-                  <div className="mt-3 inline-flex rounded-2xl border border-white/10 bg-black/36 px-3 py-2">
-                    <ScoreDisplay homeScore={game.scoreHome ?? 0} awayScore={game.scoreAway ?? 0} size="sm" />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={`flex items-center justify-center rounded-2xl border px-3 py-3 text-center text-[11px] font-black uppercase tracking-wide ${
-              predictionOpen
-                ? 'border-blue-400/25 bg-blue-500/12 text-blue-100'
-                : 'border-white/10 bg-white/[0.045] text-white/48'
-            }`}>
-              {predictionOpen ? 'Tipp abgeben · bis Kickoff geöffnet' : 'Tipps geschlossen'}
-            </div>
-          </div>
-
-          {visibleStreams.length > 0 && (
-            <div className="space-y-2">
-              <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/64">
-                <Play className="h-3.5 w-3.5 fill-red-500 text-red-500" />
-                Stream
-              </p>
-              {visibleStreams.map(stream => (
-                <a
-                  key={stream.id}
-                  href={normalizeExternalUrl(stream.url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3 active:scale-[0.99]"
-                >
-                  <StreamProviderLogo stream={stream} size="w-11 h-11" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black">{getStreamName(stream)}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-white/45">Zum Stream</p>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-white/48" />
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </section>
@@ -1932,7 +1732,7 @@ export default function GameDetail() {
   return (
     <div className="mx-auto w-full max-w-6xl overflow-x-hidden pb-32">
       <GameDayHero game={displayGame} home={home} away={away} league={league} />
-      <GameDayHub game={displayGame} league={league} predictionOpen={predictionOpen} />
+      <GameDayHub game={displayGame} league={league} />
 
       <PredictionBlock
         game={game}

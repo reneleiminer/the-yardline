@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
   Building2,
@@ -28,14 +28,9 @@ import { Button } from '@/components/ui/button';
 import ScoreDisplay from '@/components/ui/ScoreDisplay';
 import { base44 } from '@/api/base44Client';
 import { useGlobalData } from '@/lib/GlobalDataContext';
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore, hasVisibleGameStream } from '@/lib/gameStatusUtils';
 import { getImageUrl } from '@/lib/imageUtils';
 import useSetHeader from '@/hooks/useSetHeader';
-
-function getGameDate(game) {
-  if (game.kickoffAt) return new Date(game.kickoffAt);
-  if (game.date) return parseISO(game.date);
-  return null;
-}
 
 function getGameTimeLabel(game) {
   const date = getGameDate(game);
@@ -47,39 +42,12 @@ function getGameTimeLabel(game) {
   return 'Uhrzeit offen';
 }
 
-function getEffectiveGameStatus(game) {
-  if (!game) return 'scheduled';
-
-  const rawStatus = String(game.status || 'scheduled').toLowerCase();
-
-  if (rawStatus === 'cancelled') return 'cancelled';
-  if (rawStatus === 'final') return 'final';
-  if (rawStatus === 'live') return 'live';
-
-  const kickoff = getGameDate(game);
-  if (kickoff && kickoff.getTime() <= Date.now()) {
-    return 'live';
-  }
-
-  return 'scheduled';
-}
-
 function getTeamName(team, fallback) {
   return team?.shortName || team?.name || fallback || 'Offen';
 }
 
 function getTeamColor(team, fallback = '#2563eb') {
   return team?.primaryColor || team?.colorPrimary || team?.teamColor || fallback;
-}
-
-function hasStream(game) {
-  if (game.status === 'final') return false;
-  if (game.streamEnabled === false) return false;
-  if (game.streamUrl) return true;
-
-  return Array.isArray(game.streamLinks)
-    ? game.streamLinks.some(link => link?.url && link?.enabled !== false && link?.status !== 'rejected')
-    : false;
 }
 
 function normalizeUrl(value) {
@@ -155,7 +123,9 @@ function TeamLogo({ logo, name, size = 'md' }) {
 }
 
 function StatusBadge({ game }) {
-  if (game.status === 'live') {
+  const status = getEffectiveGameStatus(game);
+
+  if (status === 'live') {
     return (
       <span className="text-[9px] font-black text-red-300 bg-red-500/15 border border-red-500/30 rounded-full px-2 py-0.5">
         LIVE
@@ -163,7 +133,7 @@ function StatusBadge({ game }) {
     );
   }
 
-  if (game.status === 'final') {
+  if (status === 'final') {
     return (
       <span className="text-[9px] font-black text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 rounded-full px-2 py-0.5">
         FINAL
@@ -419,7 +389,8 @@ function TeamGameCard({ game, home, away, league }) {
   const homeColor = getTeamColor(home, league?.primaryColor || '#2563eb');
   const awayColor = getTeamColor(away, '#ef4444');
 
-  const showScore = getEffectiveGameStatus(game) === 'final' || getEffectiveGameStatus(game) === 'live';
+  const status = getEffectiveGameStatus(game);
+  const showScore = (status === 'final' || status === 'live') && hasPlayableScore(game);
 
   return (
     <Link
@@ -436,7 +407,7 @@ function TeamGameCard({ game, home, away, league }) {
           </p>
 
           <div className="absolute right-0 top-0 flex items-center gap-2">
-            {hasStream(game) && <Radio className="w-[18px] h-[18px] text-primary" />}
+            {hasVisibleGameStream(game) && <Radio className="w-[18px] h-[18px] text-primary" />}
             {(game.isCompetitionGame || game.competitionId || game.tournamentId) && (
               <Trophy className="w-4 h-4 text-yellow-400" />
             )}

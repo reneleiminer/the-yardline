@@ -1,13 +1,13 @@
 import { format, isAfter, isBefore, parseISO } from "date-fns";
 import { de } from "date-fns/locale";
 
-import { getGameDate } from "@/lib/gameStatusUtils";
+import { getGameDate, hasVisibleGameStream } from "@/lib/gameStatusUtils";
 
 export const AUTO_NEWS_TYPES = [
   {
     id: "weekend_schedule",
     label: "Weekend Schedule",
-    description: "Erstellt eine Liga-Vorschau fuer die Spiele im gewaehlten Zeitraum.",
+    description: "Erstellt eine Liga-Vorschau für die Spiele im gewählten Zeitraum.",
   },
   {
     id: "today_schedule",
@@ -17,12 +17,12 @@ export const AUTO_NEWS_TYPES = [
   {
     id: "stream_guide",
     label: "Stream Guide",
-    description: "Spiele mit verfuegbarem Stream im Zeitraum.",
+    description: "Spiele mit verfügbarem Stream im Zeitraum.",
   },
   {
     id: "weekend_results",
     label: "Wochenend-Ergebnisse",
-    description: "Finale Ergebnisse aus dem gewaehlten Zeitraum.",
+    description: "Finale Ergebnisse aus dem gewählten Zeitraum.",
   },
 ];
 
@@ -77,13 +77,6 @@ function getLeagueName(league) {
   return league?.name || league?.shortName || "The Yardline";
 }
 
-function hasApprovedStream(game) {
-  if (game?.streamUrl && game?.streamEnabled !== false) return true;
-  return Array.isArray(game?.streamLinks)
-    ? game.streamLinks.some((link) => link?.url && link?.enabled !== false && link?.status !== "rejected")
-    : false;
-}
-
 function isFinal(game) {
   return String(game?.status || "").toLowerCase() === "final";
 }
@@ -120,7 +113,7 @@ export function filterGamesForAutoNews({ type, games, leagueId, dateFrom, dateTo
       return true;
     })
     .filter((game) => {
-      if (type === "stream_guide") return hasApprovedStream(game);
+      if (type === "stream_guide") return hasVisibleGameStream(game);
       if (type === "weekend_results") return isFinal(game);
       return !["cancelled"].includes(String(game.status || "").toLowerCase());
     })
@@ -200,7 +193,7 @@ export function buildAutoNewsPreview({ type, leagueId, dateFrom, dateTo, games, 
   const selectedGames = filterGamesForAutoNews({ type, games, leagueId, dateFrom, dateTo });
 
   if (selectedGames.length === 0) {
-    throw new Error("Keine passenden Spiele fuer diese Auswahl gefunden.");
+    throw new Error("Keine passenden Spiele für diese Auswahl gefunden.");
   }
 
   const leagueLabel = league ? getLeagueName(league) : "alle Ligen";
@@ -214,7 +207,7 @@ export function buildAutoNewsPreview({ type, leagueId, dateFrom, dateTo, games, 
       ? "Stream-Guide"
       : "Spielplan";
   const title = `${headlinePrefix}: ${leagueLabel} (${rangeLabel})`;
-  const excerpt = `${selectedGames.length} ${selectedGames.length === 1 ? "Spiel" : "Spiele"} im Ueberblick.`;
+  const excerpt = `${selectedGames.length} ${selectedGames.length === 1 ? "Spiel" : "Spiele"} im Überblick.`;
   const intro = type === "weekend_results"
     ? `Das sind die finalen Ergebnisse aus ${leagueLabel} vom ${rangeLabel}.`
     : type === "stream_guide"

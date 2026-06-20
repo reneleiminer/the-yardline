@@ -196,7 +196,7 @@ export default function AdminAutoNewsroom() {
       queryClient.invalidateQueries({ queryKey: ["auto-newsroom-posts"] });
       queryClient.invalidateQueries({ queryKey: ["news-page-posts"] });
       queryClient.invalidateQueries({ queryKey: ["home-posts"] });
-      toast.success(status === "published" ? "Auto-News veroeffentlicht" : "Auto-News als Entwurf gespeichert");
+      toast.success(status === "published" ? "Auto-News veröffentlicht" : "Auto-News als Entwurf gespeichert");
     },
     onError: (error) => toast.error(error.message || "Auto-News konnte nicht gespeichert werden"),
   });
@@ -323,7 +323,7 @@ export default function AdminAutoNewsroom() {
               </div>
               <h2 className="text-2xl font-black italic">Noch keine Vorschau</h2>
               <p className="mt-2 max-w-sm text-sm font-semibold leading-relaxed text-white/48">
-                Waehle Typ, Liga und Zeitraum. Danach wird ein kompletter News-Post mit Bild generiert.
+                Wähle Typ, Liga und Zeitraum. Danach wird ein kompletter News-Post mit Bild generiert.
               </p>
             </div>
           ) : (
@@ -386,7 +386,7 @@ export default function AdminAutoNewsroom() {
                   onClick={() => saveMutation.mutate("published")}
                 >
                   {saveMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-                  Veroeffentlichen
+                  Veröffentlichen
                 </Button>
               </div>
             </div>

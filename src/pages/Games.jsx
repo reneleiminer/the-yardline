@@ -16,21 +16,10 @@ import {
 } from "lucide-react";
 
 import { useGlobalData } from "@/lib/GlobalDataContext";
-import { getEffectiveGameStatus, getGameDate } from "@/lib/gameStatusUtils";
+import { getEffectiveGameStatus, getGameDate, hasPlayableScore, hasVisibleGameStream } from "@/lib/gameStatusUtils";
 import { getImageUrl } from "@/lib/imageUtils";
 import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
-
-function hasStream(game) {
-  const status = getEffectiveGameStatus(game);
-  if (status === "cancelled" || status === "final") return false;
-  if (game.streamEnabled === false) return false;
-  if (game.streamUrl) return true;
-
-  return Array.isArray(game.streamLinks)
-    ? game.streamLinks.some((link) => link?.url && link?.enabled !== false && link?.status !== "rejected")
-    : false;
-}
 
 function getTeamName(team, fallback) {
   return team?.shortName || team?.name || fallback || "Offen";
@@ -103,7 +92,7 @@ function GameCard({ game, teamsById, leaguesById }) {
 
   const effectiveStatus = getEffectiveGameStatus(game);
   const isCancelled = effectiveStatus === "cancelled";
-  const showScore = effectiveStatus === "final" || effectiveStatus === "live";
+  const showScore = (effectiveStatus === "final" || effectiveStatus === "live") && hasPlayableScore(game);
 
   return (
     <Link
@@ -130,7 +119,7 @@ function GameCard({ game, teamsById, leaguesById }) {
           </div>
 
           <div className="absolute right-0 top-0 flex items-center gap-2">
-            {hasStream(game) && <Radio className="h-[18px] w-[18px] text-primary" />}
+            {hasVisibleGameStream(game) && <Radio className="h-[18px] w-[18px] text-primary" />}
             {(game.isCompetitionGame || game.competitionId || game.tournamentId) && (
               <Trophy className="h-4 w-4 text-yellow-400" />
             )}
@@ -143,7 +132,7 @@ function GameCard({ game, teamsById, leaguesById }) {
               <TeamLogo team={home} fallback={homeName} />
             </div>
 
-            <div className="flex min-w-[86px] justify-center sm:min-w-[92px]">
+            <div className="flex min-w-[86px] justify-center rounded-[18px] border border-white/10 bg-black/72 px-3 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.36)] sm:min-w-[92px]">
               {isCancelled ? (
                 <span className="inline-flex rounded-xl border border-orange-500/30 bg-orange-500/15 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-orange-300">
                   Abgesagt

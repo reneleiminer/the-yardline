@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getImageUrl } from "@/lib/imageUtils";
+import { getEffectiveGameStatus, getGameDate } from "@/lib/gameStatusUtils";
 import ScoreDisplay from "@/components/ui/ScoreDisplay";
 
 function TeamLogo({ logo, name, className = "h-20 w-20" }) {
@@ -11,29 +12,6 @@ function TeamLogo({ logo, name, className = "h-20 w-20" }) {
   return <div className={`flex items-center justify-center ${className}`}><Shield className="h-8 w-8 text-white/56" /></div>;
 }
 
-function getKickoffDate(game) {
-  if (game?.date) {
-    const rawTime = game.time || game.kickoffTime || "00:00";
-    const [year, month, day] = String(game.date).split("-").map(Number);
-    const [hour, minute] = String(rawTime).split(":").map(Number);
-    if (year && month && day) return new Date(year, month - 1, day, Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0);
-  }
-  if (game?.kickoffAt) {
-    const kickoff = new Date(game.kickoffAt);
-    if (!Number.isNaN(kickoff.getTime())) return kickoff;
-  }
-  return null;
-}
-
-function getEffectiveStatus(game, kickoff) {
-  const rawStatus = String(game?.status || "scheduled").toLowerCase();
-  if (rawStatus === "cancelled") return "cancelled";
-  if (rawStatus === "final") return "final";
-  if (rawStatus === "live") return "live";
-  if (kickoff && kickoff.getTime() <= Date.now()) return "live";
-  return "scheduled";
-}
-
 function hasPlayableScore(game) {
   return game?.scoreHome !== undefined && game?.scoreAway !== undefined && game?.scoreHome !== null && game?.scoreAway !== null && game?.scoreHome !== "" && game?.scoreAway !== "" && Number.isFinite(Number(game.scoreHome)) && Number.isFinite(Number(game.scoreAway));
 }
@@ -41,8 +19,8 @@ function hasPlayableScore(game) {
 export default function ScoreHero({ game, home, away, league }) {
   const [animateWinner, setAnimateWinner] = useState(false);
   const navigate = useNavigate();
-  const kickoff = getKickoffDate(game);
-  const status = getEffectiveStatus(game, kickoff);
+  const kickoff = getGameDate(game);
+  const status = getEffectiveGameStatus(game);
   const isLive = status === "live";
   const isFinal = status === "final" && hasPlayableScore(game);
   const hasScore = (isLive || isFinal) && hasPlayableScore(game);
