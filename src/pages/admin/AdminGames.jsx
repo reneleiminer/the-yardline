@@ -787,7 +787,7 @@ function GameForm({
       )}
 
       <LeagueSelector
-        leagues={scopedLeagues}
+        leagues={leagues}
         selectedContinent={continent}
         selectedCountry={country}
         selectedRegion={region}
