@@ -809,8 +809,131 @@ function buildTeamRecords(games) {
   return records;
 }
 
+function getGroupLabel(league, groupId) {
+  const normalizedGroupId = String(groupId || "").trim();
+  if (!normalizedGroupId) return "";
+
+  const group = Array.isArray(league?.groups)
+    ? league.groups.find((item) => String(item.id || item.shortName || item.name || "").trim() === normalizedGroupId)
+    : null;
+
+  if (normalizedGroupId === "ungrouped") return "Ohne Gruppe";
+
+  return group?.name || group?.shortName || normalizedGroupId;
+}
+
+function sameLeagueSeason(game, league) {
+  if (!league?.season) return true;
+  return !game?.season || game.season === league.season;
+}
+
+function buildCurrentWinStreaks({ games, teamsById, leaguesById }) {
+  const gamesByTeam = new Map();
+
+  games
+    .filter(hasFinalScore)
+    .filter((game) => game.leagueId)
+    .filter((game) => !game.isCompetitionGame && !game.competitionId && !game.tournamentId)
+    .filter((game) => sameLeagueSeason(game, leaguesById.get(game.leagueId)))
+    .forEach((game) => {
+      [game.homeTeamId, game.awayTeamId].forEach((teamId) => {
+        if (!teamId) return;
+        if (!gamesByTeam.has(teamId)) gamesByTeam.set(teamId, []);
+        gamesByTeam.get(teamId).push(game);
+      });
+    });
+
+  const streaks = new Map();
+
+  gamesByTeam.forEach((teamGames, teamId) => {
+    const sortedGames = [...teamGames].sort((a, b) => {
+      const dateA = getGameDate(a)?.getTime() || 0;
+      const dateB = getGameDate(b)?.getTime() || 0;
+      if (dateA !== dateB) return dateA - dateB;
+      return String(a.id || "").localeCompare(String(b.id || ""));
+    });
+
+    let wins = 0;
+    let lastGame = null;
+
+    sortedGames.forEach((game) => {
+      const score = getGameScore(game);
+      if (!score.hasScore) return;
+
+      const isHome = game.homeTeamId === teamId;
+      const teamScore = isHome ? score.homeScore : score.awayScore;
+      const opponentScore = isHome ? score.awayScore : score.homeScore;
+
+      wins = teamScore > opponentScore ? wins + 1 : 0;
+      lastGame = game;
+    });
+
+    if (wins > 0 && lastGame) {
+      streaks.set(teamId, {
+        teamId,
+        wins,
+        leagueId: lastGame.leagueId,
+      });
+    }
+  });
+
+  return streaks;
+}
+
+function buildTopWinStreaksByTable({ streaks, teamsById, leaguesById }) {
+  const groups = new Map();
+
+  Array.from(streaks.values()).forEach((streak) => {
+    const team = teamsById.get(streak.teamId);
+    const league = leaguesById.get(streak.leagueId || team?.leagueId);
+    if (!team || !league || streak.wins <= 0) return;
+
+    const hasLeagueGroups = league.groupsEnabled && Array.isArray(league.groups) && league.groups.length > 0;
+    const groupId = hasLeagueGroups ? String(team.groupId || "ungrouped").trim() || "ungrouped" : "all";
+    const key = `${league.id}:${groupId}`;
+
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        league,
+        groupId,
+        groupLabel: groupId === "all" ? "" : getGroupLabel(league, groupId),
+        items: [],
+        maxWins: 0,
+      });
+    }
+
+    const group = groups.get(key);
+    group.maxWins = Math.max(group.maxWins, streak.wins);
+    group.items.push({
+      record: { wins: streak.wins },
+      team,
+      league,
+      groupLabel: group.groupLabel,
+    });
+  });
+
+  return Array.from(groups.values())
+    .flatMap((group) =>
+      group.items
+        .filter((item) => item.record.wins === group.maxWins)
+        .sort((a, b) => String(a.team.name || "").localeCompare(String(b.team.name || ""), "de"))
+    )
+    .sort((a, b) => {
+      if (b.record.wins !== a.record.wins) return b.record.wins - a.record.wins;
+      const leagueCompare = String(a.league?.name || "").localeCompare(String(b.league?.name || ""), "de");
+      if (leagueCompare !== 0) return leagueCompare;
+      const groupCompare = String(a.groupLabel || "").localeCompare(String(b.groupLabel || ""), "de");
+      if (groupCompare !== 0) return groupCompare;
+      return String(a.team.name || "").localeCompare(String(b.team.name || ""), "de");
+    });
+}
+
 function StreakCard({ item }) {
   const color = getTeamColor(item.team, "#013369");
+  const contextLabel = [item.league?.shortName || item.league?.name, item.groupLabel]
+    .filter(Boolean)
+    .join(" - ");
 
   return (
     <Link
@@ -824,7 +947,7 @@ function StreakCard({ item }) {
         <div className="min-w-0 flex-1">
           <p className="relative z-10 text-lg font-black leading-[1.08] sm:text-xl">{item.team.name}</p>
           <p className="relative z-10 mt-1 text-[10px] font-black uppercase tracking-wide text-white/65">
-            Unbeaten Run
+            {contextLabel || "Win Streak"}
           </p>
         </div>
         <div
@@ -925,6 +1048,10 @@ export default function Home() {
   const appUsersById = useMemo(() => new Map(appUsers.map((user) => [user.id, user])), [appUsers]);
   const sevenDaysAgo = useMemo(() => subDays(new Date(), 7), []);
   const teamRecords = useMemo(() => buildTeamRecords(games), [games]);
+  const winStreaks = useMemo(
+    () => buildCurrentWinStreaks({ games, teamsById, leaguesById }),
+    [games, leaguesById, teamsById]
+  );
 
   const gameOfTheWeek = useMemo(() => {
     return [...games]
@@ -942,8 +1069,7 @@ export default function Home() {
   const liveGames = useMemo(() => {
     return games
       .filter((game) => getEffectiveGameStatus(game) === "live")
-      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0))
-      .slice(0, 6);
+      .sort((a, b) => (getGameDate(a)?.getTime() || 0) - (getGameDate(b)?.getTime() || 0));
   }, [games]);
 
   const favoriteTeam = useMemo(() => {
@@ -1099,13 +1225,12 @@ export default function Home() {
   }, [appUpdates, queryClient, sevenDaysAgo]);
 
   const undefeatedTeams = useMemo(() => {
-    return Array.from(teamRecords.values())
-      .filter((record) => record.played > 0 && record.losses === 0)
-      .map((record) => ({ record, team: teamsById.get(record.teamId) }))
-      .filter((item) => item.team)
-      .sort((a, b) => b.record.wins - a.record.wins)
-      .slice(0, 4);
-  }, [teamRecords, teamsById]);
+    return buildTopWinStreaksByTable({
+      streaks: winStreaks,
+      teamsById,
+      leaguesById,
+    });
+  }, [leaguesById, teamsById, winStreaks]);
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-5 pb-24">
