@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/api/supabaseClient';
 import { useGlobalData } from '@/lib/GlobalDataContext';
 import { useAppUser } from '@/lib/useAppUser';
 import useSetHeader from '@/hooks/useSetHeader';
@@ -17,12 +16,22 @@ import {
   ExternalLink,
   Loader2,
   PlayCircle,
+  Plus,
   Radio,
   RefreshCw,
-  Settings2,
+  Save,
   ShieldCheck,
+  Trash2,
   XCircle,
+  Zap,
 } from 'lucide-react';
+
+const SOURCE_TYPE_OPTIONS = [
+  { value: 'not_configured', label: 'Nicht konfiguriert' },
+  { value: 'json_feed', label: 'JSON Feed' },
+  { value: 'football_aktuell', label: 'football-aktuell / Scoreboard Text' },
+  { value: 'scoreboard_text', label: 'Allgemeiner Scoreboard Text' },
+];
 
 const STREAM_PROVIDER_OPTIONS = [
   { value: 'youtube', label: 'YouTube' },
@@ -33,14 +42,53 @@ const STREAM_PROVIDER_OPTIONS = [
 
 const STREAM_STATUS_OPTIONS = ['scheduled', 'live', 'ended', 'disabled'];
 
+const EMPTY_PROVIDER_FORM = {
+  provider_key: '',
+  name: '',
+  description: '',
+  source_type: 'json_feed',
+  source_url: '',
+  league_id: '',
+  is_enabled: false,
+};
+
+const EMPTY_MAPPING_FORM = {
+  provider_key: '',
+  external_team_name: '',
+  external_team_id: '',
+  league_id: '',
+  yardline_team_id: '',
+};
+
+const EMPTY_STREAM_FORM = {
+  game_id: '',
+  stream_url: '',
+  title: '',
+  provider: '',
+  provider_label: '',
+  embed_url: '',
+  is_official: true,
+  is_yardline_stream: false,
+  status: 'scheduled',
+};
+
 function getTeamName(team) {
-  return team?.shortName || team?.name || 'Team offen';
+  return team?.shortName || team?.short_name || team?.name || 'Team offen';
+}
+
+function getLeagueName(league) {
+  return league?.name || league?.title || league?.shortName || league?.short_name || 'Keine Liga';
+}
+
+function getGameTeam(game, key, teamsById) {
+  const id = key === 'home' ? game?.homeTeamId || game?.home_team_id : game?.awayTeamId || game?.away_team_id;
+  return teamsById?.get(id);
 }
 
 function getGameLabel(game, teamsById) {
   if (!game) return 'Spiel auswählen';
-  const home = teamsById?.get(game.homeTeamId || game.home_team_id);
-  const away = teamsById?.get(game.awayTeamId || game.away_team_id);
+  const home = getGameTeam(game, 'home', teamsById);
+  const away = getGameTeam(game, 'away', teamsById);
   return `${getTeamName(home)} vs ${getTeamName(away)} - ${game.date || 'ohne Datum'}`;
 }
 
@@ -56,12 +104,23 @@ function scoreLabel(home, away) {
   return `${home}:${away}`;
 }
 
-async function fetchTable(table, order = 'created_at', ascending = false, limit = 100) {
-  let query = supabase.from(table).select('*').order(order, { ascending });
-  if (limit) query = query.limit(limit);
-  const { data, error } = await query;
-  if (error) throw error;
-  return data || [];
+function asObject(value) {
+  return value && typeof value === 'object' ? value : {};
+}
+
+function getProviderDraft(provider, drafts) {
+  return {
+    ...provider,
+    ...asObject(drafts[provider.id]),
+  };
+}
+
+async function parseApiResponse(response) {
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || 'Score Automation API Fehler');
+  }
+  return payload;
 }
 
 function SectionTitle({ icon: Icon, title, children }) {
@@ -78,50 +137,60 @@ function SectionTitle({ icon: Icon, title, children }) {
   );
 }
 
+function Metric({ label, value, compact = false }) {
+  return (
+    <div className={`rounded-2xl border border-border/40 bg-background/40 text-center ${compact ? 'p-1.5' : 'p-3'}`}>
+      <p className={`${compact ? 'text-sm' : 'text-xl'} font-black tabular-nums`}>{value ?? 0}</p>
+      <p className={`${compact ? 'text-[9px]' : 'text-[10px]'} font-bold uppercase tracking-wider text-muted-foreground`}>{label}</p>
+    </div>
+  );
+}
+
+function InfoBlock({ label, value }) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-background/40 p-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xs font-semibold leading-snug">{value}</p>
+    </div>
+  );
+}
+
 export default function AdminScoreAutomation() {
   useSetHeader({ mode: 'back', title: 'Score Automation' });
 
   const queryClient = useQueryClient();
   const { appUser } = useAppUser();
-  const { games, teams, teamsById, leaguesById } = useGlobalData();
+  const { games = [], teams = [], teamsById, leagues = [], leaguesById } = useGlobalData();
   const [providerDrafts, setProviderDrafts] = useState({});
-  const [cronSecret, setCronSecret] = useState('');
+  const [providerForm, setProviderForm] = useState(EMPTY_PROVIDER_FORM);
   const [editingStreamId, setEditingStreamId] = useState('');
-  const [mappingForm, setMappingForm] = useState({ provider_key: '', external_team_name: '', external_team_id: '', league_id: '', yardline_team_id: '' });
-  const [streamForm, setStreamForm] = useState({ game_id: '', stream_url: '', title: '', provider: '', provider_label: '', embed_url: '', is_official: true, is_yardline_stream: false, status: 'scheduled' });
+  const [mappingForm, setMappingForm] = useState(EMPTY_MAPPING_FORM);
+  const [streamForm, setStreamForm] = useState(EMPTY_STREAM_FORM);
 
   const roleSlug = String(appUser?.roleSlug || appUser?.role || '').toLowerCase();
   const isAdmin = roleSlug === 'admin';
 
-  const { data: providers = [], isLoading: providersLoading } = useQuery({
-    queryKey: ['score-providers'],
-    queryFn: () => fetchTable('score_providers', 'created_at', true, 100),
-    enabled: isAdmin,
+  const apiHeaders = useMemo(() => ({
+    'content-type': 'application/json',
+    'x-yardline-user-id': appUser?.id || '',
+  }), [appUser?.id]);
+
+  const scoreQuery = useQuery({
+    queryKey: ['admin-score-automation-api', appUser?.id],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/score-automation', { headers: apiHeaders });
+      const payload = await parseApiResponse(response);
+      return payload.data || {};
+    },
+    enabled: isAdmin && Boolean(appUser?.id),
   });
 
-  const { data: runs = [] } = useQuery({
-    queryKey: ['score-import-runs'],
-    queryFn: () => fetchTable('score_import_runs', 'created_at', false, 30),
-    enabled: isAdmin,
-  });
-
-  const { data: suggestions = [] } = useQuery({
-    queryKey: ['score-import-suggestions'],
-    queryFn: () => fetchTable('score_import_suggestions', 'created_at', false, 100),
-    enabled: isAdmin,
-  });
-
-  const { data: mappings = [] } = useQuery({
-    queryKey: ['external-team-mappings'],
-    queryFn: () => fetchTable('external_team_mappings', 'created_at', false, 200),
-    enabled: isAdmin,
-  });
-
-  const { data: streams = [] } = useQuery({
-    queryKey: ['game-streams'],
-    queryFn: () => fetchTable('game_streams', 'created_at', false, 100),
-    enabled: isAdmin,
-  });
+  const providers = scoreQuery.data?.providers || [];
+  const runs = scoreQuery.data?.runs || [];
+  const suggestions = scoreQuery.data?.suggestions || [];
+  const mappings = scoreQuery.data?.mappings || [];
+  const streams = scoreQuery.data?.streams || [];
+  const streamProviderStatus = scoreQuery.data?.streamProviderStatus || { configured: false, message: 'Yardline Stream Provider nicht konfiguriert' };
 
   const openSuggestions = suggestions.filter(item => item.status === 'pending');
   const conflictSuggestions = suggestions.filter(item => item.status === 'conflict');
@@ -132,311 +201,251 @@ export default function AdminScoreAutomation() {
     conflicts: conflictSuggestions.length,
   }), [conflictSuggestions.length, openSuggestions.length, providers]);
 
-  const saveProvider = useMutation({
-    mutationFn: async provider => {
-      const draft = providerDrafts[provider.id] || {};
-      const { error } = await supabase
-        .from('score_providers')
-        .update({
-          is_enabled: draft.is_enabled ?? provider.is_enabled,
-          source_url: draft.source_url ?? provider.source_url,
-          league_id: (draft.league_id ?? provider.league_id) || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', provider.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Provider gespeichert');
-      queryClient.invalidateQueries({ queryKey: ['score-providers'] });
-    },
-    onError: error => toast.error(error.message),
-  });
-
-  const runCron = useMutation({
-    mutationFn: async () => {
-      if (!cronSecret.trim()) throw new Error('SCORE_AUTOMATION_SECRET fehlt');
-
-      const response = await fetch('/api/cron/score-automation', {
+  const callApi = useMutation({
+    mutationFn: async body => {
+      const response = await fetch('/api/admin/score-automation', {
         method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-score-automation-secret': cronSecret.trim(),
-        },
-        body: JSON.stringify({ source: 'admin' }),
+        headers: apiHeaders,
+        body: JSON.stringify({ ...body, appUserId: appUser?.id }),
       });
-
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(payload.error || 'Score Automation konnte nicht gestartet werden');
-      return payload;
+      return parseApiResponse(response);
     },
     onSuccess: payload => {
-      toast.success(`${payload.providers_checked || 0} Provider geprüft`);
-      queryClient.invalidateQueries({ queryKey: ['score-providers'] });
-      queryClient.invalidateQueries({ queryKey: ['score-import-runs'] });
-      queryClient.invalidateQueries({ queryKey: ['score-import-suggestions'] });
-    },
-    onError: error => toast.error(error.message),
-  });
-
-  const suggestionMutation = useMutation({
-    mutationFn: async ({ suggestion, status }) => {
-      if (status === 'approved') {
-        const game = games.find(item => item.id === suggestion.game_id);
-        if (!game) throw new Error('Spiel nicht gefunden');
-
-        const nextStatus = suggestion.detected_status === 'final'
-          ? 'final'
-          : suggestion.detected_status === 'live'
-            ? 'live'
-            : game.status;
-
-        const { error: gameError } = await supabase
-          .from('games')
-          .update({
-            score_home: suggestion.detected_home_score,
-            score_away: suggestion.detected_away_score,
-            status: nextStatus,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', suggestion.game_id);
-
-        if (gameError) throw gameError;
-
-        const { error: logError } = await supabase.from('score_update_logs').insert({
-          game_id: suggestion.game_id,
-          provider_key: suggestion.provider_key,
-          old_home_score: suggestion.current_home_score,
-          old_away_score: suggestion.current_away_score,
-          new_home_score: suggestion.detected_home_score,
-          new_away_score: suggestion.detected_away_score,
-          old_status: suggestion.current_status,
-          new_status: nextStatus,
-          update_source: 'admin_review',
-          created_by: appUser?.id || null,
-        });
-
-        if (logError) throw logError;
+      if (payload.data) {
+        queryClient.setQueryData(['admin-score-automation-api', appUser?.id], payload.data);
       }
-
-      const { error } = await supabase
-        .from('score_import_suggestions')
-        .update({
-          status,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: appUser?.id || null,
-        })
-        .eq('id', suggestion.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Suggestion aktualisiert');
-      queryClient.invalidateQueries({ queryKey: ['score-import-suggestions'] });
     },
     onError: error => toast.error(error.message),
   });
 
-  const createMapping = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        ...mappingForm,
-        league_id: mappingForm.league_id || null,
-        external_team_id: mappingForm.external_team_id || null,
-        confidence: 1,
-        is_verified: true,
-      };
-      const { error } = await supabase.from('external_team_mappings').insert(payload);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Mapping gespeichert');
-      setMappingForm({ provider_key: '', external_team_name: '', external_team_id: '', league_id: '', yardline_team_id: '' });
-      queryClient.invalidateQueries({ queryKey: ['external-team-mappings'] });
-    },
-    onError: error => toast.error(error.message),
-  });
+  const handleSaveProvider = async provider => {
+    const draft = getProviderDraft(provider, providerDrafts);
+    await callApi.mutateAsync({ action: 'save_provider', provider: draft });
+    toast.success('Provider gespeichert');
+  };
 
-  const upsertStream = useMutation({
-    mutationFn: async () => {
-      const detected = detectStreamProvider(streamForm.stream_url);
-      if (!detected.valid) throw new Error('Stream URL ist nicht gültig');
+  const handleCreateProvider = async () => {
+    if (!providerForm.provider_key.trim() || !providerForm.name.trim()) {
+      toast.error('Provider Key und Name sind Pflicht');
+      return;
+    }
 
-      const provider = streamForm.provider || detected.provider;
-      const payload = {
-        game_id: streamForm.game_id,
-        provider,
-        stream_url: streamForm.stream_url.trim(),
-        embed_url: streamForm.embed_url || detected.embedUrl,
-        title: streamForm.title.trim() || detected.providerLabel,
+    await callApi.mutateAsync({ action: 'save_provider', provider: providerForm });
+    setProviderForm(EMPTY_PROVIDER_FORM);
+    toast.success('Provider erstellt');
+  };
+
+  const handleRunImport = async () => {
+    const payload = await callApi.mutateAsync({ action: 'run_import' });
+    toast.success(`${payload.result?.providers_checked || 0} Provider geprüft`);
+    queryClient.invalidateQueries({ queryKey: ['global-data'] });
+  };
+
+  const handleSuggestion = async (suggestion, status) => {
+    await callApi.mutateAsync({ action: 'review_suggestion', suggestion_id: suggestion.id, status });
+    toast.success('Suggestion aktualisiert');
+    if (status === 'approved') queryClient.invalidateQueries({ queryKey: ['global-data'] });
+  };
+
+  const handleCreateMapping = async () => {
+    if (!mappingForm.provider_key || !mappingForm.external_team_name || !mappingForm.yardline_team_id) {
+      toast.error('Provider, externer Teamname und Yardline-Team sind Pflicht');
+      return;
+    }
+
+    await callApi.mutateAsync({ action: 'save_mapping', mapping: mappingForm });
+    setMappingForm(EMPTY_MAPPING_FORM);
+    toast.success('Mapping gespeichert');
+  };
+
+  const handleDeleteMapping = async id => {
+    await callApi.mutateAsync({ action: 'delete_mapping', id });
+    toast.success('Mapping gelöscht');
+  };
+
+  const handleUpsertStream = async () => {
+    const detected = detectStreamProvider(streamForm.stream_url);
+    if (!detected.valid && streamForm.provider !== 'yardline') {
+      toast.error('Stream URL ist nicht gültig');
+      return;
+    }
+
+    await callApi.mutateAsync({
+      action: 'upsert_stream',
+      stream: {
+        ...streamForm,
+        id: editingStreamId || undefined,
+        provider: streamForm.provider || detected.provider,
         provider_label: streamForm.provider_label || detected.providerLabel,
-        is_official: streamForm.is_official,
-        is_yardline_stream: provider === 'yardline' || streamForm.is_yardline_stream,
-        status: streamForm.status,
-        updated_at: new Date().toISOString(),
-        created_by: appUser?.id || null,
-      };
+        embed_url: streamForm.embed_url || detected.embedUrl,
+      },
+    });
+    setEditingStreamId('');
+    setStreamForm(EMPTY_STREAM_FORM);
+    toast.success('Stream gespeichert');
+  };
 
-      const query = editingStreamId
-        ? supabase.from('game_streams').update(payload).eq('id', editingStreamId)
-        : supabase.from('game_streams').insert(payload);
+  const handleDisableStream = async id => {
+    await callApi.mutateAsync({ action: 'disable_stream', id });
+    toast.success('Stream deaktiviert');
+  };
 
-      const { error } = await query;
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success('Stream gespeichert');
-      setEditingStreamId('');
-      setStreamForm({ game_id: '', stream_url: '', title: '', provider: '', provider_label: '', embed_url: '', is_official: true, is_yardline_stream: false, status: 'scheduled' });
-      queryClient.invalidateQueries({ queryKey: ['game-streams'] });
-    },
-    onError: error => toast.error(error.message),
-  });
+  const setProviderDraft = (id, patch) => {
+    setProviderDrafts(current => ({
+      ...current,
+      [id]: {
+        ...asObject(current[id]),
+        ...patch,
+      },
+    }));
+  };
 
-  const disableStream = useMutation({
-    mutationFn: async id => {
-      const { error } = await supabase
-        .from('game_streams')
-        .update({ status: 'disabled', updated_at: new Date().toISOString() })
-        .eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['game-streams'] }),
-    onError: error => toast.error(error.message),
-  });
-
-  if (!isAdmin) return null;
-
-  if (providersLoading) {
+  if (!isAdmin) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="p-4">
+        <Card className="rounded-2xl p-4">
+          <p className="font-bold">Kein Zugriff</p>
+          <p className="mt-1 text-sm text-muted-foreground">Score Automation ist nur für Admins sichtbar.</p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="px-3 py-5 pb-24">
-      <section className="mb-5 rounded-[26px] border border-primary/20 bg-card p-4">
-        <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-black italic leading-tight">Score Automation</h1>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Interne Grundlage für Provider, Review, Logs, Cron und Stream Center.
-            </p>
-          </div>
-        </div>
+    <div className="w-full max-w-full overflow-x-hidden px-3 py-6 pb-24 sm:px-4">
+      <div className="mb-5 overflow-hidden rounded-[28px] border border-white/10 bg-black p-5 text-white shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-red-500">The Yardline</p>
+        <h1 className="mt-2 text-2xl font-black italic leading-none">Score Automation</h1>
+        <p className="mt-2 max-w-2xl text-xs font-semibold leading-relaxed text-white/58">
+          Provider, echte Ergebnisquellen, Team-Mapping, Suggestions und Stream Center. Öffentliche App-Seiten werden dadurch nicht verändert.
+        </p>
+      </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <Metric label="Provider aktiv" value={providerStats.enabled} />
-          <Metric label="Offen" value={providerStats.suggestions} />
-          <Metric label="Konflikte" value={providerStats.conflicts} />
-        </div>
-      </section>
+      <div className="mb-5 grid grid-cols-3 gap-2">
+        <Metric label="Aktive Provider" value={providerStats.enabled} />
+        <Metric label="Suggestions" value={providerStats.suggestions} />
+        <Metric label="Konflikte" value={providerStats.conflicts} />
+      </div>
 
       <section className="mb-5 rounded-[26px] border border-border/50 bg-card p-4">
-        <SectionTitle icon={Settings2} title="Provider">
-          <div className="flex max-w-full flex-col gap-2 sm:flex-row">
-            <Input
-              value={cronSecret}
-              onChange={event => setCronSecret(event.target.value)}
-              placeholder="SCORE_AUTOMATION_SECRET"
-              type="password"
-              className="w-full sm:w-56"
-            />
-            <Button onClick={() => runCron.mutate()} disabled={runCron.isPending || !cronSecret.trim()}>
-              <RefreshCw className={`mr-1.5 h-4 w-4 ${runCron.isPending ? 'animate-spin' : ''}`} />
-              Jetzt prüfen
-            </Button>
-          </div>
+        <SectionTitle icon={Zap} title="Provider">
+          <Button onClick={handleRunImport} disabled={callApi.isPending || scoreQuery.isLoading}>
+            {callApi.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1.5 h-4 w-4" />}
+            Jetzt prüfen
+          </Button>
         </SectionTitle>
+
+        {scoreQuery.isError && (
+          <div className="mb-3 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-300">
+            {scoreQuery.error?.message || 'Score Automation konnte nicht geladen werden.'}
+          </div>
+        )}
+
+        <div className="mb-4 rounded-2xl border border-border/50 bg-background/40 p-3">
+          <p className="mb-2 text-xs font-black uppercase tracking-wider text-muted-foreground">Neuen Provider anlegen</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-6">
+            <Input value={providerForm.provider_key} onChange={event => setProviderForm(current => ({ ...current, provider_key: event.target.value }))} placeholder="provider_key" />
+            <Input value={providerForm.name} onChange={event => setProviderForm(current => ({ ...current, name: event.target.value }))} placeholder="Name" />
+            <select value={providerForm.source_type} onChange={event => setProviderForm(current => ({ ...current, source_type: event.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm">
+              {SOURCE_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <select value={providerForm.league_id} onChange={event => setProviderForm(current => ({ ...current, league_id: event.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm">
+              <option value="">Keine Liga</option>
+              {leagues.map(league => <option key={league.id} value={league.id}>{getLeagueName(league)}</option>)}
+            </select>
+            <Input className="xl:col-span-2" value={providerForm.source_url} onChange={event => setProviderForm(current => ({ ...current, source_url: event.target.value }))} placeholder="Source URL" />
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-secondary/30 px-3 py-2">
+            <span className="text-sm font-semibold">Direkt aktivieren</span>
+            <Switch checked={providerForm.is_enabled} onCheckedChange={value => setProviderForm(current => ({ ...current, is_enabled: value }))} />
+          </div>
+          <Button className="mt-2 w-full" variant="outline" onClick={handleCreateProvider} disabled={callApi.isPending}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            Provider speichern
+          </Button>
+        </div>
+
         <div className="space-y-3">
           {providers.map(provider => {
-            const draft = providerDrafts[provider.id] || {};
-            const enabled = draft.is_enabled ?? provider.is_enabled;
-
+            const draft = getProviderDraft(provider, providerDrafts);
+            const league = leaguesById?.get(draft.league_id);
             return (
               <Card key={provider.id} className="rounded-2xl p-3">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-black">{provider.name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{provider.description || provider.provider_key}</p>
+                    <p className="text-[11px] text-muted-foreground">{provider.provider_key} · {getLeagueName(league)}</p>
                   </div>
-                  <Switch
-                    checked={enabled}
-                    onCheckedChange={value => setProviderDrafts(current => ({ ...current, [provider.id]: { ...draft, is_enabled: value } }))}
-                  />
+                  <Badge variant={draft.is_enabled ? 'default' : 'outline'}>{draft.is_enabled ? 'aktiv' : 'inaktiv'}</Badge>
                 </div>
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_180px_auto]">
-                  <Input
-                    value={draft.source_url ?? provider.source_url ?? ''}
-                    onChange={event => setProviderDrafts(current => ({ ...current, [provider.id]: { ...draft, source_url: event.target.value } }))}
-                    placeholder="Source URL"
-                  />
-                  <select
-                    value={draft.league_id ?? provider.league_id ?? ''}
-                    onChange={event => setProviderDrafts(current => ({ ...current, [provider.id]: { ...draft, league_id: event.target.value } }))}
-                    className="h-10 rounded-xl border border-border bg-background px-3 text-sm"
-                  >
-                    <option value="">Keine Liga</option>
-                    {[...leaguesById.values()].map(league => (
-                      <option key={league.id} value={league.id}>{league.shortName || league.name}</option>
-                    ))}
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <select value={draft.source_type || 'not_configured'} onChange={event => setProviderDraft(provider.id, { source_type: event.target.value })} className="h-10 rounded-xl border border-border bg-background px-3 text-sm">
+                    {SOURCE_TYPE_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                   </select>
-                  <Button onClick={() => saveProvider.mutate(provider)} disabled={saveProvider.isPending}>
+                  <select value={draft.league_id || ''} onChange={event => setProviderDraft(provider.id, { league_id: event.target.value })} className="h-10 rounded-xl border border-border bg-background px-3 text-sm">
+                    <option value="">Keine Liga</option>
+                    {leagues.map(item => <option key={item.id} value={item.id}>{getLeagueName(item)}</option>)}
+                  </select>
+                  <Input className="sm:col-span-2" value={draft.source_url || ''} onChange={event => setProviderDraft(provider.id, { source_url: event.target.value })} placeholder="Source URL" />
+                  <Input className="sm:col-span-2" value={draft.description || ''} onChange={event => setProviderDraft(provider.id, { description: event.target.value })} placeholder="Beschreibung" />
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-semibold">Provider aktiv</p>
+                    <p className="text-[11px] text-muted-foreground">Nur aktive Provider werden geprüft.</p>
+                  </div>
+                  <Switch checked={draft.is_enabled === true} onCheckedChange={value => setProviderDraft(provider.id, { is_enabled: value })} />
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
+                  <InfoBlock label="Letzter Lauf" value={formatDateTime(provider.last_run_at)} />
+                  <InfoBlock label="Letzter Erfolg" value={formatDateTime(provider.last_success_at)} />
+                  <InfoBlock label="Fehler" value={provider.last_error || '-'} />
+                  <Button onClick={() => handleSaveProvider(provider)} disabled={callApi.isPending}>
+                    <Save className="mr-1.5 h-4 w-4" />
                     Speichern
                   </Button>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-                  <span>Letzter Run: {formatDateTime(provider.last_run_at)}</span>
-                  <span>Erfolg: {formatDateTime(provider.last_success_at)}</span>
-                  <span className="truncate">Fehler: {provider.last_error || '-'}</span>
                 </div>
               </Card>
             );
           })}
+
+          {providers.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">Noch keine Provider vorhanden. Migration prüfen.</p>
+          )}
         </div>
       </section>
 
       <section className="mb-5 rounded-[26px] border border-border/50 bg-card p-4">
         <SectionTitle icon={AlertTriangle} title="Suggestions" />
-        <div className="space-y-2">
-          {suggestions.slice(0, 30).map(suggestion => {
+        <div className="space-y-3">
+          {suggestions.map(suggestion => {
             const game = games.find(item => item.id === suggestion.game_id);
-            const league = leaguesById?.get(suggestion.league_id || game?.leagueId);
-
             return (
               <Card key={suggestion.id} className="rounded-2xl p-3">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <p className="text-sm font-black">{getGameLabel(game, teamsById)}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{league?.name || 'Keine Liga'} · Confidence {Math.round(Number(suggestion.confidence || 0) * 100)}%</p>
+                    <p className="text-xs text-muted-foreground">{suggestion.provider_key} · Confidence {Number(suggestion.confidence || 0).toFixed(2)}</p>
                   </div>
-                  <Badge variant={suggestion.status === 'conflict' ? 'destructive' : 'outline'}>{suggestion.status}</Badge>
+                  <Badge variant={suggestion.status === 'pending' ? 'default' : 'outline'}>{suggestion.status}</Badge>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <InfoBlock label="Gefunden" value={`${suggestion.detected_home_team_name} ${scoreLabel(suggestion.detected_home_score, suggestion.detected_away_score)} ${suggestion.detected_away_team_name}`} />
-                  <InfoBlock label="Aktuell" value={`${scoreLabel(suggestion.current_home_score, suggestion.current_away_score)} · ${suggestion.current_status || '-'}`} />
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <InfoBlock label="Quelle Teams" value={`${suggestion.detected_home_team_name || '-'} vs ${suggestion.detected_away_team_name || '-'}`} />
+                  <InfoBlock label="Quelle Score" value={scoreLabel(suggestion.detected_home_score, suggestion.detected_away_score)} />
+                  <InfoBlock label="Aktuell" value={scoreLabel(suggestion.current_home_score, suggestion.current_away_score)} />
+                  <InfoBlock label="Status" value={`${suggestion.current_status || '-'} → ${suggestion.detected_status || '-'}`} />
                 </div>
-
                 {suggestion.status === 'pending' || suggestion.status === 'conflict' ? (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" onClick={() => suggestionMutation.mutate({ suggestion, status: 'approved' })}>
-                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                    <Button size="sm" onClick={() => handleSuggestion(suggestion, 'approved')} disabled={callApi.isPending}>
+                      <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                       Übernehmen
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => suggestionMutation.mutate({ suggestion, status: 'ignored' })}>
-                      Ignorieren
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => suggestionMutation.mutate({ suggestion, status: 'conflict' })}>
-                      Konflikt
-                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleSuggestion(suggestion, 'ignored')} disabled={callApi.isPending}>Ignorieren</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleSuggestion(suggestion, 'conflict')} disabled={callApi.isPending}>Konflikt</Button>
                     {suggestion.source_url && (
                       <a href={suggestion.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center gap-1 rounded-md border px-3 text-sm">
                         Quelle <ExternalLink className="h-3.5 w-3.5" />
@@ -472,6 +481,7 @@ export default function AdminScoreAutomation() {
               </div>
             </Card>
           ))}
+          {runs.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Noch keine Import Runs.</p>}
         </div>
       </section>
 
@@ -488,13 +498,16 @@ export default function AdminScoreAutomation() {
             <option value="">Yardline Team</option>
             {teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}
           </select>
-          <Button onClick={() => createMapping.mutate()} disabled={!mappingForm.provider_key || !mappingForm.external_team_name || !mappingForm.yardline_team_id || createMapping.isPending}>Speichern</Button>
+          <Button onClick={handleCreateMapping} disabled={callApi.isPending}>Speichern</Button>
         </div>
         <div className="mt-3 space-y-2">
-          {mappings.slice(0, 20).map(mapping => (
+          {mappings.map(mapping => (
             <div key={mapping.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/50 px-3 py-2 text-xs">
               <span className="min-w-0 truncate">{mapping.provider_key} · {mapping.external_team_name}</span>
               <span className="font-bold">{getTeamName(teamsById?.get(mapping.yardline_team_id))}</span>
+              <Button size="icon" variant="ghost" onClick={() => handleDeleteMapping(mapping.id)} disabled={callApi.isPending}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
           ))}
         </div>
@@ -502,7 +515,7 @@ export default function AdminScoreAutomation() {
 
       <section className="rounded-[26px] border border-border/50 bg-card p-4">
         <SectionTitle icon={Radio} title="Stream Center">
-          <Badge variant="outline">Yardline Provider nicht konfiguriert</Badge>
+          <Badge variant={streamProviderStatus.configured ? 'default' : 'outline'}>{streamProviderStatus.message}</Badge>
         </SectionTitle>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -522,10 +535,15 @@ export default function AdminScoreAutomation() {
           <select value={streamForm.status} onChange={event => setStreamForm(current => ({ ...current, status: event.target.value }))} className="h-10 rounded-xl border border-border bg-background px-3 text-sm">
             {STREAM_STATUS_OPTIONS.map(status => <option key={status} value={status}>{status}</option>)}
           </select>
-          <Button className="sm:col-span-2" onClick={() => upsertStream.mutate()} disabled={!streamForm.game_id || !streamForm.stream_url || upsertStream.isPending}>
+          <Button className="sm:col-span-2" onClick={handleUpsertStream} disabled={!streamForm.game_id || !streamForm.stream_url || callApi.isPending}>
             <PlayCircle className="mr-1.5 h-4 w-4" />
             {editingStreamId ? 'Stream aktualisieren' : 'Stream speichern'}
           </Button>
+          {editingStreamId && (
+            <Button className="sm:col-span-2" variant="outline" onClick={() => { setEditingStreamId(''); setStreamForm(EMPTY_STREAM_FORM); }}>
+              Bearbeitung abbrechen
+            </Button>
+          )}
         </div>
 
         {streamForm.embed_url && (
@@ -564,33 +582,16 @@ export default function AdminScoreAutomation() {
                   >
                     Bearbeiten
                   </Button>
-                  <Button size="icon" variant="outline" onClick={() => disableStream.mutate(stream.id)}>
+                  <Button size="icon" variant="outline" onClick={() => handleDisableStream(stream.id)} disabled={callApi.isPending}>
                     <XCircle className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </Card>
           ))}
+          {streams.length === 0 && <p className="py-4 text-center text-sm text-muted-foreground">Noch keine Streams.</p>}
         </div>
       </section>
-    </div>
-  );
-}
-
-function Metric({ label, value, compact = false }) {
-  return (
-    <div className={`rounded-2xl border border-border/40 bg-background/40 text-center ${compact ? 'p-1.5' : 'p-3'}`}>
-      <p className={`${compact ? 'text-sm' : 'text-xl'} font-black tabular-nums`}>{value ?? 0}</p>
-      <p className={`${compact ? 'text-[9px]' : 'text-[10px]'} font-bold uppercase tracking-wider text-muted-foreground`}>{label}</p>
-    </div>
-  );
-}
-
-function InfoBlock({ label, value }) {
-  return (
-    <div className="rounded-xl border border-border/50 bg-background/40 p-2">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xs font-semibold leading-snug">{value}</p>
     </div>
   );
 }
