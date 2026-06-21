@@ -1375,6 +1375,14 @@ export default function AdminDashboard() {
       bg: 'bg-sky-400/10',
     },
     {
+      icon: Zap,
+      title: 'Score Automation',
+      description: 'Provider, Score-Import, Suggestions und Stream Center',
+      route: '/admin/score-automation',
+      color: 'text-emerald-400',
+      bg: 'bg-emerald-400/10',
+    },
+    {
       icon: ListOrdered,
       title: 'Tabellen',
       description: 'Tabellen, Platzierungen und Zonen konfigurieren',
@@ -1456,6 +1464,7 @@ export default function AdminDashboard() {
         '/admin/standings',
         '/admin/competitions',
         '/admin/streams',
+        '/admin/score-automation',
         '/user/statistics',
       ].includes(section.route)),
     },
