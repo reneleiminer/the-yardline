@@ -247,12 +247,38 @@ function hasMeaningfulObjectValues(object) {
 
 function hasGameStats(stat) {
   if (!stat) return false;
+  if (stat.status && stat.status !== 'published') return false;
 
   return (
     hasMeaningfulObjectValues(stat.homeStats) ||
     hasMeaningfulObjectValues(stat.awayStats) ||
     hasMeaningfulObjectValues(stat.leaders)
   );
+}
+
+function isGameStatisticRecord(item) {
+  return item?.type === 'game_statistic' || item?.statType === 'game_statistic';
+}
+
+function getStatisticUpdatedTime(item) {
+  const value =
+    item?.updatedAtUtc ||
+    item?.updated_at ||
+    item?.updatedAt ||
+    item?.createdAtUtc ||
+    item?.created_at ||
+    item?.createdAt ||
+    '';
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getLatestGameStatistic(items = []) {
+  return [...items]
+    .filter(isGameStatisticRecord)
+    .filter(item => !item.status || item.status === 'published')
+    .sort((a, b) => getStatisticUpdatedTime(b) - getStatisticUpdatedTime(a))[0] || null;
 }
 
 function formatThirdDown(stats) {
@@ -422,8 +448,8 @@ function GameDayHero({ game, home, away, league }) {
     .filter(Boolean)
     .join(' - ');
   const renderTeam = (team, name, winner, align = 'left') => (
-    <div className={`flex min-w-0 items-center gap-3 ${align === 'right' ? 'flex-row-reverse text-right' : ''}`}>
-      <div className={`flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[24px] border bg-black/24 p-2 shadow-[0_16px_34px_rgba(0,0,0,0.34)] ${winner ? 'border-white/38 ring-2 ring-white/20' : 'border-white/12'}`}>
+    <div className={`flex min-w-0 flex-col items-center gap-2 text-center sm:flex-row sm:gap-3 sm:text-left ${align === 'right' ? 'sm:flex-row-reverse sm:text-right' : ''}`}>
+      <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] border bg-black/24 p-2 shadow-[0_16px_34px_rgba(0,0,0,0.34)] sm:h-[72px] sm:w-[72px] sm:rounded-[24px] ${winner ? 'border-white/38 ring-2 ring-white/20' : 'border-white/12'}`}>
         {team?.logo ? (
           <img src={getImageUrl(team.logo)} alt="" className="h-full w-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.46)]" loading="lazy" />
         ) : (
@@ -431,14 +457,14 @@ function GameDayHero({ game, home, away, league }) {
         )}
       </div>
       <div className="min-w-0">
-        <p className="text-[9px] font-black uppercase tracking-[0.22em] text-white/46">
+        <p className="text-[8px] font-black uppercase tracking-[0.16em] text-white/46 sm:text-[9px] sm:tracking-[0.22em]">
           {align === 'right' ? 'Away' : 'Home'}
         </p>
-        <p className="mt-1 line-clamp-2 break-words text-[20px] font-black italic leading-[1.02] text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.45)] sm:text-3xl">
+        <p className="mt-1 line-clamp-3 break-words text-[13px] font-black italic leading-[1.05] text-white drop-shadow-[0_3px_12px_rgba(0,0,0,0.45)] sm:line-clamp-2 sm:text-3xl">
           {name}
         </p>
         {team?.city && (
-          <p className="mt-1 truncate text-[10px] font-bold text-white/48">
+          <p className="mt-1 hidden truncate text-[10px] font-bold text-white/48 sm:block">
             {team.city}
           </p>
         )}
@@ -475,7 +501,7 @@ function GameDayHero({ game, home, away, league }) {
           <div className="grid min-h-[190px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 sm:min-h-[250px] sm:gap-6">
             {renderTeam(home, homeName, homeWinner)}
 
-            <div className="z-10 flex min-w-[112px] flex-col items-center justify-center rounded-[26px] border border-white/14 bg-black/82 px-3 py-3 text-center shadow-[0_18px_42px_rgba(0,0,0,0.48)] backdrop-blur sm:min-w-[170px] sm:px-5 sm:py-4">
+            <div className="z-10 flex min-w-[92px] flex-col items-center justify-center rounded-[22px] border border-white/14 bg-black/82 px-2 py-3 text-center shadow-[0_18px_42px_rgba(0,0,0,0.48)] backdrop-blur sm:min-w-[170px] sm:rounded-[26px] sm:px-5 sm:py-4">
               {hasScore ? (
                 <>
                   <ScoreDisplay homeScore={homeScore} awayScore={awayScore} dark size="lg" />
@@ -1140,26 +1166,26 @@ function GameLeaderRow({ title, homeLeader, awayLeader }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="min-w-0">
-          <p className="text-sm font-black truncate text-white">
+          <p className="text-sm font-black leading-tight line-clamp-2 break-words text-white">
             {homeName}
           </p>
 
           {homeLine && (
-            <p className="text-xs text-white/52 mt-0.5 truncate">
+            <p className="mt-0.5 text-xs leading-snug text-white/52 break-words">
               {homeLine}
             </p>
           )}
         </div>
 
-        <div className="min-w-0 text-right">
-          <p className="text-sm font-black truncate text-white">
+        <div className="min-w-0 sm:text-right">
+          <p className="text-sm font-black leading-tight line-clamp-2 break-words text-white">
             {awayName}
           </p>
 
           {awayLine && (
-            <p className="text-xs text-white/52 mt-0.5 truncate">
+            <p className="mt-0.5 text-xs leading-snug text-white/52 break-words">
               {awayLine}
             </p>
           )}
@@ -1618,11 +1644,7 @@ export default function GameDetail() {
 
     const stats = await entity.filter({ gameId: id });
 
-    return stats.find(item =>
-      item.type === 'game_statistic' ||
-      item.statType === 'game_statistic' ||
-      item.gameId === id
-    ) || null;
+    return getLatestGameStatistic(stats);
   },
   enabled: !!id,
 });

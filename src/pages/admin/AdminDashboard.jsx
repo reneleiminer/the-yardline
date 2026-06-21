@@ -44,6 +44,15 @@ const COMMUNITY_CLIP_SUBMISSION_VERSION = 'community_clip_submission';
 const GAMEDAY_SHOT_VERSION = 'gameday_photo';
 const ANALYTICS_VERSION = 'analytics_event';
 const APP_BRANDING_VERSION = 'app_branding';
+const INTERNAL_ANALYTICS_PATH_PREFIXES = [
+  '/admin',
+  '/data-editor',
+  '/news-dashboard',
+  '/photographer',
+  '/support',
+  '/legal',
+  '/profile',
+];
 
 const StatBadge = ({ count }) => {
   if (count == null) return null;
@@ -116,6 +125,21 @@ function getEventDevice(item) {
 function getEventReferrer(item) {
   const meta = parseMessage(item.message);
   return meta.referrer_host || 'direct';
+}
+
+function isTrackedAnalyticsEvent(item) {
+  if (item?.version !== ANALYTICS_VERSION) return false;
+
+  const meta = parseMessage(item.message);
+  if (meta.type !== 'page_view') return false;
+
+  const path = getEventPath(item);
+  if (!path || typeof path !== 'string') return false;
+
+  const normalizedPath = path.split('?')[0].replace(/\/+$/, '') || '/';
+  return !INTERNAL_ANALYTICS_PATH_PREFIXES.some(prefix =>
+    normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
+  );
 }
 
 function formatNumber(value) {
@@ -193,7 +217,7 @@ function buildAnalyticsStats(events = []) {
   const dailyViews = new Map(getLastDays(14).map(day => [day, 0]));
   const dailyVisitors = new Map(getLastDays(14).map(day => [day, new Set()]));
 
-  events.forEach(event => {
+  events.filter(isTrackedAnalyticsEvent).forEach(event => {
     const date = getEventDate(event);
     if (!date) return;
 
@@ -203,7 +227,7 @@ function buildAnalyticsStats(events = []) {
     const eventKey = [
       visitorId || 'anonymous',
       sessionId || 'session',
-      path,
+      path.split('?')[0],
       Math.floor(date.getTime() / (30 * 60 * 1000)),
     ].join('|');
 
@@ -220,7 +244,7 @@ function buildAnalyticsStats(events = []) {
 
     if (date >= since7d) {
       applyWindow(windows.week);
-      pushCount(topPages, compactPathLabel(path));
+      pushCount(topPages, compactPathLabel(path.split('?')[0]));
       pushCount(routeGroups, getEventRouteGroup(event));
       pushCount(devices, getEventDevice(event));
       pushCount(referrers, getEventReferrer(event));
@@ -344,14 +368,14 @@ function AnalyticsDashboard({ stats }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5 mb-3">
+      <div className="grid grid-cols-2 gap-1.5 mb-3 sm:grid-cols-4">
         <AnalyticsMetricCard icon={Users} label="Besucher" value={formatNumber(stats.active7d)} hint="7 Tage" />
         <AnalyticsMetricCard icon={Activity} label="Sessions" value={formatNumber(stats.sessions7d)} hint="7 Tage" />
         <AnalyticsMetricCard icon={Eye} label="Views" value={formatNumber(stats.views7d)} hint="7 Tage" />
         <AnalyticsMetricCard icon={TrendingUp} label="Seiten/S." value={formatDecimal(stats.pagesPerSession7d)} hint="Engagement" />
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5 mb-3">
+      <div className="grid grid-cols-1 gap-1.5 mb-3 sm:grid-cols-3">
         {[
           { label: '24h Besucher', value: stats.active24h },
           { label: '30 Tage Besucher', value: stats.active30d },
@@ -386,7 +410,7 @@ function AnalyticsDashboard({ stats }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <AnalyticsList title="Top Seiten 7 Tage" items={stats.topPages} />
         <AnalyticsList title="Bereiche 7 Tage" items={stats.routeGroups} />
         <AnalyticsList title="Geräte" items={stats.devices} />

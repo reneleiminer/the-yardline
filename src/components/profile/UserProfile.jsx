@@ -131,6 +131,45 @@ function requireGameStatisticEntity() {
   return entity;
 }
 
+function isGameStatisticRecord(item) {
+  return item?.type === 'game_statistic' || item?.statType === 'game_statistic';
+}
+
+function getStatisticUpdatedTime(item) {
+  const value =
+    item?.updatedAtUtc ||
+    item?.updated_at ||
+    item?.updatedAt ||
+    item?.createdAtUtc ||
+    item?.created_at ||
+    item?.createdAt ||
+    '';
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getLatestStatistic(items = []) {
+  return [...items]
+    .filter(isGameStatisticRecord)
+    .sort((a, b) => getStatisticUpdatedTime(b) - getStatisticUpdatedTime(a))[0] || null;
+}
+
+function buildStatsByGameId(statistics = []) {
+  return statistics
+    .filter(isGameStatisticRecord)
+    .reduce((map, stat) => {
+      if (!stat.gameId) return map;
+
+      const current = map.get(stat.gameId);
+      if (!current || getStatisticUpdatedTime(stat) > getStatisticUpdatedTime(current)) {
+        map.set(stat.gameId, stat);
+      }
+
+      return map;
+    }, new Map());
+}
+
 function getCalculatedTotalYards(stats) {
   const passing = cleanNumber(stats?.passingYards);
   const rushing = cleanNumber(stats?.rushingYards);
@@ -362,7 +401,7 @@ function TeamStatsEditor({ title, stats, onChange }) {
         <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <StatInput
           label="First Downs"
           value={stats.firstDowns}
@@ -399,7 +438,7 @@ function TeamStatsEditor({ title, stats, onChange }) {
           onChange={value => set('penalties', value)}
         />
 
-        <div className="col-span-2">
+        <div className="sm:col-span-2">
           <StatInput
             label="Straf-Yards"
             value={stats.penaltyYards}
@@ -425,9 +464,9 @@ function LeaderSideEditor({ teamLabel, value, fields, onChange, tone }) {
         {teamLabel}
       </p>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {fields.map(field => (
-          <div key={field.key} className={field.key === 'player' ? 'col-span-2' : ''}>
+          <div key={field.key} className={field.key === 'player' ? 'sm:col-span-2' : ''}>
             <StatInput
               label={field.label}
               type={field.type || 'number'}
@@ -521,7 +560,7 @@ function GameSelectorCard({ game, home, away, league, selected, onClick, hasStat
       </div>
 
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center">
-        <p className="text-sm font-black truncate">
+        <p className="min-w-0 text-sm font-black leading-tight line-clamp-2 break-words">
           {getTeamName(home, game.homeTeamPlaceholder)}
         </p>
 
@@ -529,7 +568,7 @@ function GameSelectorCard({ game, home, away, league, selected, onClick, hasStat
           {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
         </p>
 
-        <p className="text-sm font-black truncate text-right">
+        <p className="min-w-0 text-right text-sm font-black leading-tight line-clamp-2 break-words">
           {getTeamName(away, game.awayTeamPlaceholder)}
         </p>
       </div>
@@ -591,7 +630,7 @@ export default function GameStatistics() {
         return [];
       }
 
-      return entity.list('-updatedAtUtc', 1000);
+      return entity.list('-updatedAtUtc', 1000).then(items => items.filter(isGameStatisticRecord));
     },
     enabled: canManageStatistics,
   });
@@ -605,7 +644,7 @@ export default function GameStatistics() {
   }, [leagues]);
 
   const statsByGameId = useMemo(() => {
-    return new Map(statistics.map(stat => [stat.gameId, stat]));
+    return buildStatsByGameId(statistics);
   }, [statistics]);
 
   const finalGames = useMemo(() => {
@@ -696,11 +735,7 @@ export default function GameStatistics() {
     };
 
     const existingStats = await entity.filter({ gameId: selectedGame.id });
-    const existingStat = existingStats?.find(item =>
-      item.type === 'game_statistic' ||
-      item.statType === 'game_statistic' ||
-      item.gameId === selectedGame.id
-    );
+    const existingStat = getLatestStatistic(existingStats || []);
 
     if (existingStat?.id) {
       return entity.update(existingStat.id, payload);
@@ -757,7 +792,7 @@ export default function GameStatistics() {
             <BarChart3 className="w-5 h-5 text-primary" />
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-black uppercase tracking-widest text-primary">
               The Yardline
             </p>
@@ -793,7 +828,7 @@ export default function GameStatistics() {
                 Ausgewähltes Spiel
               </p>
 
-              <h2 className="text-lg font-black mt-1 truncate">
+              <h2 className="mt-1 text-lg font-black leading-tight line-clamp-2 break-words">
                 {selectedHomeName}
                 {' '}
                 vs
@@ -801,7 +836,7 @@ export default function GameStatistics() {
                 {selectedAwayName}
               </h2>
 
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2 break-words">
                 {selectedLeague?.shortName || selectedLeague?.name || 'Keine Liga'} · {formatDate(selectedGame.date)}
               </p>
             </div>
