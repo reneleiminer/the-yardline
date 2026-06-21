@@ -63,6 +63,7 @@ const AdminHighlights = lazy(() => import("@/pages/Tournaments"));
 const AdminGameResult = lazy(() => import("@/pages/admin/AdminGameResult"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
 const AdminGameOfTheWeek = lazy(() => import("@/pages/admin/AdminGameOfTheWeek.jsx"));
+const AdminScoreAutomation = lazy(() => import("@/pages/admin/AdminScoreAutomation.jsx"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
 
 function RouteLoader() {
@@ -382,6 +383,15 @@ function AppRoutes() {
               element={
                 <AdminRoute>
                   <AdminStreams />
+                </AdminRoute>
+              }
+            />
+
+            <Route
+              path="/admin/score-automation"
+              element={
+                <AdminRoute>
+                  <AdminScoreAutomation />
                 </AdminRoute>
               }
             />
