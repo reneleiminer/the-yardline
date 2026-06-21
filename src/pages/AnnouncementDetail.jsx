@@ -51,8 +51,12 @@ function normalizeHighlight(item) {
     meta.createdAt ||
     item.createdAtUtc ||
     item.created_date ||
+    item.createdAt ||
+    item.created_at ||
     item.updatedAtUtc ||
     item.updated_date ||
+    item.updatedAt ||
+    item.updated_at ||
     "";
 
   return {

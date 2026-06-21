@@ -165,6 +165,14 @@ function parseHighlightMessage(message) {
 
 function normalizeHighlight(item) {
   const meta = parseHighlightMessage(item.message);
+  const createdAt =
+    meta.created_at ||
+    meta.createdAt ||
+    item.createdAtUtc ||
+    item.created_date ||
+    item.createdAt ||
+    item.created_at ||
+    "";
 
   return {
     ...item,
@@ -179,6 +187,7 @@ function normalizeHighlight(item) {
     date: meta.date || "",
     active: item.isActive !== false && meta.active !== false,
     preview_video_url: meta.preview_video_url || "",
+    created_at: createdAt,
   };
 }
 
@@ -791,7 +800,7 @@ export default function AdminHighlights() {
       date: formData.date,
       active: formData.active,
       preview_video_url: previewVideoUrl,
-      created_at: editingId ? undefined : nowIso,
+      created_at: editingId ? formData.created_at || nowIso : nowIso,
       updated_at: nowIso,
     };
 
@@ -826,6 +835,7 @@ export default function AdminHighlights() {
       game_id: highlight.game_id || "",
       date: highlight.date || "",
       active: highlight.active !== false,
+      created_at: highlight.created_at || "",
     });
     setShowForm(true);
   };
