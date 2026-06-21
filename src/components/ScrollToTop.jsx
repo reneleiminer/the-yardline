@@ -39,18 +39,32 @@ export default function ScrollToTop() {
       document.body.scrollTop = 0;
     };
 
-    scrollTop();
+    const scrollToTarget = () => {
+      if (hash) {
+        const rawId = decodeURIComponent(hash.replace(/^#/, ''));
+        const target = rawId ? document.getElementById(rawId) : null;
+
+        if (target) {
+          target.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+          return;
+        }
+      }
+
+      scrollTop();
+    };
+
+    scrollToTarget();
     const frames = [
-      window.requestAnimationFrame(scrollTop),
-      window.requestAnimationFrame(() => window.requestAnimationFrame(scrollTop)),
+      window.requestAnimationFrame(scrollToTarget),
+      window.requestAnimationFrame(() => window.requestAnimationFrame(scrollToTarget)),
     ];
     const timers = [
-      window.setTimeout(scrollTop, 80),
-      window.setTimeout(scrollTop, 220),
-      window.setTimeout(scrollTop, 500),
-      window.setTimeout(scrollTop, 900),
+      window.setTimeout(scrollToTarget, 80),
+      window.setTimeout(scrollToTarget, 220),
+      window.setTimeout(scrollToTarget, 500),
+      window.setTimeout(scrollToTarget, 900),
     ];
-    const observer = new MutationObserver(scrollTop);
+    const observer = new MutationObserver(scrollToTarget);
 
     observer.observe(document.body, {
       childList: true,

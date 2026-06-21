@@ -1247,7 +1247,7 @@ export default function Home() {
         )}
 
         {liveGames.length > 0 && (
-          <section>
+          <section id="live-games" className="scroll-mt-24">
             <SectionTitle title="Live Games" to="/match-center" />
             <HorizontalRail>
               {liveGames.map((game) => (
@@ -1280,7 +1280,7 @@ export default function Home() {
         <AdBannerSlot banners={adBanners} position="after_gotw" />
 
         {podcast && (
-          <section>
+          <section id="podcast" className="scroll-mt-24">
             <SectionTitle title="Podcast" />
             <PodcastCard podcast={podcast} />
           </section>
@@ -1300,7 +1300,7 @@ export default function Home() {
         </section>
 
         {undefeatedTeams.length > 0 && (
-          <section>
+          <section id="siegesserien" className="scroll-mt-24">
             <SectionTitle title="Siegesserien" />
             <HorizontalRail>
               {undefeatedTeams.map((item) => <StreakCard key={item.team.id} item={item} />)}
@@ -1308,7 +1308,7 @@ export default function Home() {
           </section>
         )}
 
-        <section>
+        <section id="gameday-shots" className="scroll-mt-24">
           <SectionTitle title="GameDay Shots" />
           {shots.length > 0 ? (
             <HorizontalRail>
@@ -1321,7 +1321,7 @@ export default function Home() {
 
         <AdBannerSlot banners={adBanners} position="after_shots" />
 
-        <section>
+        <section id="game-highlights" className="scroll-mt-24">
           <SectionTitle title="Game Highlights" to="/highlights" />
           {highlights.length > 0 ? (
             <HorizontalRail>

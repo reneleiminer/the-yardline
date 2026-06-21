@@ -160,6 +160,10 @@ function formatGameTime(game) {
   return String(game.kickoff_time || game.time || "").slice(0, 5) || "offen";
 }
 
+function getHomeSectionUrl(sectionId) {
+  return sectionId ? `/#${sectionId}` : "/";
+}
+
 async function buildLiveGameEvents(supabase) {
   const { data: games, error } = await supabase
     .from("games")
@@ -275,6 +279,7 @@ async function buildPodcastEvents(supabase) {
     const data = parseUpdateMessage(update);
     const episodeTitle = data.episodeTitle || data.episode_title || update.title || "Neue Folge";
     const partnerName = data.partnerName || data.partner_name || "Football Germany";
+    const spotifyUrl = data.spotifyUrl || data.spotify_url || data.url || data.link_url || data.linkUrl || "";
 
     return {
       key: `podcast:${update.id}:${getUpdateTimestamp(update)}`,
@@ -283,7 +288,7 @@ async function buildPodcastEvents(supabase) {
       payload: {
         title: "Neue Podcast-Folge",
         body: `${episodeTitle} von ${partnerName}`,
-        url: "/",
+        url: spotifyUrl || getHomeSectionUrl("podcast"),
         tag: `podcast:${update.id}`,
         icon: "/yardline-icon-192.png",
       },
@@ -304,6 +309,8 @@ async function buildHighlightEvents(supabase) {
 
   return (updates || []).map((update) => {
     const meta = parseUpdateMessage(update);
+    const gameId = meta.game_id || meta.gameId || "";
+
     return {
       key: `highlight:${update.id}:${update.created_at || update.updated_at || ""}`,
       type: "game_highlight",
@@ -317,7 +324,7 @@ async function buildHighlightEvents(supabase) {
       payload: {
         title: "Neues Game Highlight",
         body: update.title || "Ein neues Highlight ist online.",
-        url: "/highlights",
+        url: gameId ? `/game/${gameId}` : "/highlights",
         tag: `highlight:${update.id}`,
         icon: "/yardline-icon-192.png",
         image: update.image_url || undefined,
@@ -339,6 +346,9 @@ async function buildGamedayShotEvents(supabase) {
 
   return (updates || []).map((update) => {
     const meta = parseUpdateMessage(update);
+    const gameId = meta.game_id || meta.gameId || "";
+    const teamId = meta.team_id || meta.teamId || "";
+
     return {
       key: `gameday_shot:${update.id}:${update.created_at || update.updated_at || ""}`,
       type: "gameday_shot",
@@ -352,7 +362,7 @@ async function buildGamedayShotEvents(supabase) {
       payload: {
         title: "Neue GameDay Shots",
         body: update.title || meta.caption || "Neue Bilder vom Spieltag sind online.",
-        url: "/",
+        url: gameId ? `/game/${gameId}` : teamId ? `/team/${teamId}` : getHomeSectionUrl("gameday-shots"),
         tag: `gameday_shot:${update.id}`,
         icon: meta.team_logo || "/yardline-icon-192.png",
         image: update.image_url || meta.image_url || undefined,
@@ -604,7 +614,7 @@ async function buildWeeklyStreakEvents(supabase) {
       payload: {
         title: `Siegesserien ${league?.short_name || league?.name || ""}`.trim(),
         body: names.length ? names.join(" · ") : "Alle Wochenendspiele sind final.",
-        url: "/",
+        url: leagueId ? `/tabellen/${leagueId}` : getHomeSectionUrl("siegesserien"),
         tag: `weekly_streaks:${toDate}:${leagueId}`,
         icon: "/yardline-icon-192.png",
       },

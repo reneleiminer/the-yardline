@@ -1,5 +1,15 @@
 const APP_NAME = "The Yardline";
 
+function getNotificationUrl(data = {}) {
+  return (
+    data.actionUrl ||
+    data.url ||
+    data.data?.actionUrl ||
+    data.data?.url ||
+    "/"
+  );
+}
+
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -35,8 +45,9 @@ self.addEventListener("push", (event) => {
       ? data.actions
       : [{ action: "open", title: "Öffnen" }],
     data: {
-      url: data.url || "/",
-      actionUrl: data.actionUrl || data.url || "/",
+      ...data.data,
+      url: getNotificationUrl(data),
+      actionUrl: data.actionUrl || data.data?.actionUrl || getNotificationUrl(data),
     },
   };
 
@@ -54,10 +65,23 @@ self.addEventListener("notificationclick", (event) => {
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       const origin = self.location.origin;
       const absoluteTarget = new URL(targetUrl, origin).href;
+      const targetOrigin = new URL(absoluteTarget).origin;
 
       for (const client of clients) {
         if (client.url === absoluteTarget && "focus" in client) {
           return client.focus();
+        }
+      }
+
+      for (const client of clients) {
+        if (new URL(client.url).origin === targetOrigin && "focus" in client) {
+          return client.focus().then((focusedClient) => {
+            if ("navigate" in focusedClient) {
+              return focusedClient.navigate(absoluteTarget);
+            }
+
+            return focusedClient;
+          });
         }
       }
 
