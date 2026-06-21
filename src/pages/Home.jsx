@@ -551,23 +551,23 @@ function HighlightCard({ item, priority = false }) {
   const wrapperClass = "block shrink-0 snap-start basis-[82vw] max-w-[82vw] sm:basis-[520px] sm:max-w-[520px]";
 
   const content = (
-    <div className="group relative aspect-video overflow-hidden rounded-[24px] border border-white/10 bg-black text-white shadow-[0_18px_36px_rgba(0,0,0,0.34)]">
+    <div className="group relative isolate aspect-video overflow-hidden rounded-[24px] border border-white/10 bg-black text-white shadow-[0_18px_36px_rgba(0,0,0,0.34)]">
       {item.imageUrl ? (
         <img
           src={getImageUrl(item.imageUrl)}
           alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-90 transition-transform duration-500 group-hover:scale-105"
+          className="absolute inset-0 z-0 h-full w-full object-cover opacity-90 sm:transition-transform sm:duration-500 sm:group-hover:scale-105"
           loading={priority ? "eager" : "lazy"}
           decoding="async"
         />
       ) : (
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,91,255,0.35),transparent_35%),linear-gradient(135deg,#000,#07111f)]" />
+        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_20%_15%,rgba(0,91,255,0.35),transparent_35%),linear-gradient(135deg,#000,#07111f)]" />
       )}
 
-      <div className="absolute inset-0 bg-gradient-to-t from-black/84 via-black/12 to-black/10" />
-      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black via-black/78 to-transparent" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/84 via-black/12 to-black/10" />
+      <div className="absolute inset-x-0 bottom-0 z-10 h-28 bg-gradient-to-t from-black via-black/78 to-transparent" />
 
-      <div className="absolute left-3 top-3 right-16 flex items-center gap-2">
+      <div className="absolute left-3 right-16 top-3 z-20 flex items-center gap-2">
         <span className="max-w-full truncate rounded-full bg-red-700 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-white">
           {item.leagueLabel}
         </span>
@@ -579,12 +579,12 @@ function HighlightCard({ item, priority = false }) {
       </div>
 
       {item.url ? (
-        <div className="absolute right-3 top-3 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 shadow-[0_0_24px_rgba(0,91,255,0.28)] backdrop-blur transition-transform duration-300 group-hover:scale-105">
+        <div className="absolute right-3 top-3 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/55 shadow-[0_0_24px_rgba(0,91,255,0.28)] backdrop-blur transition-transform duration-300 sm:group-hover:scale-105">
           <Play className="ml-0.5 h-5 w-5 fill-white text-white" />
         </div>
       ) : null}
 
-      <div className="absolute bottom-3 left-3 right-3">
+      <div className="absolute bottom-3 left-3 right-3 z-30 [transform:translateZ(0)]">
         <p className="text-base font-black leading-tight text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.9)]">
           {item.title}
         </p>

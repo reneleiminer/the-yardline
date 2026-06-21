@@ -223,15 +223,22 @@ function SelectField({ label, value, onChange, children, disabled = false }) {
 }
 
 function HighlightPreview({ highlight }) {
+  const [videoErrored, setVideoErrored] = useState(false);
+  const [imageErrored, setImageErrored] = useState(false);
   const previewVideoUrl = normalizeUrl(highlight.preview_video_url);
-  const thumbnailUrl =
+  const rawThumbnailUrl =
     normalizeUrl(highlight.thumbnail_url || highlight.imageUrl) ||
     getCloudinaryThumbnail(previewVideoUrl);
+  const youtubeFallbackUrl = getYoutubeId(highlight.external_video_url)
+    ? getYoutubeFallbackThumbnail(getYoutubeId(highlight.external_video_url))
+    : "";
+  const thumbnailUrl = imageErrored ? youtubeFallbackUrl : rawThumbnailUrl;
+  const showVideo = previewVideoUrl && !videoErrored;
 
   return (
     <div className="w-full max-w-[230px] mx-auto">
       <div className="relative aspect-[9/16] overflow-hidden rounded-2xl border border-border/60 bg-black">
-        {previewVideoUrl ? (
+        {showVideo ? (
           <video
             src={previewVideoUrl}
             poster={thumbnailUrl || undefined}
@@ -240,7 +247,9 @@ function HighlightPreview({ highlight }) {
             loop
             playsInline
             autoPlay
+            preload="metadata"
             controls={false}
+            onError={() => setVideoErrored(true)}
           />
         ) : thumbnailUrl ? (
           <>
@@ -253,7 +262,10 @@ function HighlightPreview({ highlight }) {
 
                 if (videoId && event.currentTarget.src !== getYoutubeFallbackThumbnail(videoId)) {
                   event.currentTarget.src = getYoutubeFallbackThumbnail(videoId);
+                  return;
                 }
+
+                setImageErrored(true);
               }}
             />
             <div className="absolute inset-0 bg-black/25" />
@@ -264,10 +276,10 @@ function HighlightPreview({ highlight }) {
             </div>
           </>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[linear-gradient(135deg,#0b1220,#000_52%,#1b0508)] px-4 text-center">
             <PlaySquare className="w-10 h-10 text-muted-foreground mb-3" />
             <p className="text-xs text-muted-foreground">
-              Thumbnail oder Preview hochladen
+              {highlight.title || "Thumbnail oder Preview hochladen"}
             </p>
           </div>
         )}
