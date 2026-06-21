@@ -1,6 +1,6 @@
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BarChart3, Camera, ChevronRight, Newspaper, Radio, ShieldPlus, Star, Table2, Trophy, UsersRound } from "lucide-react";
+import { BarChart3, Camera, ChevronRight, Newspaper, Radio, RefreshCw, ShieldPlus, Star, Table2, Trophy, UsersRound } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { hasFeatureAccess } from "@/lib/rolePermissions";
 
@@ -49,6 +49,15 @@ const ACCESS_CARDS = [
     icon: BarChart3,
     color: "text-blue-300",
     bg: "bg-blue-400/10",
+  },
+  {
+    key: "score_automation",
+    title: "Score Automation",
+    description: "Provider, Suggestions, Cron und Streams verwalten",
+    route: "/admin/score-automation",
+    icon: RefreshCw,
+    color: "text-emerald-300",
+    bg: "bg-emerald-400/10",
   },
   {
     key: "data_games",
