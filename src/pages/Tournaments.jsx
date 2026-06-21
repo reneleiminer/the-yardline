@@ -236,8 +236,8 @@ function HighlightPreview({ highlight }) {
   const showVideo = previewVideoUrl && !videoErrored;
 
   return (
-    <div className="w-full max-w-[230px] mx-auto">
-      <div className="relative aspect-[9/16] overflow-hidden rounded-2xl border border-border/60 bg-black">
+    <div className="w-full">
+      <div className="relative aspect-video overflow-hidden rounded-2xl border border-border/60 bg-black">
         {showVideo ? (
           <video
             src={previewVideoUrl}
@@ -843,7 +843,7 @@ export default function AdminHighlights() {
       <div className="flex items-start justify-between gap-3 mb-5">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
-            Hochformat
+            Querformat
           </p>
 
           <h1 className="text-xl font-black mt-1">
@@ -901,7 +901,7 @@ export default function AdminHighlights() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {sortedHighlights.map(highlight => {
             const league = leaguesById.get(highlight.league_id);
             const team = teamsById.get(highlight.team_id);
@@ -928,7 +928,7 @@ export default function AdminHighlights() {
                     </div>
 
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/15 text-primary flex-shrink-0">
-                      9:16
+                      16:9
                     </span>
                   </div>
 
