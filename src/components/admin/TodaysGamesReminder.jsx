@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ChevronDown, ChevronRight, Clock, Radio, Shield } from 'lucide-react';
-import { isToday, parseISO, format } from 'date-fns';
+import { parseISO, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { getEffectiveGameStatus } from '@/lib/gameStatusUtils';
@@ -204,17 +204,7 @@ export default function TodaysGamesReminder() {
 
   const liveGamesByLeague = useMemo(() => {
     const liveGames = allGames
-      .filter(game => {
-        if (getEffectiveGameStatus(game) !== 'live') return false;
-
-        if (!game.date) return true;
-
-        try {
-          return isToday(parseISO(game.date));
-        } catch {
-          return true;
-        }
-      })
+      .filter(game => getEffectiveGameStatus(game) === 'live')
       .sort((a, b) => {
         const timeA = getKickoffTime(a)?.getTime() || 0;
         const timeB = getKickoffTime(b)?.getTime() || 0;

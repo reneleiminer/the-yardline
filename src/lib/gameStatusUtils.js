@@ -1,6 +1,5 @@
-export const AUTO_LIVE_MAX_AGE_MS = 8 * 60 * 60 * 1000;
-export const AUTO_LIVE_EARLY_GRACE_MS = 15 * 60 * 1000;
 export const STREAM_AVAILABLE_BEFORE_KICKOFF_MS = 60 * 60 * 1000;
+export const STREAM_AVAILABLE_AFTER_KICKOFF_MS = 8 * 60 * 60 * 1000;
 
 export function getGameDate(game) {
   const rawDate = String(game?.date || "").trim();
@@ -54,12 +53,12 @@ export function hasPlayableScore(game) {
   );
 }
 
-export function isWithinAutoLiveWindow(game, now = new Date()) {
+export function hasKickoffStarted(game, now = new Date()) {
   const kickoff = getGameDate(game);
   if (!kickoff) return false;
 
   const diff = now.getTime() - kickoff.getTime();
-  return diff >= -AUTO_LIVE_EARLY_GRACE_MS && diff <= AUTO_LIVE_MAX_AGE_MS;
+  return diff >= 0;
 }
 
 export function shouldAutoSwitchToLive(game, now = new Date()) {
@@ -73,7 +72,7 @@ export function shouldAutoSwitchToLive(game, now = new Date()) {
 
   if (!["scheduled", "upcoming", "planned", "open", ""].includes(rawStatus)) return false;
 
-  return isWithinAutoLiveWindow(game, now);
+  return hasKickoffStarted(game, now);
 }
 
 export function getEffectiveGameStatus(game, now = new Date()) {
@@ -85,9 +84,7 @@ export function getEffectiveGameStatus(game, now = new Date()) {
   if (rawStatus === "postponed") return "postponed";
   if (rawStatus === "halftime" || rawStatus === "half_time") return "halftime";
   if (rawStatus === "final") return "final";
-  if (rawStatus === "live") {
-    return isWithinAutoLiveWindow(game, now) ? "live" : "scheduled";
-  }
+  if (rawStatus === "live") return "live";
 
   if (shouldAutoSwitchToLive(game, now)) return "live";
 
@@ -107,7 +104,7 @@ export function isStreamWindowOpen(game, now = new Date()) {
 
   const diff = kickoff.getTime() - now.getTime();
 
-  return diff <= STREAM_AVAILABLE_BEFORE_KICKOFF_MS && diff >= -AUTO_LIVE_MAX_AGE_MS;
+  return diff <= STREAM_AVAILABLE_BEFORE_KICKOFF_MS && diff >= -STREAM_AVAILABLE_AFTER_KICKOFF_MS;
 }
 
 export function normalizeGameStreams(game, now = new Date()) {

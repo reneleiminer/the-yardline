@@ -63,7 +63,6 @@ const AdminHighlights = lazy(() => import("@/pages/Tournaments"));
 const AdminGameResult = lazy(() => import("@/pages/admin/AdminGameResult"));
 const AdminSupport = lazy(() => import("@/pages/admin/AdminSupport"));
 const AdminGameOfTheWeek = lazy(() => import("@/pages/admin/AdminGameOfTheWeek.jsx"));
-const AdminAutoNewsroom = lazy(() => import("@/pages/admin/AdminAutoNewsroom.jsx"));
 const PostDetail = lazy(() => import("@/pages/PostDetail"));
 
 function RouteLoader() {
@@ -302,15 +301,6 @@ function AppRoutes() {
               element={
                 <AdminRoute>
                   <NewsDashboard />
-                </AdminRoute>
-              }
-            />
-
-            <Route
-              path="/admin/auto-newsroom"
-              element={
-                <AdminRoute>
-                  <AdminAutoNewsroom />
                 </AdminRoute>
               }
             />

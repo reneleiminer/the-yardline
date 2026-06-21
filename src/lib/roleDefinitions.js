@@ -82,7 +82,6 @@ export const getRoleSlug = role => {
     footballgermany: "podcast",
 
     news: "news",
-    newsroom: "news",
     redaktion: "news",
     journalist: "news",
     creator: "news",

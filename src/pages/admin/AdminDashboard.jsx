@@ -23,7 +23,6 @@ import {
   Pencil,
   PlaySquare,
   Radio,
-  Sparkles,
   Star,
   Swords,
   Trash2,
@@ -1252,14 +1251,6 @@ export default function AdminDashboard() {
       bg: 'bg-red-400/10',
     },
     {
-      icon: Sparkles,
-      title: 'Auto Newsroom',
-      description: 'Automatische Spielplan-News erzeugen und veröffentlichen',
-      route: '/admin/auto-newsroom',
-      color: 'text-blue-400',
-      bg: 'bg-blue-400/10',
-    },
-    {
       icon: Newspaper,
       title: 'Beiträge',
       description: 'News, Transfers und Test-Beiträge ausblenden oder löschen',
@@ -1449,7 +1440,6 @@ export default function AdminDashboard() {
       subtitle: 'Highlights, Shots, Banner und Partnerflächen',
       items: sections.filter(section => [
         '/admin/news',
-        '/admin/auto-newsroom',
         '/admin/content',
         '/admin/highlights',
         '/admin/gameday-shots',

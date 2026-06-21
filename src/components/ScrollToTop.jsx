@@ -50,10 +50,20 @@ export default function ScrollToTop() {
       window.setTimeout(scrollTop, 500),
       window.setTimeout(scrollTop, 900),
     ];
+    const observer = new MutationObserver(scrollTop);
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    const observerTimer = window.setTimeout(() => observer.disconnect(), 1200);
 
     return () => {
+      observer.disconnect();
       frames.forEach(frame => window.cancelAnimationFrame(frame));
       timers.forEach(timer => window.clearTimeout(timer));
+      window.clearTimeout(observerTimer);
     };
   }, [pathname, search, hash, key]);
 

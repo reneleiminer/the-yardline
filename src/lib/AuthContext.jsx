@@ -33,7 +33,6 @@ function normalizeRole(value) {
     podcast: "podcast",
     podcast_partner: "podcast",
     news: "news",
-    newsroom: "news",
     redaktion: "news",
     journalist: "news",
     creator: "news",
