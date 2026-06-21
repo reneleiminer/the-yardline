@@ -15,7 +15,7 @@ export default function ClubPartnersTab({ club }) {
 
   return (
     <div className="px-3 py-4 pb-24">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         {partners.map((partner, i) => {
           const isUrl = typeof partner === 'string' && partner.startsWith('http');
           const name = typeof partner === 'object' ? partner.name : `Partner ${i + 1}`;
@@ -23,14 +23,14 @@ export default function ClubPartnersTab({ club }) {
           const link = typeof partner === 'object' ? partner.linkUrl : (isUrl ? partner : null);
 
           const card = (
-            <div className="bg-card border border-border/50 rounded-2xl p-4 flex flex-col items-center gap-2 hover:border-primary/30 transition-colors">
+            <div className="flex min-h-[132px] flex-col items-center justify-center gap-3 rounded-2xl border border-border/50 bg-card p-4 text-center shadow-sm transition-colors hover:border-primary/30">
               {logo ? (
-                <img src={getImageUrl(logo)} alt={name} className="h-12 w-full object-contain" onError={e => e.target.style.display='none'} />
+                <img src={getImageUrl(logo)} alt={name} className="h-14 w-full object-contain" onError={e => e.target.style.display='none'} />
               ) : (
-                <div className="h-12 w-full flex items-center justify-center text-xs font-semibold text-muted-foreground">{name}</div>
+                <div className="flex min-h-14 w-full items-center justify-center text-sm font-black leading-tight text-foreground line-clamp-2">{name}</div>
               )}
               {link && (
-                <span className="flex items-center gap-1 text-[10px] text-primary">
+                <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-primary">
                   <ExternalLink className="w-3 h-3" />
                   Website
                 </span>
