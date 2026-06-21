@@ -34,11 +34,14 @@ export default async function handler(req, res) {
         icon: BRAND_ICON,
         badge: BRAND_BADGE,
         tag: `yardline_push_test:${Date.now()}`,
+        url: "/settings",
+        actionUrl: "/settings",
         timestamp: Date.now(),
         vibrate: [160, 80, 160],
         requireInteraction: false,
         data: {
           url: "/settings",
+          actionUrl: "/settings",
         },
         actions: [
           {

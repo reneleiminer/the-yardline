@@ -63,6 +63,7 @@ function buildNotification({ game, teams, status }) {
   const awayScore = Number(game.score_away ?? 0);
   const score = `${homeScore}:${awayScore}`;
   const isFinal = status === "final";
+  const url = `/game/${game.id}`;
 
   return {
     title: isFinal
@@ -72,12 +73,15 @@ function buildNotification({ game, teams, status }) {
     icon: teams.homeLogo || teams.awayLogo || BRAND_ICON,
     badge: BRAND_BADGE,
     tag: `${isFinal ? "final_score" : "live_score"}:${game.id}:${score}`,
+    url,
+    actionUrl: url,
     renotify: true,
     timestamp: Date.now(),
     vibrate: isFinal ? [160, 80, 160] : [180, 80, 180, 80, 220],
     requireInteraction: false,
     data: {
-      url: `/game/${game.id}`,
+      url,
+      actionUrl: url,
     },
     actions: [
       {

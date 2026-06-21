@@ -185,7 +185,15 @@ export function allowPushNotificationsPrompt() {
 export async function registerServiceWorker() {
   if (!isPushSupported()) return null;
 
-  return navigator.serviceWorker.register("/sw.js");
+  const registration = await navigator.serviceWorker.register("/sw.js");
+
+  try {
+    await registration.update();
+  } catch {
+    // Ein fehlgeschlagenes Update darf Push nicht blockieren.
+  }
+
+  return registration;
 }
 
 export async function getCurrentPushSubscription() {
