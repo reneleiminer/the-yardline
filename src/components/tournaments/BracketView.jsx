@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { getImageUrl } from '@/lib/imageUtils';
 import { useGlobalData } from '@/lib/GlobalDataContext';
+import { getEffectiveGameStatus } from '@/lib/gameStatusUtils';
 
 const STATUS_LABELS = {
   upcoming: 'Geplant',
@@ -396,6 +397,7 @@ function resolveBracket({ tournament, league, teams = [], games = [], canResolve
           matchup.winnerId ||
           getWinnerIdFromGame(existingGame, canResolveTeams) ||
           null;
+        const existingStatus = existingGame ? getEffectiveGameStatus(existingGame) : '';
 
         return {
           ...matchup,
@@ -404,13 +406,13 @@ function resolveBracket({ tournament, league, teams = [], games = [], canResolve
           winnerId,
           team1Id,
           team2Id,
-          score1: existingGame?.status === 'final' || existingGame?.status === 'live'
+          score1: existingStatus === 'final' || existingStatus === 'live'
             ? existingGame.scoreHome
             : matchup.score1,
-          score2: existingGame?.status === 'final' || existingGame?.status === 'live'
+          score2: existingStatus === 'final' || existingStatus === 'live'
             ? existingGame.scoreAway
             : matchup.score2,
-          status: existingGame?.status || matchup.status || 'scheduled',
+          status: existingStatus || matchup.status || 'scheduled',
           team1Placeholder: getResolvedPlaceholder(matchup.team1Placeholder, matchup.team1Source, groups),
           team2Placeholder: getResolvedPlaceholder(matchup.team2Placeholder, matchup.team2Source, groups),
         };
@@ -512,8 +514,9 @@ function MatchCard({
   const winnerId = match.winnerId || getWinnerIdFromGame(game, canResolveTeams);
   const team1Wins = winnerId && winnerId === match.team1Id;
   const team2Wins = winnerId && winnerId === match.team2Id;
-  const isFinished = game?.status === 'final' || !!winnerId;
-  const isLive = game?.status === 'live';
+  const gameStatus = game ? getEffectiveGameStatus(game) : match.status;
+  const isFinished = gameStatus === 'final' || !!winnerId;
+  const isLive = gameStatus === 'live';
   const finalRound = !!round.isFinalRound;
   const canOpen = !!game?.id;
 
@@ -719,7 +722,7 @@ export default function BracketView({ tournament, teams: passedTeams }) {
     if (rounds.length === 0) return 0;
 
     const liveRoundIndex = rounds.findIndex(round =>
-      (round.matchups || []).some(matchup => matchup.game?.status === 'live')
+      (round.matchups || []).some(matchup => matchup.game && getEffectiveGameStatus(matchup.game) === 'live')
     );
 
     if (liveRoundIndex !== -1) return liveRoundIndex;

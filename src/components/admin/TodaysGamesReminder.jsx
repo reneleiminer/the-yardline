@@ -6,6 +6,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Clock, Radio, Shield } from '
 import { isToday, parseISO, format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
+import { getEffectiveGameStatus } from '@/lib/gameStatusUtils';
 
 function TeamLogo({ logo, name }) {
   if (logo) {
@@ -204,7 +205,7 @@ export default function TodaysGamesReminder() {
   const liveGamesByLeague = useMemo(() => {
     const liveGames = allGames
       .filter(game => {
-        if (game.status !== 'live') return false;
+        if (getEffectiveGameStatus(game) !== 'live') return false;
 
         if (!game.date) return true;
 

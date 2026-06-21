@@ -211,7 +211,7 @@ function selectRelevantGames(games, mode = "today") {
       }
 
       if (mode === "previous") {
-        return isGamePrevious(item.date, today) || item.status === "final";
+        return isGamePrevious(item.date, today);
       }
 
       return isGameToday(item.date, today);
@@ -322,6 +322,8 @@ function GamesPanel({ games, teamsById, leaguesById }) {
   const emptyLabel =
     gameFilter === "today"
       ? "Heute stehen keine Spiele an."
+      : gameFilter === "previous"
+      ? "Keine Spiele aus den letzten 7 Tagen."
       : "Keine kommenden Spiele in den nächsten 7 Tagen.";
 
   return (

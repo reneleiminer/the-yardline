@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useGlobalData } from '@/lib/GlobalDataContext';
 import { useAuth } from '@/lib/AuthContext';
+import { getEffectiveGameStatus } from '@/lib/gameStatusUtils';
 import { toast } from 'sonner';
 
 const EMPTY_GAME = {
@@ -653,6 +654,7 @@ function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSe
   const home = teamsMap.get(game.homeTeamId);
   const away = teamsMap.get(game.awayTeamId);
   const league = leaguesMap.get(game.leagueId);
+  const status = getEffectiveGameStatus(game);
 
   return (
     <Card className={`p-4 border ${selected ? 'border-primary bg-primary/5' : 'border-border/50'}`}>
@@ -676,16 +678,16 @@ function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSe
 
           <Badge
             className={`text-[10px] border-0 ${
-              game.status === 'live'
+              status === 'live'
                 ? 'bg-red-500/15 text-red-400'
-                : game.status === 'final'
+                : status === 'final'
                 ? 'bg-green-500/15 text-green-400'
-                : game.status === 'cancelled'
+                : status === 'cancelled'
                 ? 'bg-orange-500/15 text-orange-400'
                 : 'bg-secondary text-muted-foreground'
             }`}
           >
-            {getStatusLabel(game.status)}
+            {getStatusLabel(status)}
           </Badge>
         </div>
       </div>
@@ -696,7 +698,7 @@ function MediaGameCard({ game, teamsMap, leaguesMap, selected, creditLabel, onSe
         </p>
 
         <div className="text-center min-w-[72px]">
-          {game.status === 'live' || game.status === 'final' ? (
+          {status === 'live' || status === 'final' ? (
             <p className="text-lg font-black">
               {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
             </p>
@@ -1154,9 +1156,9 @@ export default function DataEditorDashboard() {
   }, [games]);
 
   const todayGames = sortedGames.filter(game => isTodayGame(game));
-  const liveGames = sortedGames.filter(game => game.status === 'live');
-  const openGames = sortedGames.filter(game => game.status === 'scheduled' || game.status === 'live');
-  const finalGames = sortedGames.filter(game => game.status === 'final');
+  const liveGames = sortedGames.filter(game => getEffectiveGameStatus(game) === 'live');
+  const openGames = sortedGames.filter(game => ['scheduled', 'live'].includes(getEffectiveGameStatus(game)));
+  const finalGames = sortedGames.filter(game => getEffectiveGameStatus(game) === 'final');
   const streamGames = sortedGames.filter(game => game.streamUrl || game.streamEnabled || game.streamLinks?.length > 0);
 
   const invalidate = () => {
@@ -1316,6 +1318,7 @@ export default function DataEditorDashboard() {
     const home = teamsMap.get(game.homeTeamId);
     const away = teamsMap.get(game.awayTeamId);
     const league = leaguesMap.get(game.leagueId);
+    const status = getEffectiveGameStatus(game);
     const isEditing = editingGameId === game.id;
     const hasStream = !!game.streamUrl || game.streamLinks?.some(link => link?.url && link?.enabled !== false);
 
@@ -1368,14 +1371,14 @@ export default function DataEditorDashboard() {
 
             <Badge
               className={`text-[10px] border-0 ${
-                game.status === 'live'
+                status === 'live'
                   ? 'bg-red-500/15 text-red-400'
-                  : game.status === 'final'
+                  : status === 'final'
                   ? 'bg-green-500/15 text-green-400'
                   : 'bg-secondary text-muted-foreground'
               }`}
             >
-              {getStatusLabel(game.status)}
+              {getStatusLabel(status)}
             </Badge>
           </div>
         </div>
@@ -1388,7 +1391,7 @@ export default function DataEditorDashboard() {
           </div>
 
           <div className="text-center min-w-[72px]">
-            {game.status === 'live' || game.status === 'final' ? (
+            {status === 'live' || status === 'final' ? (
               <p className="text-lg font-black">
                 {game.scoreHome ?? 0}:{game.scoreAway ?? 0}
               </p>

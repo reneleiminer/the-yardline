@@ -11,7 +11,6 @@ import {
   Camera,
   CalendarDays,
   Clock,
-  ExternalLink,
   Image as ImageIcon,
   Instagram,
   Loader2,
@@ -660,21 +659,18 @@ function StreamCard({ game }) {
           <h2 className="text-sm font-black uppercase tracking-wide">Stream</h2>
         </div>
 
-        <div className="space-y-2">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {visibleStreams.map(stream => (
             <a
               key={stream.id}
               href={normalizeExternalUrl(stream.url)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.055] p-3 active:scale-[0.99]"
+              title={getStreamName(stream)}
+              aria-label={getStreamName(stream)}
+              className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] p-2 transition-transform active:scale-[0.98]"
             >
               <StreamProviderLogo stream={stream} size="w-11 h-11" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black">{getStreamName(stream)}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wide text-white/45">Zum Stream</p>
-              </div>
-              <ExternalLink className="h-4 w-4 text-white/48" />
             </a>
           ))}
         </div>
@@ -710,7 +706,6 @@ function HubInfoItem({ icon: Icon, label, value, href }) {
 function GameDayHub({ game, league }) {
   const kickoff = getGameDate(game);
   const visibleStreams = getVisibleStreamLinks(game);
-  const primaryStream = visibleStreams[0];
   const venue = [game.venue, game.city].filter(Boolean).join(' · ');
   const mapsQuery = [game.venue, game.stadiumAddress, game.city].filter(Boolean).join(', ');
   const mapsUrl = mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}` : '';
@@ -746,16 +741,25 @@ function GameDayHub({ game, league }) {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
-            {primaryStream ? (
-              <a
-                href={normalizeExternalUrl(primaryStream.url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-red-700 px-3 text-xs font-black uppercase tracking-wide text-white shadow-[0_12px_24px_rgba(194,15,26,0.28)] active:scale-[0.99]"
-              >
-                <Play className="h-4 w-4 fill-white" />
-                {visibleStreams.length > 1 ? `Streams ansehen (${visibleStreams.length})` : 'Stream ansehen'}
-              </a>
+            {visibleStreams.length > 0 ? (
+              <div className="flex min-h-12 items-center gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.055] px-2 py-2">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-700 text-white shadow-[0_10px_22px_rgba(194,15,26,0.24)]">
+                  <Play className="h-4 w-4 fill-white" />
+                </span>
+                {visibleStreams.map(stream => (
+                  <a
+                    key={stream.id}
+                    href={normalizeExternalUrl(stream.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={getStreamName(stream)}
+                    aria-label={getStreamName(stream)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/52 p-1.5 transition-transform active:scale-[0.98]"
+                  >
+                    <StreamProviderLogo stream={stream} size="w-7 h-7" />
+                  </a>
+                ))}
+              </div>
             ) : (
               <div className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-center text-[10px] font-black uppercase tracking-wide text-white/45">
                 Kein Stream

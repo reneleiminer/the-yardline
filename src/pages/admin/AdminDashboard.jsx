@@ -838,7 +838,7 @@ function AppBrandingPlanner({
 
       <div className="rounded-xl border border-border/50 bg-background/40 p-3 mb-4 space-y-3">
         <ImageUploadField
-          label="Header-Logo vom Geraet hochladen"
+          label="Header-Logo vom Gerät hochladen"
           value={formData.header_icon_url}
           onChange={value => setFormData(current => ({ ...current, header_icon_url: value }))}
         />
@@ -1254,7 +1254,7 @@ export default function AdminDashboard() {
     {
       icon: Sparkles,
       title: 'Auto Newsroom',
-      description: 'Automatische Spielplan-News erzeugen und veroeffentlichen',
+      description: 'Automatische Spielplan-News erzeugen und veröffentlichen',
       route: '/admin/auto-newsroom',
       color: 'text-blue-400',
       bg: 'bg-blue-400/10',

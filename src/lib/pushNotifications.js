@@ -15,7 +15,7 @@ export const PUSH_PREFERENCE_GROUPS = [
   { key: "podcast", label: "Podcast", description: "Neue Podcast-Folgen.", teamAware: false },
   { key: "gamedayShots", label: "GameDay Shots", description: "Neue Foto-Uploads von Spieltagen.", teamAware: true },
   { key: "gameHighlights", label: "Game Highlights", description: "Neue Highlight-Videos.", teamAware: true },
-  { key: "news", label: "News", description: "Neue News-Beitraege.", teamAware: true },
+  { key: "news", label: "News", description: "Neue News-Beiträge.", teamAware: true },
   { key: "transfers", label: "Transfers", description: "Neue Transfermeldungen.", teamAware: true },
   { key: "weeklyStreaks", label: "Siegesserien", description: "Sonntags nach finalen Wochenendspielen.", teamAware: false },
 ];
@@ -199,7 +199,7 @@ export async function getCurrentPushSubscription() {
 
 export async function enablePushNotifications(metadata = {}) {
   if (!isPushSupported()) {
-    throw new Error("Push-Benachrichtigungen werden auf diesem Geraet nicht unterstuetzt.");
+    throw new Error("Push-Benachrichtigungen werden auf diesem Gerät nicht unterstützt.");
   }
 
   allowPushNotificationsPrompt();

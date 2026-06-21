@@ -2,7 +2,7 @@ import { useLayoutEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 export default function ScrollToTop() {
-  const { pathname, search } = useLocation();
+  const { pathname, search, hash, key } = useLocation();
 
   useLayoutEffect(() => {
     const scrollSelectors = [
@@ -10,10 +10,16 @@ export default function ScrollToTop() {
       'main',
       '[data-scroll-root="true"]',
       '[data-admin-scroll="true"]',
+      '[role="main"]',
+      '.overflow-y-auto',
+      '.overflow-auto',
     ];
 
     const scrollTop = () => {
       const targets = new Set();
+      const pageRoot = document.scrollingElement || document.documentElement;
+
+      if (pageRoot) targets.add(pageRoot);
 
       scrollSelectors.forEach(selector => {
         document.querySelectorAll(selector).forEach(element => targets.add(element));
@@ -41,13 +47,15 @@ export default function ScrollToTop() {
     const timers = [
       window.setTimeout(scrollTop, 80),
       window.setTimeout(scrollTop, 220),
+      window.setTimeout(scrollTop, 500),
+      window.setTimeout(scrollTop, 900),
     ];
 
     return () => {
       frames.forEach(frame => window.cancelAnimationFrame(frame));
       timers.forEach(timer => window.clearTimeout(timer));
     };
-  }, [pathname, search]);
+  }, [pathname, search, hash, key]);
 
   return null;
 }

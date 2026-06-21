@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import ScoreDisplay from '@/components/ui/ScoreDisplay';
 import { getImageUrl } from '@/lib/imageUtils';
 import BracketView from '@/components/tournaments/BracketView';
+import { getEffectiveGameStatus } from '@/lib/gameStatusUtils';
 
 const PLAYOFF_TYPES = ['playoffs', 'cup'];
 const LIST_TYPES = ['playdowns', 'relegation', 'promotion'];
@@ -461,7 +462,8 @@ function CompetitionGameCard({ game, teamsById }) {
   const homeName = getTeamName(home, game.homeTeamPlaceholder);
   const awayName = getTeamName(away, game.awayTeamPlaceholder);
   const winnerId = getWinnerIdFromGame(game);
-  const isFinal = game.status === 'final';
+  const status = getEffectiveGameStatus(game);
+  const isFinal = status === 'final';
   const homeWinner = winnerId && winnerId === game.homeTeamId;
   const awayWinner = winnerId && winnerId === game.awayTeamId;
 
@@ -488,7 +490,7 @@ function CompetitionGameCard({ game, teamsById }) {
         </div>
 
         <Badge variant="outline" className="text-[10px] border-white/15 bg-white/10">
-          {GAME_STATUS_LABELS[game.status] || game.status || 'Geplant'}
+          {GAME_STATUS_LABELS[status] || status || 'Geplant'}
         </Badge>
       </div>
 
@@ -499,7 +501,7 @@ function CompetitionGameCard({ game, teamsById }) {
           </div>
 
           <div className="text-center min-w-[92px]">
-            {game.status === 'live' || game.status === 'final' ? (
+            {status === 'live' || status === 'final' ? (
               <ScoreDisplay
                 homeScore={game.scoreHome ?? 0}
                 awayScore={game.scoreAway ?? 0}

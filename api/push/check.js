@@ -472,7 +472,7 @@ async function buildFavoriteLiveScoreEvents(supabase) {
       favoriteOnly: true,
       urgent: true,
       payload: {
-        title: "Neuer Score fuer dein Team",
+        title: "Neuer Score für dein Team",
         body: `${teams.homeName} ${score} ${teams.awayName}`,
         url: `/game/${game.id}`,
         tag: `favorite_live_score:${game.id}`,
